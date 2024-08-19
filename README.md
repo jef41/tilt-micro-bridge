@@ -1,42 +1,39 @@
-# Pitch (Tilt Hydrometer tool)
+# Micro Bridge (Tilt Hydrometer tool)
 
-![](beer-icon.png "Beer Icon")
+This project is a remodelling of the work already done in [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). That project is written in Python. This project aims to convert functionality to Micropython.
 
-Pitch is an unofficial replacement for Tilt Hydrometer mobile apps and TiltPi software.  Tilt hardware is required.  It is designed to be easy to use and integrated with other tools like Promethues and InfluxDB for metrics, or any generic third party source using webhooks.
+The intention is to create a minimal hardware Wifi & Bluetooth bridge, this project has been developed using a Raspberry Pi Pico W. Should require;
 
-![](misc/grafana_example_dashboard.png "Grafana Example Dashboard")
+* Raspberry Pi Pico W (wifi and bluetooth)
+* micro USB cable
+* Thonny software
+* UF2 [Instructions](https://micropython.org/download/RPI_PICO/)
 
-# Why
-
-The Tilt hardware is impressive, but the mobile apps and TiltPi are confusing and buggy.  This project aims to provide a better more reliable solution, but is focused on more tech-savvy brewers than the official Tilt projects.  
+Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with Grainfather and then to get some averaging of values: the Tilt seems to tranmit very regularly (as in every second), Grainfather allows loggin every 15 minutes (which seems reasonable). Rather than log noise maybe store the latest minute of data in a buffer, when a timer has elapsed do some normalisation and averaging on that data and log that. 
 
 # Features
 
 The following features are implemented, planned, or will be investigated in the future:
 
-* [x] Track multiple Tilts at once
-* [x] Calibrate Tilt readings with known good values
-* [x] Prometheus Metrics
-* [x] Tilt status log file (JSON)
-* [X] InfluxDB 1.0 and 2.0 Metrics
-* [X] Multiple logging and metric sources simultaneously
-* [X] Webhooks for supporting generic integrations (similar to Tilt's Cloud Logging feature)
-* [X] Gravity, original gravity, ABV, temperature and apparent attenuation
-* [X] Custom Beer/brew names (e.g. purple tilt = Pumpkin Ale)
-* [X] Brewing Cloud Services (Brewfather, Brewer's Friend, Grainfather, more can be requested!)
-* [ ] Google Sheets (using any Google Drive)
+* [ ] Get a minimal demonstration working
+* [ ] Get Grainfather provider working
+* [ ] Tilt status log file (JSON)
+* [ ] Enable averaging
+* [ ] Calibrate Tilt readings with known good values
+* [ ] Build Instructions
+* [ ] UF2 release
 
 # Installation
 
-Pitch will only work on Linux, with libbluetooth-dev installed.  [See examples/install/prereq.sh](https://github.com/linjmeyer/tilt-pitch/blob/master/examples/install/prereqs.sh) for
-an example of how to do this using apt-get (Ubuntu, Raspberry Pi, etc).  
+Install an approprioate Micropython distribution onto the microcontroller
 
-After setting up prereqs install using: `pip3 install tilt-pitch`
-Pitch can be run using: `python3 -m pitch`
+Using Thonny, copy the contents of the 'bridge' folder to the root of the device
+
+create a config.json file on the root of the device. Specify Wifi credentials, Tilt colour & Grainfather upload URL
 
 ## Configuration
 
-Custom configurations can be used by creating a file `pitch.json` in the working directory you are running Pitch from.
+Custom configurations can be used by creating a file `config.json` in the working directory you are running Bridge from.
 
 | Option                       | Purpose                      | Default               | Example               |
 | ---------------------------- | ---------------------------- | --------------------- | --------------------- |
