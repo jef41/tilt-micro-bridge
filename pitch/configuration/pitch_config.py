@@ -44,9 +44,11 @@ class PitchConfig:
         # Brewersfriend
         self.brewersfriend_api_key = None
         self.brewersfriend_temp_unit = "F"
-        # Grainfather
+        # Grainfather Custom
         self.grainfather_custom_stream_urls = None
         self.grainfather_temp_unit = "F"
+        # Grainfather Tilt
+        self.grainfather_tilt_stream_urls = None
         # Azure IoT Hub
         self.azure_iot_hub_connectionstring = None
         self.azure_iot_hub_limit_rate = 8000 # free tier 8000msg per day

@@ -39,6 +39,7 @@ normal_providers = [
         BrewfatherCustomStreamCloudProvider(config),
         BrewersFriendCustomStreamCloudProvider(config),
         GrainfatherCustomStreamCloudProvider(config),
+        GrainfatherTiltStreamCloudProvider(config),
         TaplistIOCloudProvider(config),
         AzureIoTHubCloudProvider(config)
     ]
