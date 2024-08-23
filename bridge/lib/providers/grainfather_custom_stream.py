@@ -5,6 +5,8 @@
 #     "unit": "celsius" || "fahrenheit" //supply the unit that matches the temperature you are sending
 # }
 
+import time
+import logging
 from models import TiltStatus
 #from abstractions import CloudProviderBase
 from configuration import BridgeConfig
@@ -20,8 +22,11 @@ import json
 #from collections import OrderedDict
 import gc # for development only
 from rate_limiter import RateLimitedException
-import time
 
+
+#dbg_logger = logging.getLogger("main.GFcustomProvider")
+#logger = logging.getLogger('GFcustomProvider')
+#logger.setLevel(logging.DEBUG)
 
 #class GrainfatherCustomStreamCloudProvider(implements(CloudProviderBase)):
 class GrainfatherCustomStreamCloudProvider():
@@ -32,6 +37,7 @@ class GrainfatherCustomStreamCloudProvider():
         self.str_name = "Grainfather Custom URL"
         self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
         self.update_due = False
+        #logger.info("test provider")
 
     def __str__(self):
         return self.str_name
@@ -69,7 +75,8 @@ class GrainfatherCustomStreamCloudProvider():
         #    raise RateLimitedException()
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         payload = self._get_payload(tilt_status)
-        print("send payload: {}".format(json.dumps(payload)))
+        #print("send payload: {}".format(json.dumps(payload)))
+        #print("send payload: {}".format(json.dumps(payload)))
         start = gc.mem_free() #don't call if in a thread?
         #try:
         # todo temporarily block rate_limiter so we don't repeat requests while one is pending?

@@ -3,6 +3,12 @@
     look at running ble collection on core1
     investigate timestamping in tilt_status
 '''
+import logging
+import gc
+import sys
+import ntptime
+import network
+import time
 import asyncio
 from aioble import central as aioble_central
 #import bluetooth
@@ -10,15 +16,16 @@ from aioble import central as aioble_central
 from primitives import Queue
 #import _thread
 from machine import RTC
-import time
-import ntptime
-import network
 from models import TiltStatus
 from providers import *
 from configuration import BridgeConfig
 from rate_limiter import RateLimitedException
-import gc
-import sys
+
+#brdg_logger = logging.getLogger("main.bridge")
+#brdg_logger = logging.getLogger(__name__)
+# Get a child logger of 'my_app'
+logger = logging.getLogger('bridge')
+logger.setLevel(logging.DEBUG)
 
 if "RP2040" in  sys.implementation:
     import rp2
@@ -84,6 +91,7 @@ rtc = RTC()
 
 
 async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = False, console_log: bool = True):
+    #logger.warning("test2")
     if providers is None:
         providers = normal_providers
     global bridge_q
@@ -112,18 +120,17 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         scanner = asyncio.create_task(_scan_for_ibeacons()) # creates memory leak if duration_ms=0
         #pass
     try:
+        a = 1200
         while True:
-            #print("consumer loop")
+            # this loop will process the incoming data queue
             #handler = asyncio.create_task(_handle_bridge_queue(bridge_q, console_log))
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
-            #print("handler started")
             await handler # wait for handler to return
-            #print("handler returned")
-            #await asyncio.sleep_ms(2000) # wait for scan interval to finish
-            # maybe await scanner or gather?
-            #await handler #asyncio.gather(handler)#, scanner)
-            print(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
-            await asyncio.sleep_ms(10)
+            if a == 1500: # getting approx 300 messages per minute so this is 5 mins
+                print(f"{display_time()}\tgc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
+                a = 0
+            a = a + 1
+            await asyncio.sleep_ms(10) # set to 0
     except KeyboardInterrupt:
         #aioble.stop()
         #scanner.stop()
@@ -140,7 +147,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         while True:
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
             await handler # wait for handler to return
-            print(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
+            #print(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
             # check timeout
             if timeout_seconds:
                 current_time = time.time()
@@ -230,9 +237,9 @@ async def _scan_for_ibeacons():
     TILT = "0215a495"
     # Start scanning for advertisements
     while True:
-        async with aioble_central.scan(duration_ms=50000,
+        async with aioble_central.scan(duration_ms=20000,
                                        interval_us=160000,
-                                       window_us=11250) as scanner:
+                                       window_us=16000) as scanner:
             async for result in scanner:
                 # Check if the advertisement contains the iBeacon prefix
                 #if result.manufacturer and result.manufacturer.startswith(IBEACON_PREFIX):
@@ -255,9 +262,7 @@ async def _scan_for_ibeacons():
                     #_beacon_callback("a495bb40-c5b1-4b44-b512-1370f02d74df", 65, 1021, 0, result.rssi, bridge_q)
                     await _beacon_callback("a495bb40-c5b1-4b44-b512-1370f02d74df", 65, 1021, 0, 0, bridge_q)
                     #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
-            #result = None
-            #await asyncio.sleep(100)
-        #return None
+            scanner.cancel()
 
 
 async def _start_beacon_simulation(bridge_q):
@@ -274,7 +279,7 @@ async def _start_beacon_simulation(bridge_q):
     #while True:
     while scanner_running:
         #_beacon_callback(None, None, fake_packet, dict(), bridge_q)
-        _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q) # testing memory leak
+        _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q) 
         #time.sleep(0.1)
         #time.sleep(0.85)
         await asyncio.sleep_ms(10)
@@ -290,15 +295,11 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q):
     # this can happen because Tilt broadcasts very frequently, while Pitch must make network calls
     # to forward Tilt status info on and this can cause Pitch to fall behind
     # global cb_tilt_status
-    #stg1 = gc.mem_free()
     if bridge_q.full():
         #print("debug queue is full")
         return
 
-    #uuid = packet.uuid
-    #stg2 = gc.mem_free()
     colour = uuid_to_colours.get(uuid)
-    #stg3 = gc.mem_free()
     if colour:
         #print("beacon_callback colour match, {}".format(colour))
         # iBeacon packets have major/minor attributes with data
@@ -307,7 +308,6 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q):
         #start = gc.mem_free()
         beacon_data = TiltStatus(colour, major, _get_decimal_gravity(minor), config)
         #print("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
-        #stg4 = gc.mem_free()
         #print("debug: tilt_status:\n{}".format(dir(tilt_status)))
         if not beacon_data.temp_valid:
             print("Ignoring broadcast due to invalid temperature: {}F".format(beacon_data.temp_fahrenheit))
@@ -324,23 +324,14 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q):
             #print("{}\t beacon packet received".format(beacon_data.timestamp))
             #print("debug: bridge_q after {}".format(bridge_q.qsize()))
         #print("debug: end of if colour")
-        #stg5 = gc.mem_free()
     else:
         print("beacon_callback no colour match")
-    #print("debug: end of beacon_callback")
-    #await asyncio.sleep_ms(0)
-    #beacon_data = None
-    #colour = None
-    #stg6 = gc.mem_free()
-    #print("mem free after beacon_callback:{}".format(gc.mem_free()))
-    #print("mem free after beacon_callback:{}\t{}\t{}\t{}\t{}\t{}".format(stg1,stg2,stg3,stg4,stg5,stg6))
-    # testing memory leak
 
 
 #def _handle_bridge_queue(enabled_providers: list, console_log: bool):
 async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
     #global tilt_status
-    #print("handle queue")
+    #brdg_logger.info("handle queue")
     global bridge_q
     if config.queue_empty_sleep_seconds > 0 and bridge_q.empty():
         #time.sleep(config.queue_empty_sleep_seconds)
@@ -354,19 +345,15 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
     #start = gc.mem_free()
     #print("handle queue2")
     try:
-        tilt_status = await bridge_q.get() #blocks until data available # await bridge_q.get() # needs await to get anything
+        tilt_status = await bridge_q.get() #blocks until data available
+    except IndexError:
+        # Queue is empty
+        print("index error queue empty")
+        raise
     except Error as e:
         print(f"handler err: {e}")
         raise
-    '''try:
-        tilt_status = bridge_q.get_nowait() #bridge_q.get_sync()
-        #print(dir(tilt_status))
-    except IndexError:
-        # Queue is empty
-        print("index error queue empty")'''
-    #print("handle queue3")
-    #print("handle queue4")
-    #print("handle queue5")
+    
     for provider in enabled_providers:
         try:
             start = time.time()
@@ -379,8 +366,7 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
             #asyncio.create_task(provider.update(tilt_status))
             #print("update done")
             time_spent = time.time() - start
-            if console_log:
-                print("{}\tUpdated provider {} for {} Tilt, took {:.3f} seconds".format(display_time(), provider, tilt_status.colour, time_spent))
+            print("{}\tUpdated provider {} for {} Tilt, took {:.3f} seconds".format(display_time(), provider, tilt_status.colour, time_spent))
             #await asyncio.sleep_ms(2000) # allow for scanning between provider updates
         except RateLimitedException:
             # nothing to worry about, just called this too many times (locally)
@@ -389,18 +375,9 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
         except Exception as e:
             # todo: better logging of errors
             print("provider update error: {}".format(e))
-    #tilt_status = None
     # Log it to console/stdout
     #print("debug SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
-    #print("handle queue6")
-    if console_log:
-        pass
-        #print("handle queue7")
-        #print("SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
-        #print(dir(tilt_status))
-        #print("values:{}".format(tilt_status.toJson()))
-        #time.sleep(180) # for debug
-    #await asyncio.sleep_ms(100)
+    #print("SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
 
 
 def _get_decimal_gravity(gravity):
@@ -474,5 +451,6 @@ def display_time():
     year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
     # Print a date - YYYY-MM-DD
     return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
+
 
 
