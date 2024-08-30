@@ -6,7 +6,7 @@
 # }
 
 import time
-import logging
+#import logging
 from models import TiltStatus
 #from abstractions import CloudProviderBase
 from configuration import BridgeConfig
@@ -62,48 +62,52 @@ class GrainfatherCustomStreamCloudProvider():
         start_time = time.ticks_ms()
         #print("debug: async GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
         # Skip if this colour doesn't have a grainfather URL assigned
-        if tilt_status.colour not in self.colour_urls.keys():
-            return
-        url = self.colour_urls[tilt_status.colour]
-        self.rate_limiter.approve(tilt_status.colour)
-        #try:
-        #    self.rate_limiter.approve(tilt_status.colour)
-        #except RateLimitedException:
-        #    # nothing to worry about, just called this too many times (locally)
-        #    #raise RateLimitedException()
-        #    #print("Skipping update due to rate limiting for GC_custom for colour {}".format(tilt_status.colour))
-        #    raise RateLimitedException()
-        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-        payload = self._get_payload(tilt_status)
-        #print("send payload: {}".format(json.dumps(payload)))
-        #print("send payload: {}".format(json.dumps(payload)))
-        start = gc.mem_free() #don't call if in a thread?
-        #try:
-        # todo temporarily block rate_limiter so we don't repeat requests while one is pending?
-        #  using await below returns nothing
-        #response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=5)
-        #todo handle timeout error
-        try:
-            response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
-            #response = asyncio.create_task(requests.post(url, headers=headers, data=json.dumps(payload), timeout=0.1))
-            #print("custom response is:{} bytes".format(start - gc.mem_free()))
-            #await response
-            print("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
-            retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
-            #print("Retry in:{}".format(retry)) if retry else print("no retry value, so data updated")
-            time_spent = time.ticks_diff(time.ticks_ms(), start_time)
-            #self._adjust_timing(response.status_code, retry_in, time_spent, tilt_status)
-            response.close()
-            response = None # make available for gc
-        except requests.ConnectionError:
-            raise Exception('requests Connection error.')
-        except requests.TimeoutError:
-            #print(f'requests Timeout error.')
-            response = None
-            raise Exception("requests Timeout error.") #requests.TimeoutError
-            #todo: handle this in the calling function
-        finally:  # Usual way to do cleanup 
-            pass
+        #print(f"tilt_status.colour {tilt_status.colour} is in self.colour_urls.keys()? {self.colour_urls.keys()}")
+        #if tilt_status.colour not in self.colour_urls.keys():
+        #    print("not in")
+        #    #return
+        #else:
+        if tilt_status.colour in self.colour_urls.keys():
+            url = self.colour_urls[tilt_status.colour]
+            self.rate_limiter.approve(tilt_status.colour)
+            #try:
+            #    self.rate_limiter.approve(tilt_status.colour)
+            #except RateLimitedException:
+            #    # nothing to worry about, just called this too many times (locally)
+            #    #raise RateLimitedException()
+            #    #print("Skipping update due to rate limiting for GC_custom for colour {}".format(tilt_status.colour))
+            #    raise RateLimitedException()
+            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+            payload = self._get_payload(tilt_status)
+            #print("send payload: {}".format(json.dumps(payload)))
+            #print("send payload: {}".format(json.dumps(payload)))
+            start = gc.mem_free() #don't call if in a thread?
+            #try:
+            # todo temporarily block rate_limiter so we don't repeat requests while one is pending?
+            #  using await below returns nothing
+            #response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=5)
+            #todo handle timeout error
+            try:
+                response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
+                #response = asyncio.create_task(requests.post(url, headers=headers, data=json.dumps(payload), timeout=0.1))
+                #print("custom response is:{} bytes".format(start - gc.mem_free()))
+                #await response
+                print("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
+                retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
+                #print("Retry in:{}".format(retry)) if retry else print("no retry value, so data updated")
+                time_spent = time.ticks_diff(time.ticks_ms(), start_time)
+                #self._adjust_timing(response.status_code, retry_in, time_spent, tilt_status)
+                response.close()
+                response = None # make available for gc
+            except requests.ConnectionError:
+                raise Exception('requests Connection error.')
+            except requests.TimeoutError:
+                #print(f'requests Timeout error.')
+                response = None
+                raise Exception("requests Timeout error.") #requests.TimeoutError
+                #todo: handle this in the calling function
+            finally:  # Usual way to do cleanup 
+                pass
         
         #http_return(int(response.status_code), response.headers)
         # todo: handle retry after (if not none),

@@ -11,6 +11,7 @@ class BridgeConfig:
         # Queue
         self.queue_size = 15
         self.queue_empty_sleep_seconds = 1
+        self.averaging_period = 600 # 0 21000
         # Broadcast Data ranges
         self.temp_range_min = 32
         self.temp_range_max = 212
@@ -88,7 +89,7 @@ class BridgeConfig:
                 config_raw = json.load(file)
             #print(f"got config {config_raw}")
         except OSError:
-            print("file not found")
+            print(f"config file not found ({file_path})")
             pass
 
         config = BridgeConfig(config_raw)

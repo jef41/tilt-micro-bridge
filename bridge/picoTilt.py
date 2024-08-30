@@ -1,5 +1,8 @@
 ''' 
     changes in this version:
+    clean up some code
+    test & implement averaging    
+        
     tested OK: bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
     testedOK: rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
     failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
@@ -35,12 +38,12 @@
 '''
 
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-import logging #, sys
+#import logging #, sys
 #from bridge_main import *
 #from bridge_main_asyncv3 import *
 #import bridge_main_asyncv4 as bridge
 #import bridge_main_asyncv5 as bridge
-import bridge_main_asyncv6 as bridge
+import bridge_main_averaging as bridge
 import asyncio
 import _thread
 import gc
@@ -95,8 +98,8 @@ def set_global_exception():
 
 async def main():
     set_global_exception()  # Debug aid
-    await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
-    #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = True, console_log=True)
+    #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
+    await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = True, console_log=True)
 
     
 # get wifi network
