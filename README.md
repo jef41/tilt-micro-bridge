@@ -1,45 +1,52 @@
-# Pitch (Tilt Hydrometer tool)
+# Micro Bridge (Tilt Hydrometer tool)
 
-![](beer-icon.png "Beer Icon")
+This project is a remodelling of the work already done in [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). That project is written in Python. This project aims to convert functionality to Micropython.
 
-Pitch is an unofficial replacement for Tilt Hydrometer mobile apps and TiltPi software.  Tilt hardware is required.  It is designed to be easy to use and integrated with other tools like Promethues and InfluxDB for metrics, or any generic third party source using webhooks.
+The intention is to create a minimal hardware Wifi & Bluetooth bridge, this project has been developed using a Raspberry Pi Pico W. Should require;
 
-![](misc/grafana_example_dashboard.png "Grafana Example Dashboard")
+* Raspberry Pi Pico W (wifi and bluetooth)
+* micro USB cable
+* Thonny software
+* UF2 [Instructions](https://micropython.org/download/RPI_PICO/)
 
-# Why
-
-The Tilt hardware is impressive, but the mobile apps and TiltPi are confusing and buggy.  This project aims to provide a better more reliable solution, but is focused on more tech-savvy brewers than the official Tilt projects.  
+Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with Grainfather and then to get some averaging of values: the Tilt seems to tranmit very regularly (as in every second), Grainfather allows loggin every 15 minutes (which seems reasonable). Rather than log noise maybe store the latest minute of data in a buffer, when a timer has elapsed do some normalisation and averaging on that data and log that. 
 
 # Features
 
 The following features are implemented, planned, or will be investigated in the future:
 
-* [x] Track multiple Tilts at once
-* [x] Calibrate Tilt readings with known good values
-* [x] Prometheus Metrics
-* [x] Tilt status log file (JSON)
-* [X] InfluxDB 1.0 and 2.0 Metrics
-* [X] Multiple logging and metric sources simultaneously
-* [X] Webhooks for supporting generic integrations (similar to Tilt's Cloud Logging feature)
-* [X] Gravity, original gravity, ABV, temperature and apparent attenuation
-* [X] Custom Beer/brew names (e.g. purple tilt = Pumpkin Ale)
-* [X] Brewing Cloud Services (Brewfather, Brewer's Friend, Grainfather, more can be requested!)
-* [ ] Google Sheets (using any Google Drive)
+* [x] Get a minimal demonstration working
+* [x] Get Grainfather provider working
+* [ ] Tilt status log file (JSON)
+* [ ] Enable averaging
+* [ ] More robust WiFi check/reconnect
+* [ ] Watchdog/restarts
+* [ ] Error logging
+* [ ] Calibrate Tilt readings with known good values
+* [ ] Build Instructions
+* [ ] UF2 release
 
 # Installation
 
-Pitch will only work on Linux, with libbluetooth-dev installed.  [See examples/install/prereq.sh](https://github.com/linjmeyer/tilt-pitch/blob/master/examples/install/prereqs.sh) for
-an example of how to do this using apt-get (Ubuntu, Raspberry Pi, etc).  
+Install an appropriate Micropython distribution onto the microcontroller
 
-After setting up prereqs install using: `pip3 install tilt-pitch`
-Pitch can be run using: `python3 -m pitch`
+Using Thonny, copy the contents of the 'bridge' folder to the root of the device
+
+create a config.json file on the root of the device. Specify Wifi credentials, Tilt colour & Grainfather upload URL
+
+Using Thonny run the file picoTilt_6.py (or rename that file to main.py so it autoruns).
+
+This version is a working in principle version. It is functional, but requires a lot more refinement before it could be considered a stable, working version for release.
 
 ## Configuration
 
-Custom configurations can be used by creating a file `pitch.json` in the working directory you are running Pitch from.
+Custom configurations can be used by creating a file `config.json` in the working directory you are running Bridge from.
 
 | Option                       | Purpose                      | Default               | Example               |
 | ---------------------------- | ---------------------------- | --------------------- | --------------------- |
+|`ssid` (str) | SSID for your WiFi newtork | None | [Example config](bridge/readme.md) |
+|`password` (str) | password for your WiFi newtork | None | [Example config](bridge/readme.md) |
+|`averaging_period` (int) | number of seconds to store and average Tilt data. 0 = no averaging | `600` | (not yet implemented) |
 | `queue_size` (int) | Max queue size for all Tilt event broadcasts.  Events are removed from the queue once all enabled providers have handled the event.  New events are dropped when the queue is maxed.  | `3` | [Example config](examples/queue/pitch.json) |
 | `queue_empty_sleep_seconds` (int) | Time in seconds Pitch will sleep when the queue reaches 0. The higher the value the less CPU time Pitch uses.  Can be 0 or negative (this disables sleep and Pitch will always run). | `1` | [Example config](examples/queue/pitch.json) |
 | `temp_range_min` (int) | Minimum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `32` | No example yet (PRs welcome!) |
@@ -65,7 +72,8 @@ Custom configurations can be used by creating a file `pitch.json` in the working
 | `influxdb2_bucket` (str) | Bucket to write data to in InfluxDB 2.0 | None/empty | `bucket_name`
 | `influxdb_timeout_seconds` (int) | Timeout of InfluxDB reads/writes | `5` | No example yet (PRs welcome!) |
 | `brewfather_custom_stream_url` (str) | URL of Brewfather Custom Stream | None/empty | No example yet (PRs welcome!) |
-| `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value) | None/empty | [Example config](examples/grainfather/pitch.json) |
+| `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather/pitch.json) |
+| `grainfather_tilt_stream_urls` (dict) | Dict of color (key) and URLs (value), as above, but seen as a Tilt Device | None/empty | [Example config](bridge/readme.md) |
 | `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` |  [Example config](examples/grainfather/pitch.json) |
 | `brewersfriend_api_key` (str) | API Key for Brewer's Friend | None/empty | No example yet (PRs welcome!) |
 | `taplistio_url` (str) | URL of Taplist.io Tilt reporting webhook | None/empty | No example |
@@ -85,7 +93,7 @@ providers have handled the event.  Additionally some providers may implement the
 queue size is met before sending a batch of events, and the Brewfather and Grainfather integrations will only send updates every fifteen minutes.
 
 Refer to the above configuration and the integration list below for details on how this works for different integrations.
-
+<!---
 ## Calibration
 
 You can calibrate temperature and gravity for each Tilt by color.  To do this stop Pitch if it is running in the background, then run the following command:
@@ -237,13 +245,17 @@ only allows logging data every fifteen minutes per Tilt which Pitch adheres to. 
 To setup login into Brewfather > Settings > PowerUps > Enable Custom Stream > Copy the URL into your Pitch config
 
 ![Configuring Brewfather Custom Stream URL](misc/brewfather_custom_stream.png)
-
+-->
 ## Grainfather
 
 Tilt data can be logged to Grainfather using their Custom Fermenation Device feature.  See [Configuration section](#Configuration) for setting this up in the Pitch config.  Grainfather only allows logging data ever fifteen minutes per Tilt which Pitch adheres to.  You must create a custom device per Tilt and save each URL into the Pitch config.
 
-To setup login into Grainfather > My Equipment > Add Fermenation Device > Set the name and save > Press the "i" (info) button next to the device > Copy the URL into pitch.config
+Tilt data can alternatively be logged to Grainfather using their **Tilt** Fermenation Device feature.  The set up is as per the Custom device, the only difference being whether Grainfather records your device as a *Custom* or a *Tilt* device.
 
+Note that temperatures displayed on the Grainfather website will use the preference you have configured on their website. This means you can upload data in Farenheit or Centigrade, it will be converted and displayed in your preference by the Grainfather website.
+
+To setup login into Grainfather > My Equipment > Add Fermenation Device > Set the name and save > Press the "i" (info) button next to the device > Copy the URL into pitch.config
+<!---
 ![Configuring Brewfather Custom Stream URL](misc/grainfather_custom_stream.png)
 
 ## Brewer's Friend
@@ -288,3 +300,4 @@ If you like Pitch, feel free to coffee (or a beer) here: https://www.buymeacoffe
 ## Name
 
 It's an unofficial tradition to name tech projects using nautical terms.  Pitch is a term used to describe the tilting/movement of a ship at sea.  Given pitching is also a brewing term, it seemed like a good fit.
+-->

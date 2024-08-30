@@ -1,7 +1,9 @@
 *__pycache__*
+config.json
 log.json
 pitch_log.json
 pitch.json
+config.json
 .idea/
 .vscode/
 .DS_Store
@@ -133,7 +135,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+#lib/
 lib64/
 parts/
 sdist/
