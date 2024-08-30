@@ -15,21 +15,28 @@ Not all of the features of Tilt-Pitch will port across, my personal interest is 
 
 The following features are implemented, planned, or will be investigated in the future:
 
-* [ ] Get a minimal demonstration working
-* [ ] Get Grainfather provider working
+* [x] Get a minimal demonstration working
+* [x] Get Grainfather provider working
 * [ ] Tilt status log file (JSON)
 * [ ] Enable averaging
+* [ ] More robust WiFi check/reconnect
+* [ ] Watchdog/restarts
+* [ ] Error logging
 * [ ] Calibrate Tilt readings with known good values
 * [ ] Build Instructions
 * [ ] UF2 release
 
 # Installation
 
-Install an approprioate Micropython distribution onto the microcontroller
+Install an appropriate Micropython distribution onto the microcontroller
 
 Using Thonny, copy the contents of the 'bridge' folder to the root of the device
 
 create a config.json file on the root of the device. Specify Wifi credentials, Tilt colour & Grainfather upload URL
+
+Using Thonny run the file picoTilt_6.py (or rename that file to main.py so it autoruns).
+
+This version is a working in principle version. It is functional, but requires a lot more refinement before it could be considered a stable, working version for release.
 
 ## Configuration
 

@@ -1,8 +1,8 @@
 ''' 
     changes in this version:
-    bridge_main ble scan uses duration_ms=0 & cancel - does this consume memory, needs test?
-    rate_limiter uses time.ticks_ms() - does this improve retention of logging minute
-    using/testing logging module
+    tested OK: bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
+    testedOK: rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
+    failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
     
     todo handle & log server responses 200, 201, 429, other
     todo implement console & file logging for debug

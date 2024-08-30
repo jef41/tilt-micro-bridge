@@ -1,9 +1,0 @@
-prometheus_client
-jsonpickle
-python-interface
-pyfiglet<1
-influxdb
-influxdb-client[ciso]
-beacontools[scan]
-azure-iot-device==3.0.0b2
-pybluez
