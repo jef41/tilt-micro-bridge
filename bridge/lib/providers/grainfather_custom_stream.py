@@ -10,21 +10,15 @@
 # }
 
 import time
-#import logging
+import logging
 from models import TiltStatus
 from models import TiltHistory
 #from abstractions import CloudProviderBase
 from configuration import BridgeConfig
 from rate_limiter import DeviceRateLimiter
-#from interface import implements
 import asyncio
 import async_urequests as requests
-#import requests
-#from async_urequests import urequests as requests #synchronous & timeouts
-#import async_urequests as requests
-#import urequests_ff as requests
 import json
-#from collections import OrderedDict
 import gc # for development only
 from rate_limiter import RateLimitedException
 from machine import Timer
@@ -33,6 +27,8 @@ from machine import Timer
 #dbg_logger = logging.getLogger("main.GFcustomProvider")
 #logger = logging.getLogger('GFcustomProvider')
 #logger.setLevel(logging.DEBUG)
+logger = logging.getLogger('GF_custom_pvdr')
+logger.info("Startup")
 
 #class GrainfatherCustomStreamCloudProvider(implements(CloudProviderBase)):
 class GrainfatherCustomStreamCloudProvider():
@@ -58,13 +54,13 @@ class GrainfatherCustomStreamCloudProvider():
     def start(self):
         # initialise a timer and IRQ here to change update_due flag
         # could run a benchmaark here on update data & subtract that from period?
-        print("start called")
+        #logger.info("start called")
         if self.enabled():
             #self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.update_test)
             self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.provider_callback)
             #self.upload_timer = Timer(period=900, mode=Timer.PERIODIC, callback=self.test)
             #upload_timer.init(period=900, mode=Timer.PERIODIC, callback=self.test)
-            print(f"{self.str_name} provider timer started")
+            logger.info(f"{self.str_name} provider timer started")
 
     
     def provider_callback(self, timer):
@@ -82,18 +78,18 @@ class GrainfatherCustomStreamCloudProvider():
             for colour in self.colour_urls:
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)#, averaging=True)
                 if tempF and SG:
-                    #print(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
+                    #logger.info(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
-                    #print(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
+                    #logger.info(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
                     asyncio.run(self.a_update(tilt_status))
                 else:
-                    #print(f"{colour} has no data")
+                    #logger.info(f"{colour} has no data")
                     pass
                 
         except requests.ConnectionError:
-            print('requests Connection error. todo: we need a tassk that prtiodically ensures WLAN connection is working')
+            logger.info('requests Connection error. todo: we need a tassk that prtiodically ensures WLAN connection is working')
         except Exception as e:
-            print(f"exception in provider timer test(): {e}")
+            logger.info(f"exception in provider timer test(): {e}")
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a referene to the data queue, this is added after the object is created
@@ -102,7 +98,7 @@ class GrainfatherCustomStreamCloudProvider():
     def update(self, tilt_status: TiltStatus):
         #asyncio.run(self.a_update(tilt_status))
         pass
-        #print(f"{self.str_name} update called")
+        #logger.info(f"{self.str_name} update called")
         ''' # new fuinction to be called from timer IRQ with only arg = Timer object
             # tempF, sg = data_archive. get_data (passing averaging(boolean) & period
             # create TiltStatus object from that data
@@ -112,11 +108,11 @@ class GrainfatherCustomStreamCloudProvider():
     #def async update(self, tilt_status: TiltStatus):
     async def a_update(self, tilt_status: TiltStatus):
         start_time = time.ticks_ms()
-        #print("debug: async GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
+        #logger.info("debug: async GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
         # Skip if this colour doesn't have a grainfather URL assigned
-        #print(f"tilt_status.colour {tilt_status.colour} is in self.colour_urls.keys()? {self.colour_urls.keys()}")
+        #logger.info(f"tilt_status.colour {tilt_status.colour} is in self.colour_urls.keys()? {self.colour_urls.keys()}")
         #if tilt_status.colour not in self.colour_urls.keys():
-        #    print("not in")
+        #    logger.info("not in")
         #    #return
         #else:
         if tilt_status.colour in self.colour_urls.keys():
@@ -124,17 +120,17 @@ class GrainfatherCustomStreamCloudProvider():
             #self.rate_limiter.approve(tilt_status.colour)
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             payload = self._get_payload(tilt_status)
-            #print("send payload: {}".format(json.dumps(payload)))
-            #print("send payload: {}".format(json.dumps(payload)))
+            #logger.info("send payload: {}".format(json.dumps(payload)))
+            #logger.info("send payload: {}".format(json.dumps(payload)))
             gc.collect()
             start = gc.mem_free() #don't call if in a thread?
             #todo handle timeout error
             try:
                 response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
                 #await response
-                print("{}\tCustom URL response:{}, reason:{}, size:{}bytes".format(display_time(), response.status_code, response.reason, start - gc.mem_free()))#, response.text))
+                logger.info("{}\tCustom URL response:{}, reason:{}, size:{}bytes".format(display_time(), response.status_code, response.reason, start - gc.mem_free()))#, response.text))
                 retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
-                #print("Retry in:{}".format(retry)) if retry else print("no retry value, so data updated")
+                #logger.info("Retry in:{}".format(retry)) if retry else logger.info("no retry value, so data updated")
                 time_spent = time.ticks_diff(time.ticks_ms(), start_time)
                 #self._adjust_timing(response.status_code, retry_in, time_spent, tilt_status)
                 response.close()
@@ -142,7 +138,7 @@ class GrainfatherCustomStreamCloudProvider():
             except requests.ConnectionError:
                 raise Exception('requests Connection error.')
             except requests.TimeoutError:
-                #print(f'requests Timeout error.')
+                #logger.info(f'requests Timeout error.')
                 response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
                 #todo: handle this in the calling function
@@ -152,12 +148,7 @@ class GrainfatherCustomStreamCloudProvider():
         #http_return(int(response.status_code), response.headers)
         # todo: handle retry after (if not none),
         # todo: adapt requests to not read content line 223 in async_urequests
-        #asyncio.run(requests("POST", url, json=payload))
-        #response = await requests.post(url, json=payload, headers=headers)    
-        #except Exception as e:
-        #print(f"GF Custom response.post error: {e}")
-        #print("send payload:\n{}".format(payload))
-        #response = requests.post(url, headers=headers, data=payload)
+        
         # result.raise_for_status()
         #finally:
         # updarte rate limiter according to response
@@ -166,7 +157,7 @@ class GrainfatherCustomStreamCloudProvider():
         # if config round then wait for 0,15,30,45 mins of the hour?
 
     def synchronous_update(self, tilt_status: TiltStatus):
-        #print("debug: synchronous GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
+        #logger.info("debug: synchronous GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
         # Skip if this colour doesn't have a grainfather URL assigned
         if tilt_status.colour not in self.colour_urls.keys():
             return
@@ -175,12 +166,12 @@ class GrainfatherCustomStreamCloudProvider():
 
         headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
         payload = self._get_payload(tilt_status)
-        print("send payload: {}".format(json.dumps(payload)))
+        logger.info("send payload: {}".format(json.dumps(payload)))
         start = gc.mem_free() #don't call if in a thread?
 
         response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=5)
-        #print("custom response is:{} bytes".format(start - gc.mem_free()))
-        print("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
+        #logger.info("custom response is:{} bytes".format(start - gc.mem_free()))
+        logger.info("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
         #asyncio.run(requests("POST", url, json=payload))
         response.close()
         response = None # make available for gc
@@ -193,29 +184,29 @@ class GrainfatherCustomStreamCloudProvider():
         if status == 201:
             #self.rate_limiter.device_limiters[tilt_status.colour].period = int(600)
             time_spent = time_spent / 1000
-            print("default_period:{} time_spent:{}".format( self.rate_limiter.default_period, time_spent))
+            logger.info("default_period:{} time_spent:{}".format( self.rate_limiter.default_period, time_spent))
             # subtracting time spent did not work
             self.rate_limiter.device_limiters[tilt_status.colour].period = (self.rate_limiter.default_period + time_spent)
             # below makes 1 min fast after 19 iterations
             #self.rate_limiter.device_limiters[tilt_status.colour].period = (self.rate_limiter.default_period - self.rate_limiter.device_limiters[tilt_status.colour].overrun)
-            print("rate set to :{}".format(self.rate_limiter.device_limiters[tilt_status.colour].period))
+            logger.info("rate set to :{}".format(self.rate_limiter.device_limiters[tilt_status.colour].period))
             #all ok, updated, try again in 15 mins - time it took to get last response
             # % 15 here & if config.roundup then adjust to next interval
         elif status == 429:
             #retry = response.headers.get('retry-after')
             #self.rate_limiter.period = retry_secs
-            #print(dir(self.rate_limiter.device_limiters.items)) #device_limiters[tilt_status.colour])#.period = retry_secs
+            #logger.info(dir(self.rate_limiter.device_limiters.items)) #device_limiters[tilt_status.colour])#.period = retry_secs
             #for i in self.rate_limiter.device_limiters:
-            #    print(f"{i}")
-            #print(dir(self.rate_limiter.device_limiters[tilt_status.colour]))
+            #    logger.info(f"{i}")
+            #logger.info(dir(self.rate_limiter.device_limiters[tilt_status.colour]))
             self.rate_limiter.device_limiters[tilt_status.colour].period = int(retry_secs)
             #if retry:
-            #    print("Retry in:{}".format(retry))
+            #    logger.info("Retry in:{}".format(retry))
             #else:
-            #    print("no retry value, so data updated")
+            #    logger.info("no retry value, so data updated")
             last_t = time.localtime(self.rate_limiter.device_limiters[tilt_status.colour].last_check)
             next_t = time.localtime(time.time() + retry_secs)
-            print("last_check:\t{0:02d}:{1:02d}:{2:02d}, retry at {3:02d}:{4:02d}:{5:02d}".format(last_t[3],last_t[4],last_t[5], next_t[3], next_t[4], next_t[5]))
+            logger.info("last_check:\t{0:02d}:{1:02d}:{2:02d}, retry at {3:02d}:{4:02d}:{5:02d}".format(last_t[3],last_t[4],last_t[5], next_t[3], next_t[4], next_t[5]))
             #str(self.rate_limiter(tilt_status.colour).last_check))
             # todo look for retry & update rate limiter
         else:
@@ -265,8 +256,8 @@ class GrainfatherCustomStreamCloudProvider():
         raise ValueError("Grainfather temp unit must be F or C")
 
 
-#for testi/debug:
+#for testing/debug:
 def display_time():
     year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
-    # Print a date - YYYY-MM-DD
+    # logger.info a date - YYYY-MM-DD
     return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))

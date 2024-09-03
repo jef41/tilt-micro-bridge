@@ -1,47 +1,76 @@
 ''' 
     changes in this version:
-    clean up some code
-    test & implethment averaging    
-        
+    implement console & file logging for debug using logging module & io.IOBase to copy to file
+    de-linting
+    
+    tested OK: clean up some code
+    tested OK: test & implement timers & averaging instead of rate limiter
     tested OK: bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
     testedOK: rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
     failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
+    testedOK: test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads - yup
     
-    todo handle & log server responses 200, 201, 429, other
-    todo implement console & file logging for debug
-    todo remove unnecessary libs & comments
+    todo on keyboard interrupt cancel timers & running tasks
     todo move wifi, ntp & time defs from bridge_main to net-utility module
-    todo make provider.uploads tasks
-    todo test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads
+    todo handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog
+    todo at startup wait averaging period before sending first data, not log period
+    todo refactor main & bridge lib to make more logical
+    todo remove unnecessary libs & comments
+    todo Tilt transmits at 5secs? so should no records be //5?
+    todo improve non-averaging e.g. filter max
+    todo make provider.uploads task(s)
     todo implement aioble to return SG & temp & uuid & timestamp to queue
     todo implement watchdog (8secs max I think from memory)import ussl
     todo implement wifi countrycode properly into config
     todo implement wifi status check/reconnect
-    todo send a GF packet then immediately send another, how long are we asked to wait? 900 or less?
+    todo send a GF packet then immediately send another, how long are we asked to wait? 900 or less? lots of providers could cause upload time to vary, what tolerance do we have
     
     ideas:
     integrate aioble scanner into thread on core1
-    
-    todo if this works maybe queue should include a timestamp?
-    
-    todo in bridge_main _handle_pitch_queue could also hold a circular buffer
-    for each configured tilt
-    maybe hold last 60 values? then provide an averaged/normalised result
-    
+        
     button to set into calibration mode?
     
-    method to idetnify a starting gravity & then calc ABV etc.
-    
-    for GF priovider, if response is 429 then (re)set timer to 1 minute, if 201 then timer to 15 mins?
-    at present after a 429 will wait 15 mins before retry
-    
+    method to identify a starting gravity & then calc ABV etc.
+        
 '''
 
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-#import logging #, sys
-#from bridge_main import *
-#from bridge_main_asyncv3 import *
-#import bridge_main_asyncv4 as bridge
+import logging, sys, os, io
+
+
+def get_log_file():
+    for i in range(10):
+        fn = "debug_" + str(i) + ".log"
+        try:
+            f = open(fn, "r")
+            # continue with the file.
+        except OSError:  # open failed
+           fn = "debug_0.log" if i == 6 else fn
+           break
+    return fn
+
+log_file = get_log_file()
+
+class logToFile(io.IOBase):
+    def __init__(self):
+        pass
+ 
+    def write(self, data):
+        with open(log_file, mode="a+") as f:
+            f.write(data)
+        return len(data)
+
+
+logging.basicConfig(level=logging.DEBUG,
+                    format="%(asctime)s [%(levelname)s]:%(name)s:\t%(message)s")
+
+my_logger = logging.getLogger('main')  # Parent logger
+ 
+# now your console text output is saved into file
+os.dupterm(logToFile())
+# todo this will munch up storage space; really want ot limit log file to 150KB & also rotate log files
+
+
 #import bridge_main_asyncv5 as bridge
 import bridge_main_averaging as bridge
 import asyncio
@@ -83,7 +112,8 @@ logger.addHandler(file_handler)
 # test message
 logger.info("test1")
 '''
-
+logger = logging.getLogger('main')
+logger.info("Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
@@ -118,6 +148,7 @@ except KeyboardInterrupt as e:
     bridge.scanner_running = False
     while not bridge.scanner_finished:
         asyncio.sleep_ms(100)
+    os.dupterm(None)
     print("Thread reports finished")
     print("...stopped: Tilt Scanner (keyboard interrupt)")
 except Exception as e:
@@ -126,6 +157,7 @@ except Exception as e:
     #_thread.exit()
     #bridge.handler.cancel()
     #bridge.scanner.cancel()
+    os.dupterm(None)
     print("...stopped: Tilt Scanner ({})".format(e))
 finally:
     asyncio.new_event_loop()  # Clear retained state

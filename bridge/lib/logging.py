@@ -251,3 +251,6 @@ def basicConfig(
 
 if hasattr(sys, "atexit"):
     sys.atexit(shutdown)
+
+
+__version__ = '0.6.1'
