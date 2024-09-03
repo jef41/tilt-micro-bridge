@@ -45,7 +45,7 @@ def get_log_file():
             f = open(fn, "r")
             # continue with the file.
         except OSError:  # open failed
-           fn = "debug_0.log" if i == 6 else fn
+           fn = "debug_0.log" if i == 10 else fn
            break
     return fn
 
