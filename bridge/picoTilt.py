@@ -1,7 +1,7 @@
 ''' 
     changes in this version:
     clean up some code
-    test & implement averaging    
+    test & implethment averaging    
         
     tested OK: bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
     testedOK: rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
@@ -45,7 +45,7 @@ import time # micropython-lib/python-stdlib/time extends std time module, requir
 #import bridge_main_asyncv5 as bridge
 import bridge_main_averaging as bridge
 import asyncio
-import _thread
+#import _thread
 import gc
 '''
 # Create a logger specifically for the main module

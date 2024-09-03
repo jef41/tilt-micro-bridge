@@ -9,13 +9,14 @@
 
     call this;
               at startup, to inititate bytearrays: test=TiltHistory(config, (2,3)), where 2,3 are configured tilt colours
-              when data is received: test.add_data(colour=2, sg=1200, tempF=51, tstamp=1724432892)
-              when a timer expires & upload is due: tempF, SG = test.get_data(colour=2), from that create a TiltStatus & upload it
+              when data is received: test.add_data(colour='red', tempF=51, sg=1200, tstamp=1724432892)
+              when a timer expires & upload is due: tempF, SG = test.get_data(colour='red'), from that create a TiltStatus & upload it
     
     todo: check all necessary defs are present - see primitives/ringbuffer_queue.py
+    todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
 from configuration import BridgeConfig
-from .json_serialize import JsonSerialize
+#from .json_serialize import JsonSerialize
 import time
 import asyncio
 import gc
@@ -30,11 +31,11 @@ class TiltHistory():
         #    self.colour_idx = colour
         #    self.temp = temp_fahrenheit
         #    self.sg = current_gravity
-        self.data_points = config.averaging_period
+        self.data_points = config.averaging_period # todo allow this per provider
         self.ringbuffer_list = dict()
         self.initialise_ringbuffer(colours) # create empty buffers
         
-    def initialise_ringbuffer(self, colours: int):
+    def initialise_ringbuffer(self, colours: str):
         # create empty buffer(s)
         for colour_idx in colours:
             if colour_idx not in self.ringbuffer_list:
@@ -45,32 +46,33 @@ class TiltHistory():
     def _get_new_ringbuffer(self):
         return TiltRingBuffer(self.data_points)
     
-    def add_data(self, colour, sg, tempF, tstamp):
+    def add_data(self, colour, tempF, sg, tstamp):
         # add to appropriate queue
         if colour not in self.ringbuffer_list:
             raise Exception("tried to store data for unconfigured Tilt!")
         # todo: could just create a new data archive here
         try:
-            self.ringbuffer_list[colour].add_data(sg, tempF, tstamp)
+            self.ringbuffer_list[colour].add_data(tempF, sg, tstamp)
         except IndexError:
             # queue full, overwriting
             pass
     
-    def get_data(self, colour, period=1):
+    def get_data(self, colour, av_period, log_period):
+        # todo: tidy up av_ & log_ periods & data_points
         # averaged or most recent?
         # filter appropriate colour on timestamp > now - (period/rate)
         # use a memoryview
         # return a tuple of temp & sg
         tempF, sg = None, None
-        if self.data_points:
+        if av_period: # > 0 self.data_points:
             # get an average
-            limit = time.time() - self.data_points
+            limit = time.time() - av_period # self.data_points
             #limit = 1724432992 - self.data_points # we have a match todo: time.time()
             tempF, sg = self.ringbuffer_list[colour].get_average(limit)
             #pass
         else:
-            # get most recent
-            limit = time.time() - period
+            # get most recent todo: check how robust this is
+            limit = time.time() - log_period
             #limit = 1724432992 - period # todo comment this out
             tempF, sg = self.ringbuffer_list[colour].get_most_recent(limit)
             #pass
@@ -89,12 +91,18 @@ class TiltRingBuffer:
         self._ri = 0
         self._evput = asyncio.Event()  # Triggered by put, tested by get
         self._evget = asyncio.Event()  # Triggered by get, tested by put
+        self.hd = None
     
-    def add_data(self, sg, tempF, tstamp):
+    def add_data(self, tempF, sg, tstamp):
         # pack 4byte timestamp & 2 x 12 bit numbers into 7 bytes
         #self.hd = sg > 2  # Tilt Pro?
         #todo: handle gravity in either 3 or 4 decimal places
-        sg = sg-990
+        if sg <9900:
+            sg = sg-990
+            self.hd = False
+        else:
+            sg = sg-9900 #HD
+            self.hd = True
         vals = sg<<12 | tempF
         #print(hex(vals))
         data = bytes([ (tstamp & 0xFF),
@@ -113,8 +121,8 @@ class TiltRingBuffer:
         #print("saved data is:{}".format( list(mv_data[0:]) ))
         start = 0
         step = self.record_len
-        end = len(mv_data)//step #todo reference via rbq?? 
-        #print(f"matching looking for timestamp > {limit}:")   
+        end = len(mv_data) #//step #todo reference via rbq?? 
+        print(f"matching looking for timestamp > {limit}:")   
         sum_sg = 0
         sum_tempf = 0
         num_results = 0
@@ -136,10 +144,12 @@ class TiltRingBuffer:
         #print(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
         if num_results:
             t3 = time.ticks_ms()
-            avg_sg = round((sum_sg / num_results ) , 1) + 990 # round((sum_sg / num_results ) * 0.01, 4) + 0.99
+            min = 9900 if self.hd else 990
+            rnd = 0 if self.hd else 1
+            avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
             avg_tempf = round(sum_tempf / num_results, 1)
             #todo get colour index
-            #print(f"{num_results} averaged values, temp;{avg_tempf} SG:{avg_sg*0.001}")
+            print(f"{num_results} averaged values, temp;{avg_tempf} SG:{avg_sg*0.001}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #print(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)

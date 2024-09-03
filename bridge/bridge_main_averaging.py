@@ -27,7 +27,7 @@ from rate_limiter import RateLimitedException
 #logger = logging.getLogger('bridge')
 #logger.setLevel(logging.DEBUG)
 
-if "RP2040" in  sys.implementation:
+if "RP2040" in  sys.implementation._machine:
     import rp2
     RP2040 = True
 else:
@@ -60,7 +60,7 @@ gc.collect()
 #bridge_q = ThreadSafeQueue(buf=[0 for _ in range(config.queue_size + 1)])
 #bridge_q = ThreadSafeQueue(buf=config.queue_size + 1)
 bridge_q = Queue(maxsize=config.queue_size + 1)
-
+data_archive = bytearray()
 #tilt_status = bytes(0) # 80 bytes, only need 48, but cannot seem to allcoate less
 
 #gc.threshold(2096) #4096 = memory error in BLE scan
@@ -93,6 +93,7 @@ rtc = RTC()
 
 
 async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = False, console_log: bool = True):
+    global data_archive
     #logger.warning("test2")
     if providers is None:
         providers = normal_providers
@@ -108,7 +109,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
     for provider in providers:
         if provider.enabled():
             enabled_providers.append(provider)
-            provider__start_message = provider.start()
+            provider__start_message = provider.start() #todo look into this
             if not provider__start_message:
                 provider__start_message = ''
             print("...started: {} {}".format(provider, provider__start_message))
@@ -117,9 +118,11 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
             for colour in provider.colour_urls.keys():
                 if colour not in enabled_colours:
                     enabled_colours.append(colour) 
-    #todo: gc.collect & initiate data_archive
-    #for colour in enabled_colours:
-    #    print(f"colour:{colour}")
+    #todo: gc.collect & initiate data_archive - make a global to test what is created
+    gc.collect()
+    data_archive = TiltHistory(config, enabled_colours)
+    for provider in enabled_providers:
+        provider.attach_archive(data_archive)
     # Start
     if simulate_beacons: 
         #scanner = asyncio.create_task(_start_beacon_simulation(bridge_q))
@@ -233,7 +236,7 @@ async def _scan_for_ibeacons(simulate=False):
     TILT = "0215a495"
     # Start scanning for advertisements
     while True:
-        async with aioble_central.scan(duration_ms=20000,
+        async with aioble_central.scan(duration_ms=0,
                                        interval_us=160000,
                                        window_us=16000) as scanner:
             async for result in scanner:
@@ -257,8 +260,8 @@ async def _scan_for_ibeacons(simulate=False):
                     # fake callback
                     import random
                     uuid = random.choice(list(uuid_to_colours.keys()))
-                    major = random.randrange(50, 85)
-                    minor = random.randrange(1005, 1045)
+                    major = random.randrange(500, 850) # HD ->SD (50, 85)
+                    minor = random.randrange(10050, 10450) # HD -> SD (1005, 1045)
                     await _beacon_callback(uuid, major, minor, 0, 0, bridge_q)
                     #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             scanner.cancel()
@@ -289,18 +292,18 @@ async def _start_beacon_simulation(bridge_q):
 
 #def _beacon_callback(bt_addr, rssi, packet, additional_info, bridge_q):
 async def _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q):
+    global data_archive
     # put bluetooth data onto a queue
     # todo: think we can put data onto the averaging queue instead of this one
     # When queue is full broadcasts should be ignored
     # this can happen because Tilt broadcasts very frequently, while Pitch must make network calls
     # to forward Tilt status info on and this can cause Pitch to fall behind
-    # global cb_tilt_status
-    if bridge_q.full():
-        #print("debug queue is full")
-        return
+    #if bridge_q.full():
+    #    #print("debug queue is full")
+    #    return
 
     colour = uuid_to_colours.get(uuid)
-    if colour:
+    if colour in data_archive.ringbuffer_list:
         #print("beacon_callback colour match, {}".format(colour))
         # iBeacon packets have major/minor attributes with data
         # major = degrees in F (int)
@@ -318,14 +321,20 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, bridge_q):
             #bridge_q.put_nowait(beacon_data)
             #bridge_q.put_sync(beacon_data) #, block=False) # Raises IndexError if the queue is full
             try:
-                await bridge_q.put(beacon_data)
-            except Error as e:
+                #await bridge_q.put(beacon_data)
+                # testing add to data archive
+                data_archive.add_data(colour, major, minor, time.time())
+                #print(f"added:{colour}, {major}, {minor}, {time.time()}")
+                #data_archive.add_data(colour, sg=1200, tempF=55, tstamp=1724432992)
+            except Exception as e:
                 print(f"queue put error: {e}")
             #print("{}\t beacon packet received".format(beacon_data.timestamp))
             #print("debug: bridge_q after {}".format(bridge_q.qsize()))
         #print("debug: end of if colour")
     else:
-        print("beacon_callback no colour match")
+        #print(f"beacon_callback no colour match: {colour}")
+        #todo: log a warning here
+        pass
 
 
 #def _handle_bridge_queue(enabled_providers: list, console_log: bool):
@@ -347,7 +356,8 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
     #start = gc.mem_free()
     #print("handle queue2")
     try:
-        tilt_status = await bridge_q.get() #blocks until data available
+        #tilt_status = await bridge_q.get() #blocks until data available
+        await asyncio.sleep(1) # testing
     except IndexError:
         # Queue is empty
         print("index error queue empty")
@@ -355,7 +365,7 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
     except Error as e:
         print(f"handler err: {e}")
         raise
-    
+    '''
     for provider in enabled_providers:
         try:
             start = time.time()
@@ -379,6 +389,7 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
         except Exception as e:
             # todo: better logging of errors
             print("provider update error: {}".format(e))
+    '''
     # Log it to console/stdout
     #print("debug SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
     #print("SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
@@ -390,7 +401,7 @@ def _get_decimal_gravity(gravity):
     return gravity * .001
 
 
-def _get_webhook_providers(config: PitchConfig):
+def _get_webhook_providers(config: BridgeConfig):
     # Multiple webhooks can be fired, so create them dynamically and add to
     # all providers static list
     webhook_providers = list()
@@ -409,7 +420,7 @@ def get_wifi(config):
         wlan.config(pm = 0xa11140) # Disable power-save mode
         country = "GB"
         rp2.country(country)
-        wlan.country(country)
+        #wlan.country(country)
     wlan.connect(config.ssid, config.password)
 
     # Wait for connect or fail

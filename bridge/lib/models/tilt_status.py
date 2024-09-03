@@ -6,11 +6,11 @@ import time
 
 class TiltStatus(JsonSerialize):
 
-    def __init__(self, colour, temp_fahrenheit, current_gravity, config: PitchConfig):
+    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig):
         #self.timestamp = datetime.datetime.now()
         # TODO get net connection, get correct timestamp
         #rtc = RTC()
-        self.timestamp = TiltStatus.get_timestamp()
+        #self.timestamp = TiltStatus.get_timestamp()
         self.colour = colour
         self.name = config.get_brew_name(colour)
         self.hd = current_gravity > 2  # Tilt Pro?
@@ -31,11 +31,12 @@ class TiltStatus(JsonSerialize):
         self.gravity_valid = (config.gravity_range_min < self.gravity and self.gravity < config.gravity_range_max)
         #print("debug: tilt status initialised")
 
-    @staticmethod
-    def get_timestamp():
-        year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
-        # Print a date - YYYY-MM-DD
-        return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
+    #@staticmethod
+    #def get_timestamp():
+    #    #year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
+    #    # Print a date - YYYY-MM-DD
+    #    #return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
+    #    return time.time() # epoch, can be relative, but we should have ntp
 
     @staticmethod
     def get_celsius(temp_fahrenheit):
