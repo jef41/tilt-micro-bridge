@@ -1,3 +1,7 @@
+''' todo:
+    using a timer we cannot react/adjust if we get a 429 or other response code
+    unless 429 or other stops the currently runningtimer & sets a flag?
+'''
 # Payload docs are found by clicking the "info" button next to a fermenation device on grainfather.com
 # {
 #     "specific_gravity": 1.034, //this must be a numeric value
@@ -37,14 +41,15 @@ class GrainfatherCustomStreamCloudProvider():
         self.colour_urls = GrainfatherCustomStreamCloudProvider._normalize_colour_keys(config.grainfather_custom_stream_urls)
         self.temp_unit = GrainfatherCustomStreamCloudProvider._get_temp_unit(config)
         self.str_name = "Grainfather Custom URL"
-        self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
+        #self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
         self.rate = 1
         self.period = (60 * 15)  # 15 minutes
-        self.update_due = False
+        #self.update_due = False
         self.upload_timer = None
-        #self.averaging_period = config.averaging_period
+        self.averaging_period = config.averaging_period # change this to config.grainfather_averaging_period
         self.bridge_config = config
         self.start()
+        self.upload_due = asyncio.Event() # ThreadSafeFlag()
         #logger.info("test provider")
 
     def __str__(self):
@@ -55,27 +60,38 @@ class GrainfatherCustomStreamCloudProvider():
         # could run a benchmaark here on update data & subtract that from period?
         print("start called")
         if self.enabled():
-            self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.update_test)
+            #self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.update_test)
+            self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.provider_callback)
             #self.upload_timer = Timer(period=900, mode=Timer.PERIODIC, callback=self.test)
             #upload_timer.init(period=900, mode=Timer.PERIODIC, callback=self.test)
             print(f"{self.str_name} provider timer started")
 
-    def update_test(self, t):
+    
+    def provider_callback(self, timer):
+        # set the thread safe flag
+        self.upload_due.set()
+    
+    #def update_test(self, t):
+    async def update_test(self):
         # for colour in self.colour_urls
         #averagering_period = config.averaging_period
         log_period = self.period/self.rate # older than this = stale data
-        if self.bridge_config.averaging_period > log_period:
-            raise Exception(f"invalid combination of log & averaging period for {self.str_name} provider")
+        if self.averaging_period > log_period:
+            raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
             for colour in self.colour_urls:
-                tempF, SG = self.data_archive.get_data(colour, av_period=self.bridge_config.averaging_period, log_period=log_period)#, averaging=True)
+                tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)#, averaging=True)
                 if tempF and SG:
-                    print(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
+                    #print(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
-                    print(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
+                    #print(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
+                    asyncio.run(self.a_update(tilt_status))
                 else:
-                    print(f"{colour} has no data")
-                asyncio.run(self.a_update(tilt_status))
+                    #print(f"{colour} has no data")
+                    pass
+                
+        except requests.ConnectionError:
+            print('requests Connection error. todo: we need a tassk that prtiodically ensures WLAN connection is working')
         except Exception as e:
             print(f"exception in provider timer test(): {e}")
     

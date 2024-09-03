@@ -24,33 +24,45 @@ import gc
 
 
 class TiltHistory():
-
+    #def __init__(self, config: BridgeConfig, colour_dict): 
     def __init__(self, config: BridgeConfig, colours): #*kwargs): #colour, temp_fahrenheit, current_gravity):
         self.timestamp = time.time()
+        #print("2a")
         #if kwargs:
         #    self.colour_idx = colour
         #    self.temp = temp_fahrenheit
         #    self.sg = current_gravity
-        self.data_points = config.averaging_period # todo allow this per provider
+        self.data_points = config.averaging_period # todo allow this per provider ...
+        # for each colour in config find max averaging
+        # get a list of colour:number
+        #print("2b")
         self.ringbuffer_list = dict()
-        self.initialise_ringbuffer(colours) # create empty buffers
+        #print("2c")
+        self.initialise_ringbuffer(colours) # create appropriately sized buffer(s) #todo: colour_dict
+        #print("2d")
         
-    def initialise_ringbuffer(self, colours: str):
+    def initialise_ringbuffer(self, colours: str): #todo make this a dict colour:nbr_of_vals
         # create empty buffer(s)
-        for colour_idx in colours:
+        # todo: here find the largest number for averaging for this colour in config
+        #print("2c1")
+        for colour_idx in colours: #todo: for colour, store_size in colour_dict
             if colour_idx not in self.ringbuffer_list:
                 # No limiter for this device yet
                 #print(f"creating {colour_idx}")
-                self.ringbuffer_list[colour_idx] = self._get_new_ringbuffer()
+                #print("2c2")
+                self.ringbuffer_list[colour_idx] = self._get_new_ringbuffer() #todo: cpass store_size
+                #print("2c3")
 
     def _get_new_ringbuffer(self):
-        return TiltRingBuffer(self.data_points)
+        #print("2c2a")
+        #todo here pass store_size rather than parent
+        return TiltRingBuffer(_parent=self) 
     
     def add_data(self, colour, tempF, sg, tstamp):
         # add to appropriate queue
         if colour not in self.ringbuffer_list:
             raise Exception("tried to store data for unconfigured Tilt!")
-        # todo: could just create a new data archive here
+        # todo: could just create a new data archive here?
         try:
             self.ringbuffer_list[colour].add_data(tempF, sg, tstamp)
         except IndexError:
@@ -79,19 +91,28 @@ class TiltHistory():
         return [tempF, sg]
 
 
+#class TiltRingBuffer(TiltHistory):
 class TiltRingBuffer:
-    def __init__(self, data_points=0):
+    #todo: self.storesize = store_size not parent
+    def __init__(self, _parent):
+        #print("2c2a1")
         #add a data point, so = 1 if averging = 0
         # each record is 7 bytes; timestamp =4, sg & temp = 3
+        #super().__init__()
+        #print("2c2a2")
+        #print(TiltHistory.data_points)
+        self.parent = _parent
         self.record_len = 7
         gc.collect()
-        self._q = bytearray(0 for _ in range(self.record_len * (data_points+1) ))
+        store_size = self.parent.data_points if self.parent.data_points else 1 # averaging is 0 store 1 data point
+        self._q = bytearray(0 for _ in range(self.record_len * (store_size) ))
         self._size = len(self._q)
         self._wi = 0
         self._ri = 0
         self._evput = asyncio.Event()  # Triggered by put, tested by get
         self._evget = asyncio.Event()  # Triggered by get, tested by put
         self.hd = None
+        # init TiltHistory here as parent
     
     def add_data(self, tempF, sg, tstamp):
         # pack 4byte timestamp & 2 x 12 bit numbers into 7 bytes
@@ -122,7 +143,7 @@ class TiltRingBuffer:
         start = 0
         step = self.record_len
         end = len(mv_data) #//step #todo reference via rbq?? 
-        print(f"matching looking for timestamp > {limit}:")   
+        #print(f"matching looking for timestamp > {limit}:")   
         sum_sg = 0
         sum_tempf = 0
         num_results = 0
@@ -195,7 +216,8 @@ class TiltRingBuffer:
             #print(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
             #print(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
-            return [temp_match, (sg_match+990)*0.001]
+            min = 9900 if self.hd else 990
+            return [temp_match, (sg_match+min)*0.001]
         else:
             print("no matches")
             return [None, None]
