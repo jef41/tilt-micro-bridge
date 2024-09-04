@@ -21,13 +21,16 @@ import time
 import asyncio
 import gc
 #import struct
+import logging
+
+
+logger = logging.getLogger('TiltHistory')
 
 
 class TiltHistory():
     #def __init__(self, config: BridgeConfig, colour_dict): 
     def __init__(self, config: BridgeConfig, colours): #*kwargs): #colour, temp_fahrenheit, current_gravity):
         self.timestamp = time.time()
-        #print("2a")
         #if kwargs:
         #    self.colour_idx = colour
         #    self.temp = temp_fahrenheit
@@ -35,26 +38,19 @@ class TiltHistory():
         self.data_points = config.averaging_period # todo allow this per provider ...
         # for each colour in config find max averaging
         # get a list of colour:number
-        #print("2b")
         self.ringbuffer_list = dict()
-        #print("2c")
         self.initialise_ringbuffer(colours) # create appropriately sized buffer(s) #todo: colour_dict
-        #print("2d")
         
     def initialise_ringbuffer(self, colours: str): #todo make this a dict colour:nbr_of_vals
         # create empty buffer(s)
         # todo: here find the largest number for averaging for this colour in config
-        #print("2c1")
         for colour_idx in colours: #todo: for colour, store_size in colour_dict
             if colour_idx not in self.ringbuffer_list:
                 # No limiter for this device yet
-                #print(f"creating {colour_idx}")
-                #print("2c2")
+                #logger.debug(f"creating {colour_idx}")
                 self.ringbuffer_list[colour_idx] = self._get_new_ringbuffer() #todo: cpass store_size
-                #print("2c3")
 
     def _get_new_ringbuffer(self):
-        #print("2c2a")
         #todo here pass store_size rather than parent
         return TiltRingBuffer(_parent=self) 
     
@@ -95,12 +91,10 @@ class TiltHistory():
 class TiltRingBuffer:
     #todo: self.storesize = store_size not parent
     def __init__(self, _parent):
-        #print("2c2a1")
         #add a data point, so = 1 if averging = 0
         # each record is 7 bytes; timestamp =4, sg & temp = 3
         #super().__init__()
-        #print("2c2a2")
-        #print(TiltHistory.data_points)
+        #logger.debug(TiltHistory.data_points)
         self.parent = _parent
         self.record_len = 7
         gc.collect()
@@ -125,7 +119,7 @@ class TiltRingBuffer:
             sg = sg-9900 #HD
             self.hd = True
         vals = sg<<12 | tempF
-        #print(hex(vals))
+        #logger.debug(hex(vals))
         data = bytes([ (tstamp & 0xFF),
                     (tstamp >> 8) & 0xFF,
                     (tstamp >> 16) & 0xFF,
@@ -133,17 +127,17 @@ class TiltRingBuffer:
                     (vals & 0xFF),
                     (vals >> 8) & 0xFF,
                     (vals >> 16) & 0xFF ])
-        #print(f"data{(data)}")
+        #logger.debug(f"data{(data)}")
         self._put_nowait(data)
     
     def get_average(self, limit):
         # limit should be either averaging period, or, for most recent, (period/rate)/2
         mv_data = memoryview(self._q)
-        #print("saved data is:{}".format( list(mv_data[0:]) ))
+        #logger.debug("saved data is:{}".format( list(mv_data[0:]) ))
         start = 0
         step = self.record_len
         end = len(mv_data) #//step #todo reference via rbq?? 
-        #print(f"matching looking for timestamp > {limit}:")   
+        #logger.debug(f"matching looking for timestamp > {limit}:")   
         sum_sg = 0
         sum_tempf = 0
         num_results = 0
@@ -152,17 +146,17 @@ class TiltRingBuffer:
             #temp_out = (int.from_bytes(seven[4:], 'little')) & 0xFFF #0x7FF 
             #sg_out = 9900 + ((int.from_bytes(seven[4:], 'little')) >> 12 & 0xFFF) # shift back & bitmask
             q_timestmp = mv_data[0+i] | mv_data[1+i]<<8 | mv_data[2+i]<<16 | mv_data[3+i]<<24
-            #print(test, i)
+            #logger.debug(test, i)
             if q_timestmp > limit: # we have a match todo:
                 temp_match = mv_data[4+i] | ((mv_data[5+i] & 0x0F)<<8)
                 sg_match = mv_data[6+i]<<4 | (mv_data[5+i] & 0xF0)>>4
-                #print(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
-                #print(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
+                #logger.debug(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
+                #logger.debug(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
                 num_results += 1
                 sum_sg += sg_match #(mv_data[5+i] & 0xF0) >>4 | mv_data[6+i]<<4
                 sum_tempf += temp_match #mv_data[4+i] | ((mv_data[5+i] & 0x0F)<<8)
             
-        #print(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
+        #logger.debug(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
         if num_results:
             t3 = time.ticks_ms()
             min = 9900 if self.hd else 990
@@ -170,14 +164,14 @@ class TiltRingBuffer:
             avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
             avg_tempf = round(sum_tempf / num_results, 1)
             #todo get colour index
-            print(f"{num_results} averaged values, temp;{avg_tempf} SG:{avg_sg*0.001}")
+            logger.debug(f"{num_results} averaged values, temp;{avg_tempf} SG:{avg_sg*0.001}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
-            #print(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
+            #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
-            #print(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
+            #logger.debug(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
             return [avg_tempf, avg_sg*0.001]
         else:
-            print("no matches")
+            logger.debug("no matches")
             return [None, None]
         #pass
     
@@ -186,46 +180,46 @@ class TiltRingBuffer:
         # limit should be log period/2 in tis casse
         # todo: add 9900 back to SG
         mv_data = memoryview(self._q)
-        #print("saved data is:{}".format( list(mv_data[0:]) ))
+        #logger.debug("saved data is:{}".format( list(mv_data[0:]) ))
         start = 0
         step = self.record_len
         end = len(mv_data)//step #todo reference via rbq?? 
-        #print(f"matching looking for timestamp > {limit}:")
+        #logger.debug(f"matching looking for timestamp > {limit}:")
         num_results = 0
         t2 = time.ticks_ms()
         for i in range(start, end, step):
             #temp_out = (int.from_bytes(seven[4:], 'little')) & 0xFFF #0x7FF 
             #sg_out = 9900 + ((int.from_bytes(seven[4:], 'little')) >> 12 & 0xFFF) # shift back & bitmask
             q_timestmp = mv_data[0+i] | mv_data[1+i]<<8 | mv_data[2+i]<<16 | mv_data[3+i]<<24
-            #print(test, i)
+            #logger.debug(test, i)
             if q_timestmp > limit: # we have a match todo:
                 temp_match = mv_data[4+i] | ((mv_data[5+i] & 0x0F)<<8)
                 sg_match = mv_data[6+i]<<4 | (mv_data[5+i] & 0xF0)>>4
-                #print(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
-                #print(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
+                #logger.debug(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
+                #logger.debug(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
                 num_results += 1
             
-        #print(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
+        #logger.debug(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
         if num_results:
             #t3 = time.ticks_ms()
             #avg_sg = round((sum_sg / num_results ) , 1) + 990 # round((sum_sg / num_results ) * 0.01, 4) + 0.99
             #avg_tempf = round(sum_tempf / num_results, 1)
             #todo get colour index
-            print(f"{num_results} most recent values, temp;{temp_match} SG:{(sg_match+990)*0.001}")
+            logger.debug(f"{num_results} most recent values, temp;{temp_match} SG:{(sg_match+990)*0.001}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
-            #print(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
+            #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
-            #print(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
+            #logger.debug(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
             min = 9900 if self.hd else 990
             return [temp_match, (sg_match+min)*0.001]
         else:
-            print("no matches")
+            logger.debug("no matches")
             return [None, None]
         
     def _put_nowait(self, data):
         # put a bytearray onto the queue
         # todo add a check/raise an error if length of struct pack will exceed queue
-        #print(f"got: {data}")
+        #logger.debug(f"got: {data}")
         '''fmt = 'BBBBBBB'
         data_archive = memoryview(self._q)
         struct.pack_into('BBBBBBB', data_archive, self._wi, *data)

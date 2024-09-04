@@ -27,7 +27,7 @@ from machine import Timer
 #dbg_logger = logging.getLogger("main.GFcustomProvider")
 #logger = logging.getLogger('GFcustomProvider')
 #logger.setLevel(logging.DEBUG)
-logger = logging.getLogger('GF_custom_pvdr')
+logger = logging.getLogger('GFcstm_pvdr')
 logger.info("Startup")
 
 #class GrainfatherCustomStreamCloudProvider(implements(CloudProviderBase)):
@@ -128,7 +128,7 @@ class GrainfatherCustomStreamCloudProvider():
             try:
                 response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
                 #await response
-                logger.info("{}\tCustom URL response:{}, reason:{}, size:{}bytes".format(display_time(), response.status_code, response.reason, start - gc.mem_free()))#, response.text))
+                logger.info("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
                 retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
                 #logger.info("Retry in:{}".format(retry)) if retry else logger.info("no retry value, so data updated")
                 time_spent = time.ticks_diff(time.ticks_ms(), start_time)

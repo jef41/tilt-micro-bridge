@@ -140,7 +140,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
             await handler # wait for handler to return
             if a == 1500: # getting approx 300 messages per minute so this is 5 mins
-                logger.info(f"{display_time()}\tgc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
+                logger.info(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
                 a = 0
             a = a + 1 # for debugging
             await asyncio.sleep_ms(10) # was set to 10
@@ -205,7 +205,7 @@ async def _scan_for_ibeacons(simulate=False):
                         await _beacon_callback(uuid, major, minor, tx_power, rssi)#, bridge_q)
                         #_beacon_callback("a495bb40-c5b1-4b44-b512-1370f02d74df", 65, 1021, 0, 0, bridge_q)
                     if simulate:
-                        #logger.info(f"{display_time()}\tMAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
+                        #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
                         # fake callback
                         import random
                         uuid = random.choice(list(uuid_to_colours.keys()))
@@ -214,9 +214,9 @@ async def _scan_for_ibeacons(simulate=False):
                         await _beacon_callback(uuid, major, minor, 0, 0)#, bridge_q)
                         #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             except AttributeError:
-                #logger.info(f"{display_time()}\tscanner result is:{result} scanner is:{scanner}")
-                #logger.info(f"{display_time()}\tscanner result.adv_data is {result.adv_data}")
-                logger.info(f"{display_time()}\tAttribute Error")
+                #logger.info(f"scanner result is:{result} scanner is:{scanner}")
+                #logger.info(f"scanner result.adv_data is {result.adv_data}")
+                logger.info(f"Attribute Error")
                 #raise
         asyncio.sleep_ms(100)
 
@@ -273,7 +273,7 @@ async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
         await asyncio.sleep_ms(100) # testing todo:
         for provider in enabled_providers:
             if provider.upload_due.is_set():
-                logger.debug(f"{display_time()}\tupload due for {provider}")
+                logger.debug(f"upload due for {provider}")
                 upload_task = asyncio.create_task(provider.update_test())
                 await upload_task
                 #asyncio.create_task(provider.update_test())
