@@ -4,6 +4,7 @@ log.json
 pitch_log.json
 pitch.json
 config.json
+bridge/debug.lo*
 .idea/
 .vscode/
 .DS_Store

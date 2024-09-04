@@ -29,30 +29,33 @@ logger = logging.getLogger('TiltHistory')
 
 class TiltHistory():
     #def __init__(self, config: BridgeConfig, colour_dict): 
-    def __init__(self, config: BridgeConfig, colours): #*kwargs): #colour, temp_fahrenheit, current_gravity):
+    #def __init__(self, config: BridgeConfig, colours): #*kwargs): #colour, temp_fahrenheit, current_gravity):
+    def __init__(self, colour_dict):
         self.timestamp = time.time()
         #if kwargs:
         #    self.colour_idx = colour
         #    self.temp = temp_fahrenheit
         #    self.sg = current_gravity
-        self.data_points = config.averaging_period # todo allow this per provider ...
+        #self.data_points = config.averaging_period # todo allow this per provider ...
         # for each colour in config find max averaging
         # get a list of colour:number
         self.ringbuffer_list = dict()
-        self.initialise_ringbuffer(colours) # create appropriately sized buffer(s) #todo: colour_dict
+        self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
         
-    def initialise_ringbuffer(self, colours: str): #todo make this a dict colour:nbr_of_vals
+    def initialise_ringbuffer(self, colour_dict): #todo make this a dict colour:nbr_of_vals
         # create empty buffer(s)
         # todo: here find the largest number for averaging for this colour in config
-        for colour_idx in colours: #todo: for colour, store_size in colour_dict
-            if colour_idx not in self.ringbuffer_list:
+        #logger.debug(f"initialise ringbuffer {colour_dict}")
+        for colour, av_period in colour_dict.items(): #todo: for colour, store_size in colour_dict
+            if colour not in self.ringbuffer_list:
                 # No limiter for this device yet
-                #logger.debug(f"creating {colour_idx}")
-                self.ringbuffer_list[colour_idx] = self._get_new_ringbuffer() #todo: cpass store_size
+                logger.debug(f"creating ringbuffer for {colour} Tilt with {av_period} records")
+                self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period) #todo: cpass store_size
 
-    def _get_new_ringbuffer(self):
+    def _get_new_ringbuffer(self, av_period):
         #todo here pass store_size rather than parent
-        return TiltRingBuffer(_parent=self) 
+        #return TiltRingBuffer(_parent=self)
+        return TiltRingBuffer(av_period) 
     
     def add_data(self, colour, tempF, sg, tstamp):
         # add to appropriate queue
@@ -90,15 +93,15 @@ class TiltHistory():
 #class TiltRingBuffer(TiltHistory):
 class TiltRingBuffer:
     #todo: self.storesize = store_size not parent
-    def __init__(self, _parent):
+    def __init__(self, data_points):
         #add a data point, so = 1 if averging = 0
         # each record is 7 bytes; timestamp =4, sg & temp = 3
         #super().__init__()
         #logger.debug(TiltHistory.data_points)
-        self.parent = _parent
-        self.record_len = 7
+        #self.parent = _parent
+        self.record_len = 7 # 7 bytes per record timestamp=4, SG & Temp in 3 bytes
         gc.collect()
-        store_size = self.parent.data_points if self.parent.data_points else 1 # averaging is 0 store 1 data point
+        store_size = data_points if data_points else 1 # averaging is 0 store 1 data point
         self._q = bytearray(0 for _ in range(self.record_len * (store_size) ))
         self._size = len(self._q)
         self._wi = 0
@@ -106,7 +109,6 @@ class TiltRingBuffer:
         self._evput = asyncio.Event()  # Triggered by put, tested by get
         self._evget = asyncio.Event()  # Triggered by get, tested by put
         self.hd = None
-        # init TiltHistory here as parent
     
     def add_data(self, tempF, sg, tstamp):
         # pack 4byte timestamp & 2 x 12 bit numbers into 7 bytes

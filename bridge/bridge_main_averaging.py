@@ -118,7 +118,9 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
     
     # replace config with max_of_averaging, pass a dict of colour:max_av
     # data_archive = TiltHistory(config, colour_dict())
-    data_archive = TiltHistory(config, enabled_colours)
+    #data_archive = TiltHistory(config, enabled_colours)
+    #data_archive = TiltHistory(config, colour_dict(enabled_providers, enabled_colours))
+    data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
     for provider in enabled_providers:
         provider.attach_archive(data_archive)
     # Start
@@ -360,7 +362,7 @@ def display_time():
     return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
 
 
-def colour_dict(providers):
+def colour_dict(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from erach tilt that will be saved
     # maybe //5? if Tilt transmits 1/5secs
@@ -377,5 +379,6 @@ def colour_dict(providers):
         except Exception as e:
             logger.error(f"max_of_averaging error: {s}")
             raise
+    #logger.debug(f"col_max: {col_max}")
     return col_max
     

@@ -42,7 +42,10 @@ class GrainfatherCustomStreamCloudProvider():
         self.period = (60 * 15)  # 15 minutes
         #self.update_due = False
         self.upload_timer = None
-        self.averaging_period = config.averaging_period # change this to config.grainfather_averaging_period
+        try:
+            self.averaging_period = config.grainfather_averaging_period
+        except AttributeError:
+            self.averaging_period = config.averaging_period
         self.bridge_config = config
         self.start()
         self.upload_due = asyncio.Event() # ThreadSafeFlag()
