@@ -35,7 +35,21 @@
 '''
 
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-import logging, sys, os, io
+from rotating_file_handler import RotatingLogFileHandler
+import logging, sys
+logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
+logger = logging.getLogger()
+logger.handlers = [] # this is necessary
+logger.setLevel(logging.DEBUG)
+
+fileHandler = RotatingLogFileHandler("debug.log", 100_000, 8) #logging.FileHandler("duallog.txt")
+fileHandler.setFormatter(logFormatter)
+logger.addHandler(fileHandler)
+
+consoleHandler = logging.StreamHandler() #logging.StreamHandler(logging.StreamHandler(sys.stdout))
+consoleHandler.setFormatter(logFormatter)
+logger.addHandler(consoleHandler)
+'''import logging, sys, os, io
 
 
 def get_log_file():
@@ -69,7 +83,7 @@ my_logger = logging.getLogger('main')  # Parent logger
 # now your console text output is saved into file
 os.dupterm(logToFile())
 # todo this will munch up storage space; really want ot limit log file to 150KB & also rotate log files
-
+'''
 
 #import bridge_main_asyncv5 as bridge
 import bridge_main_averaging as bridge
@@ -113,7 +127,7 @@ logger.addHandler(file_handler)
 logger.info("test1")
 '''
 logger = logging.getLogger('main')
-logger.info("Startup")
+logger.info("**************  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
@@ -145,11 +159,11 @@ except KeyboardInterrupt as e:
     #if not simulate_beacons:
     #    scanner.stop()
     #_thread.exit()
-    bridge.scanner_running = False
-    while not bridge.scanner_finished:
-        asyncio.sleep_ms(100)
-    os.dupterm(None)
-    print("Thread reports finished")
+    #bridge.scanner_running = False
+    #while not bridge.scanner_finished:
+    #    asyncio.sleep_ms(100)
+    #os.dupterm(None)
+    #print("Thread reports finished")
     print("...stopped: Tilt Scanner (keyboard interrupt)")
 except Exception as e:
     #if not bridge.simulate_beacons:
@@ -157,7 +171,7 @@ except Exception as e:
     #_thread.exit()
     #bridge.handler.cancel()
     #bridge.scanner.cancel()
-    os.dupterm(None)
+    #os.dupterm(None)
     print("...stopped: Tilt Scanner ({})".format(e))
 finally:
     asyncio.new_event_loop()  # Clear retained state

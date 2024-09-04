@@ -140,7 +140,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
             await handler # wait for handler to return
             if a == 1500: # getting approx 300 messages per minute so this is 5 mins
-                logger.info(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
+                logger.debug(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
                 a = 0
             a = a + 1 # for debugging
             await asyncio.sleep_ms(10) # was set to 10
@@ -157,7 +157,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         while True:
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
             await handler # wait for handler to return
-            #logger.info(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
+            #logger.debug(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
             # check timeout
             if timeout_seconds:
                 current_time = time.time()
