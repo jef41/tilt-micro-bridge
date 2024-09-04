@@ -18,7 +18,8 @@ from machine import RTC
 from models import TiltStatus, TiltHistory
 from providers import *
 from configuration import BridgeConfig
-from rate_limiter import RateLimitedException
+#from rate_limiter import RateLimitedException
+from models.provider_timer import UploadTimers
 
 #brdg_logger = logging.getLogger("main.bridge")
 #brdg_logger = logging.getLogger(__name__)
@@ -76,9 +77,11 @@ normal_providers = [
     ]
 
 
-
-scanner_running  = True
-scanner_finished = False
+provider_timers = UploadTimers()
+handler = None
+scanner = None
+#scanner_running  = True
+#scanner_finished = False
 
 # initiate RTC object
 rtc = RTC()
@@ -89,8 +92,13 @@ rtc = RTC()
 #############################################
 
 
-async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = False, console_log: bool = True):
+async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = False):
+    # todo don't think we need timeout_seconds any longer? check
+    # todo remove providers here too?
     global data_archive
+    global provider_timers
+    global handler
+    global scanner
     if providers is None:
         providers = normal_providers
     # add any webhooks defined in config
@@ -123,6 +131,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
     data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
     for provider in enabled_providers:
         provider.attach_archive(data_archive)
+        provider_timers.add(provider, provider.period, provider.averaging_period)
     # Start
     if simulate_beacons: 
         #scanner = asyncio.create_task(_start_beacon_simulation(bridge_q))
@@ -139,13 +148,16 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         while True:
             # this loop will process the incoming data queue
             #handler = asyncio.create_task(_handle_bridge_queue(bridge_q, console_log))
-            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
+            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
             await handler # wait for handler to return
             if a == 1500: # getting approx 300 messages per minute so this is 5 mins
                 logger.debug(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
                 a = 0
             a = a + 1 # for debugging
             await asyncio.sleep_ms(10) # was set to 10
+    except asyncio.CancelledError:
+        print('Trapped cancelled error.')
+        raise
     except KeyboardInterrupt:
         #aioble.stop()
         #scanner.stop()
@@ -155,9 +167,10 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         logger.info(f"Error in bridge_main: {e}")
         raise
     #logger.info("...started: Tilt scanner")
+    # todo below this line isn't doing anything? check
     try:
         while True:
-            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers, console_log))
+            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
             await handler # wait for handler to return
             #logger.debug(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
             # check timeout
@@ -267,19 +280,21 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
 
 
 #def _handle_bridge_queue(enabled_providers: list, console_log: bool):
-async def _handle_bridge_queue(enabled_providers: list, console_log: bool):
+async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
     # job to process the queue of data
 
     try:
         #tilt_status = await bridge_q.get() #blocks until data available
-        await asyncio.sleep_ms(100) # testing todo:
+        await asyncio.sleep_ms(100) # testing todo: reduce from 100ms
         for provider in enabled_providers:
-            if provider.upload_due.is_set():
+            #if provider.upload_due.is_set():
+            if provider_timers.upload_is_due(provider):
                 logger.debug(f"upload due for {provider}")
                 upload_task = asyncio.create_task(provider.update_test())
                 await upload_task
                 #asyncio.create_task(provider.update_test())
-                provider.upload_due.clear()
+                #provider.upload_due.clear()
+                #provider_timers.clear(provider)
     except Exception as e:
         logger.critical(f"handler err: {e}")
         raise

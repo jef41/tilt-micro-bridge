@@ -143,7 +143,7 @@ def set_global_exception():
 async def main():
     set_global_exception()  # Debug aid
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
-    await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = True, console_log=True)
+    await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = True)# , console_log=True)
 
     
 # get wifi network
@@ -164,6 +164,14 @@ except KeyboardInterrupt as e:
     #    asyncio.sleep_ms(100)
     #os.dupterm(None)
     #print("Thread reports finished")
+    bridge.handler.cancel()
+    #await asyncio.sleep(0)
+    bridge.scanner.cancel()
+    #await asyncio.sleep(0)
+    for provider in bridge.provider_timers.timer_list.keys():
+        bridge.provider_timers.stop(provider)
+        #await asyncio.sleep(0)
+    #todo cancel timers
     print("...stopped: Tilt Scanner (keyboard interrupt)")
 except Exception as e:
     #if not bridge.simulate_beacons:
