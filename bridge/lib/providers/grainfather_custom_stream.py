@@ -64,7 +64,7 @@ class GrainfatherCustomStreamCloudProvider():
         self.upload_due.set()
     
     #def update_test(self, t):
-    async def update_test(self):
+    async def update(self):
         # for colour in self.colour_urls
         #averagering_period = config.averaging_period
         log_period = self.period/self.rate # older than this = stale data

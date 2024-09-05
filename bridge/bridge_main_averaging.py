@@ -132,13 +132,13 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         scanner = asyncio.create_task(_scan_for_ibeacons()) 
         #pass
     try:
-        a = 1200 # for debugging
+        a = 12000 # for debugging
         while True:
             # this loop will process the incoming data queue
             #handler = asyncio.create_task(_handle_bridge_queue(bridge_q, console_log))
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
             await handler # wait for handler to return
-            if a == 1500: # getting approx 300 messages per minute so this is 5 mins
+            if a == 15000: # getting approx 300 messages per minute so this is 5 mins
                 logger.debug(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
                 a = 0
             a = a + 1 # for debugging
@@ -191,8 +191,8 @@ async def _scan_for_ibeacons(simulate=False):
                         # fake callback
                         import random
                         uuid = random.choice(list(uuid_to_colours.keys()))
-                        major = random.randrange(500, 850) # HD ->SD (50, 85)
-                        minor = random.randrange(10050, 10450) # HD -> SD (1005, 1045)
+                        major = random.randrange(700, 750) # HD ->SD (50, 85)
+                        minor = random.randrange(10150, 10350) # HD -> SD (1005, 1045)
                         await _beacon_callback(uuid, major, minor, 0, 0)#, bridge_q)
                         #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             except AttributeError:
