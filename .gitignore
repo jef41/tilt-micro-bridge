@@ -8,6 +8,8 @@ bridge/debug.lo*
 .idea/
 .vscode/
 .DS_Store
+*test*.py
+
 # Keep pitch.json files in example dir
 !examples/**/pitch.json
 
