@@ -12,6 +12,7 @@ config.json looks like:
     "grainfather_custom_stream_urls": {
         "simulated": "https://community.grainfather.com/iot/xxx-xxx/custom"
     },
+    "grainfather_averaging_period" = 300
     "grainfather_temp_unit": "C",
     "ssid": "yyyyy-xxxxx",
     "password": "ssssssssssssss"
@@ -19,9 +20,6 @@ config.json looks like:
 ```
 requires optimisation:
 
-* use timers rather than current rate limiter
 * handle 429 responses
 * handle timeout responses
-* store and average uploaded values
-* currently loses time, possibly need to subtract (datediff) time from timer counter?
 * lots of comments and additional code to be removed /tidied
