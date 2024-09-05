@@ -1,7 +1,3 @@
-''' todo:
-    using a timer we cannot react/adjust if we get a 429 or other response code
-    unless 429 or other stops the currently runningtimer & sets a flag?
-'''
 # Payload docs are found by clicking the "info" button next to a fermenation device on grainfather.com
 # {
 #     "specific_gravity": 1.034, //this must be a numeric value
@@ -15,18 +11,15 @@ from models import TiltStatus
 from models import TiltHistory
 #from abstractions import CloudProviderBase
 from configuration import BridgeConfig
-from rate_limiter import DeviceRateLimiter
+#from rate_limiter import DeviceRateLimiter
 import asyncio
 import async_urequests as requests
 import json
 import gc # for development only
-from rate_limiter import RateLimitedException
+#from rate_limiter import RateLimitedException
 from machine import Timer
 
 
-#dbg_logger = logging.getLogger("main.GFcustomProvider")
-#logger = logging.getLogger('GFcustomProvider')
-#logger.setLevel(logging.DEBUG)
 logger = logging.getLogger('GFcstm_pvdr')
 logger.info("Startup")
 
@@ -47,23 +40,23 @@ class GrainfatherCustomStreamCloudProvider():
         except AttributeError:
             self.averaging_period = config.averaging_period
         self.bridge_config = config
-        self.start()
-        self.upload_due = asyncio.Event() # ThreadSafeFlag()
+        #self.start()
+        #self.upload_due = asyncio.Event() # ThreadSafeFlag()
         #logger.info("test provider")
 
     def __str__(self):
         return self.str_name
 
     def start(self):
-        # initialise a timer and IRQ here to change update_due flag
-        # could run a benchmaark here on update data & subtract that from period?
+        # todo: start is called from main script, but no longer does anything here
         #logger.info("start called")
         if self.enabled():
             #self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.update_test)
-            self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.provider_callback)
+            #self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.provider_callback)
             #self.upload_timer = Timer(period=900, mode=Timer.PERIODIC, callback=self.test)
             #upload_timer.init(period=900, mode=Timer.PERIODIC, callback=self.test)
-            logger.info(f"{self.str_name} provider timer started")
+            #logger.info(f"{self.str_name} provider timer started")
+            pass
 
     
     def provider_callback(self, timer):
@@ -84,7 +77,7 @@ class GrainfatherCustomStreamCloudProvider():
                     #logger.info(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
                     #logger.info(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
-                    asyncio.run(self.a_update(tilt_status))
+                    asyncio.run(self.async_update(tilt_status))
                 else:
                     #logger.info(f"{colour} has no data")
                     pass
@@ -98,18 +91,8 @@ class GrainfatherCustomStreamCloudProvider():
         # keep a referene to the data queue, this is added after the object is created
         self.data_archive = data_archive
     
-    def update(self, tilt_status: TiltStatus):
-        #asyncio.run(self.a_update(tilt_status))
-        pass
-        #logger.info(f"{self.str_name} update called")
-        ''' # new fuinction to be called from timer IRQ with only arg = Timer object
-            # tempF, sg = data_archive. get_data (passing averaging(boolean) & period
-            # create TiltStatus object from that data
-        '''
-        #asyncio.run(self.a_update(tilt_status))
 
-    #def async update(self, tilt_status: TiltStatus):
-    async def a_update(self, tilt_status: TiltStatus):
+    async def async_update(self, tilt_status: TiltStatus):
         start_time = time.ticks_ms()
         #logger.info("debug: async GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
         # Skip if this colour doesn't have a grainfather URL assigned
@@ -159,31 +142,12 @@ class GrainfatherCustomStreamCloudProvider():
         # if 429 set to 1 minute?
         # if config round then wait for 0,15,30,45 mins of the hour?
 
-    def synchronous_update(self, tilt_status: TiltStatus):
-        #logger.info("debug: synchronous GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
-        # Skip if this colour doesn't have a grainfather URL assigned
-        if tilt_status.colour not in self.colour_urls.keys():
-            return
-        url = self.colour_urls[tilt_status.colour]
-        self.rate_limiter.approve(tilt_status.colour)
-
-        headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
-        payload = self._get_payload(tilt_status)
-        logger.info("send payload: {}".format(json.dumps(payload)))
-        start = gc.mem_free() #don't call if in a thread?
-
-        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=5)
-        #logger.info("custom response is:{} bytes".format(start - gc.mem_free()))
-        logger.info("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
-        #asyncio.run(requests("POST", url, json=payload))
-        response.close()
-        response = None # make available for gc
 
     def enabled(self):
         return True if self.colour_urls else False
 
     def _adjust_timing(self, status, retry_secs: int, time_spent, tilt_status):
-        '''match status: '''
+        # todo: implement this probperly with ProviderTimer
         if status == 201:
             #self.rate_limiter.device_limiters[tilt_status.colour].period = int(600)
             time_spent = time_spent / 1000
@@ -218,12 +182,7 @@ class GrainfatherCustomStreamCloudProvider():
             #return "Something's wrong with the internet"
 
     def _get_payload(self, tilt_status: TiltStatus):
-        # GF requires the JSON to to ordered correctly TODO - maybe ordiered dict not required, but this did work!
-        '''payld = OrderedDict([
-            ("specific_gravity", tilt_status.gravity),
-             ("temperature", self._get_temp_value(tilt_status)),
-             ("unit", self.temp_unit)
-        ])return payld'''
+        # GF payload data format
         return {
             "specific_gravity": tilt_status.gravity,
             "temperature": self._get_temp_value(tilt_status),
@@ -258,9 +217,9 @@ class GrainfatherCustomStreamCloudProvider():
 
         raise ValueError("Grainfather temp unit must be F or C")
 
-
+'''
 #for testing/debug:
 def display_time():
     year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
     # logger.info a date - YYYY-MM-DD
-    return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
+    return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))'''

@@ -21,11 +21,7 @@ from configuration import BridgeConfig
 #from rate_limiter import RateLimitedException
 from models.provider_timer import UploadTimers
 
-#brdg_logger = logging.getLogger("main.bridge")
-#brdg_logger = logging.getLogger(__name__)
-# Get a child logger of 'my_app'
 logger = logging.getLogger('bridge')
-#logger.setLevel(logging.DEBUG)
 
 if "RP2040" in  sys.implementation._machine:
     import rp2
@@ -56,12 +52,9 @@ config = BridgeConfig.load()
 
 #reserve some space for the tilt_status object
 gc.collect()
-# Queue for holding incoming scans
-#bridge_q = Queue(1) # Queue(maxsize=config.queue_size + 1)
+# Queue for holding incoming data from scans
 data_archive = bytearray()
-#tilt_status = bytes(0) # 80 bytes, only need 48, but cannot seem to allcoate less
 
-#gc.threshold(2096) #4096 = memory error in BLE scan
 
 normal_providers = [
         #PrometheusCloudProvider(config),
@@ -77,18 +70,14 @@ normal_providers = [
     ]
 
 
-provider_timers = UploadTimers()
-handler = None
-scanner = None
-#scanner_running  = True
-#scanner_finished = False
+provider_timers = UploadTimers() # referencde to all enabled provder timers
+handler = None					 # reference to data handler task
+scanner = None					 # reference to bluetooth scanner task
 
 # initiate RTC object
 rtc = RTC()
 
-# core1 line often seems to cause hangs 
-#core1 = Context()  # Has an instance of _thread, so a core on RP2
-#############################################
+
 #############################################
 
 
@@ -110,6 +99,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
     logger.info("Starting...")
     enabled_providers = list()
     enabled_colours = list()
+    # get configured providers & associated Tilt device colours
     for provider in providers:
         if provider.enabled():
             enabled_providers.append(provider)
@@ -117,22 +107,20 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
             if not provider__start_message:
                 provider__start_message = ''
             logger.info("...started: {} {}".format(provider, provider__start_message))
-            #todo: find configured colours, then initiate the TiltHistory object
-            #.colour_urls.keys()
+            # find configured colours
             for colour in provider.colour_urls.keys():
                 if colour not in enabled_colours:
                     enabled_colours.append(colour) 
-    gc.collect()
     
-    # replace config with max_of_averaging, pass a dict of colour:max_av
-    # data_archive = TiltHistory(config, colour_dict())
-    #data_archive = TiltHistory(config, enabled_colours)
-    #data_archive = TiltHistory(config, colour_dict(enabled_providers, enabled_colours))
+    gc.collect()
+    # size the TiltHistory object for each colour accordingly
+    # and create upload timers
     data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
     for provider in enabled_providers:
         provider.attach_archive(data_archive)
         provider_timers.add(provider, provider.period, provider.averaging_period)
-    # Start
+    
+    # Start scanning for Tilt data
     if simulate_beacons: 
         #scanner = asyncio.create_task(_start_beacon_simulation(bridge_q))
         scanner = asyncio.create_task(_scan_for_ibeacons(simulate=True)) 
@@ -159,34 +147,13 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         print('Trapped cancelled error.')
         raise
     except KeyboardInterrupt:
-        #aioble.stop()
-        #scanner.stop()
+        # todo: is this actioned here? investigate
         handler.cancel()
         scanner.cancel()
     except Exception as e:
         logger.info(f"Error in bridge_main: {e}")
         raise
     #logger.info("...started: Tilt scanner")
-    # todo below this line isn't doing anything? check
-    try:
-        while True:
-            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
-            await handler # wait for handler to return
-            #logger.debug(f"gc: {gc.mem_free()}\t qsize:{bridge_q.qsize()}")
-            # check timeout
-            if timeout_seconds:
-                current_time = time.time()
-                if current_time > end_time:
-                    return  # stop
-            await asyncio.sleep_ms(10) 
-    except KeyboardInterrupt as e:
-        #if not simulate_beacons:
-        scanner.stop()
-        logger.info("...stopped: Tilt Scanner (keyboard interrupt)")
-    except Exception as e:
-        #if not simulate_beacons:
-        scanner.stop()
-        logger.info("...stopped: Tilt Scanner ({})".format(e))
 
 
 async def _scan_for_ibeacons(simulate=False):
@@ -285,12 +252,12 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
 
     try:
         #tilt_status = await bridge_q.get() #blocks until data available
-        await asyncio.sleep_ms(100) # testing todo: reduce from 100ms
+        await asyncio.sleep_ms(0) # testing todo: reduce from 100ms
         for provider in enabled_providers:
             #if provider.upload_due.is_set():
             if provider_timers.upload_is_due(provider):
                 logger.debug(f"upload due for {provider}")
-                upload_task = asyncio.create_task(provider.update_test())
+                upload_task = asyncio.create_task(provider.update())
                 await upload_task
                 #asyncio.create_task(provider.update_test())
                 #provider.upload_due.clear()
@@ -380,9 +347,8 @@ def display_time():
 def colour_dict(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from erach tilt that will be saved
-    # maybe //5? if Tilt transmits 1/5secs
+    # todo: maybe //5? if Tilt transmits 1/5secs
     # called once per colour?
-    # todo each provider could have one different averaging period
     col_max = {}
     max_av = 0
     for provider in providers:
