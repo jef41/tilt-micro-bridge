@@ -135,14 +135,15 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         a = 12000 # for debugging
         while True:
             # this loop will process the incoming data queue
+            # todo: calling handler seems unnecessary?
             #handler = asyncio.create_task(_handle_bridge_queue(bridge_q, console_log))
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
             await handler # wait for handler to return
-            if a == 15000: # getting approx 300 messages per minute so this is 5 mins
+            if a == 15000: # 15000 * 100 = roughly 28mins
                 logger.debug(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
                 a = 0
             a = a + 1 # for debugging
-            await asyncio.sleep_ms(10) # was set to 10
+            await asyncio.sleep_ms(100) # could be less, 100ms works fine
     except asyncio.CancelledError:
         print('Trapped cancelled error.')
         raise
