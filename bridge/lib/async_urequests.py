@@ -224,7 +224,8 @@ async def _requests(method, url, params={}, data=None, headers={}, cookies=None,
             break
         
         resp = Response(reader, chunked, charset, headers)
-        resp.content = None # await resp.read()
+        # todo: don't load this - we don't use the content & it consumes space
+        resp.content = [] # await resp.read() #return an empty iterable
         resp.status_code = status_code
         resp.reason = reason
         resp.url = url
