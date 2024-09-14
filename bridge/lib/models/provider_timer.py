@@ -15,6 +15,7 @@ class UploadTimers():
         self.timer_list = dict()
     
     def add(self, provider, period, adjust=None):
+        adjust = None if adjust == 0 else adjust # ensure we don't set invalid adjustment period
         self.timer_list[provider] = self._get_new_timer(period, adjust)
     
     def _get_new_timer(self, period, adjust):
@@ -43,7 +44,7 @@ class UploadTimers():
         # change the timer period
         self.timer_list[provider].reinit(period_new*1000)
         self.timer_list[provider].adjusted = True
-        logger.debug(f"{provider} timer adjusted to{period_new}secs")
+        logger.debug(f"{provider} timer adjusted to: {period_new}secs")
         #oneshot timer object remains once it has expired
 
 class ProviderTimer():
@@ -52,7 +53,7 @@ class ProviderTimer():
         # in which case call with default_period=900, adjust=300
         self.upload_due = asyncio.Event()
         #self.upload_due.clear()
-        self.default_period = default_period*1000
+        self.default_period = default_period*1000 if default_period else 1000 # default to 1 second if averaging set to 0
         self.adjusted = False
         if adjust is not None:
             adjust = adjust*1000

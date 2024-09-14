@@ -70,7 +70,7 @@ normal_providers = [
     ]
 
 
-provider_timers = UploadTimers() # referencde to all enabled provder timers
+provider_timers = UploadTimers() # reference to all enabled provder timers
 handler = None					 # reference to data handler task
 scanner = None					 # reference to bluetooth scanner task
 
@@ -116,9 +116,16 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
     # size the TiltHistory object for each colour accordingly
     # and create upload timers
     data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
-    for provider in enabled_providers:
-        provider.attach_archive(data_archive)
-        provider_timers.add(provider, provider.period, provider.averaging_period)
+    #logger.debug("data archive created")
+    try:
+        for provider in enabled_providers:
+            provider.attach_archive(data_archive)
+            logger.debug(f"attached archive for {provider}")
+            logger.debug(f"add timer with:{provider.period} {provider.averaging_period}")
+            provider_timers.add(provider, provider.period, provider.averaging_period)
+            logger.debug(f"created timer for {provider}")
+    except Exception as e:
+        logger.debug(f"Exception: {e}")
     
     # Start scanning for Tilt data
     if simulate_beacons: 
@@ -258,11 +265,23 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
             #if provider.upload_due.is_set():
             if provider_timers.upload_is_due(provider):
                 logger.debug(f"upload due for {provider}")
-                upload_task = asyncio.create_task(provider.update())
-                await upload_task
-                #asyncio.create_task(provider.update_test())
-                #provider.upload_due.clear()
-                #provider_timers.clear(provider)
+                #upload_task = asyncio.create_task(provider.update())
+                #await upload_task
+                response_code, wait_for_secs = await provider.update()
+                #logger.debug(f"got: response;{response_code}, wait:{wait_for_secs}")
+                # upload_task should return the [response code, seconds to wait] if a 429 response
+                # response code logging should be managed in provider module
+                #if upload_task[0] == 429:
+                #    provider_timers.adjust(provider, upload_task[1])
+                if response_code == 429 and wait_for_secs > 0:
+                    #todo: if wait_for is 0 then when do we retry?
+                    #logger.debug(f"adjust timer: {wait_for_secs}")
+                    provider_timers.adjust(provider, wait_for_secs)
+    except StopIteration:
+        # no data received
+        logger.warning("Upload due, but no data available")
+        await asyncio.sleep_ms(1000)
+        #raise
     except Exception as e:
         logger.critical(f"handler err: {e}")
         raise
@@ -339,10 +358,10 @@ def get_time(rtc):
     return result
 
 
-def display_time():
+'''def display_time():
     year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
     # logger.info a date - YYYY-MM-DD
-    return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
+    return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))'''
 
 
 def colour_dict(providers, colours):
@@ -355,8 +374,8 @@ def colour_dict(providers, colours):
     for provider in providers:
         try:
             for colour in colours:
-                if colour in provider.colour_urls.keys() and provider.averaging_period > max_av:
-                    max_av = provider.averaging_period
+                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av:
+                    max_av = provider.averaging_period + 1 # so if passed 0 then this wills till work
                     col_max[colour] = max_av
         except Exception as e:
             logger.error(f"max_of_averaging error: {s}")

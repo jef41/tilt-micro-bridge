@@ -32,7 +32,7 @@ class GrainfatherCustomStreamCloudProvider():
         self.str_name = "Grainfather Custom URL"
         #self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
         self.rate = 1
-        self.period = (60 * 15)  # 15 minutes
+        self.period = 1 # debug test (60 * 15)  # 15 minutes
         #self.update_due = False
         self.upload_timer = None
         try:
@@ -59,33 +59,37 @@ class GrainfatherCustomStreamCloudProvider():
             pass
 
     
-    def provider_callback(self, timer):
-        # set the thread safe flag
-        self.upload_due.set()
+    #def provider_callback(self, timer):
+    #    # set the thread safe flag
+    #    self.upload_due.set()
     
     #def update_test(self, t):
     async def update(self):
         # for colour in self.colour_urls
         #averagering_period = config.averaging_period
+        #logger.debug(f"update called for GF Custom self.period/self.rate {self.period}/{self.rate}")
         log_period = self.period/self.rate # older than this = stale data
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
             for colour in self.colour_urls:
+                #logger.debug(f"try to get {colour}, av_period={self.averaging_period}, log_period={log_period}")
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)#, averaging=True)
                 if tempF and SG:
                     #logger.info(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
                     #logger.info(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
-                    asyncio.run(self.async_update(tilt_status))
+                    #asyncio.run(self.async_update(tilt_status))
+                    status, wait_for = await self.async_update(tilt_status)
+                    return [status, wait_for]
                 else:
-                    #logger.info(f"{colour} has no data")
+                    logger.info(f"{colour} has no data")
                     pass
                 
         except requests.ConnectionError:
-            logger.info('requests Connection error. todo: we need a tassk that prtiodically ensures WLAN connection is working')
+            logger.info('requests Connection error. todo: we need a task that periodically ensures WLAN connection is working')
         except Exception as e:
-            logger.info(f"exception in provider timer test(): {e}")
+            logger.error(f"exception in provider.update: {e}")
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a referene to the data queue, this is added after the object is created
@@ -103,10 +107,8 @@ class GrainfatherCustomStreamCloudProvider():
         #else:
         if tilt_status.colour in self.colour_urls.keys():
             url = self.colour_urls[tilt_status.colour]
-            #self.rate_limiter.approve(tilt_status.colour)
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             payload = self._get_payload(tilt_status)
-            #logger.info("send payload: {}".format(json.dumps(payload)))
             #logger.info("send payload: {}".format(json.dumps(payload)))
             gc.collect()
             start = gc.mem_free() #don't call if in a thread?
@@ -114,16 +116,25 @@ class GrainfatherCustomStreamCloudProvider():
             try:
                 response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
                 #await response
-                logger.info("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
-                retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
+                # todo: handle timeout here
+                #logger.info("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
+                #retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
                 #logger.info("Retry in:{}".format(retry)) if retry else logger.info("no retry value, so data updated")
-                time_spent = time.ticks_diff(time.ticks_ms(), start_time)
                 #self._adjust_timing(response.status_code, retry_in, time_spent, tilt_status)
-                response.close()
-                response = None # make available for gc
+                # do some logging
+                status, wait_for = await self.process_response(response, start)
+                #logger.debug(f"process response returned: {status} {wait_for}")
+                #response.close()
+                #response = None # make available for gc
+                time_spent = time.ticks_diff(time.ticks_ms(), start_time)
+                # send back the status code & retry after if present
+                #return [response.status_code, int(response.headers.get('retry-after')) if response.status_code == 429 else None]
+                return [status, wait_for]
             except requests.ConnectionError:
+                logger.error("ConnectionError: uploading Grainfather Custom device")
                 raise Exception('requests Connection error.')
             except requests.TimeoutError:
+                logger.warning("TimeoutError: uploading Grainfather Custom device")
                 #logger.info(f'requests Timeout error.')
                 response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
@@ -146,7 +157,27 @@ class GrainfatherCustomStreamCloudProvider():
     def enabled(self):
         return True if self.colour_urls else False
 
-    def _adjust_timing(self, status, retry_secs: int, time_spent, tilt_status):
+    async def process_response(self, response, start_bytes):
+        # check result code
+        logger.debug(f"process response {response.status_code}")
+        retry_in = None
+        if response.status_code == 429:
+            retry_in = int(response.headers.get('retry-after')) # else None
+            logger.info(f"URL response:{response.status_code}, reason:{response.reason}, size:{start_bytes - gc.mem_free()}bytes, wait:{retry_in} ")#test:{response.text}")
+            # todo: update timer 
+        elif response.status_code == 200:
+            # malformed data?
+            logger.warning("URL response:{}, reason:{}, size:{}bytes, text:{}".format(response.status_code, response.reason, start_bytes - gc.mem_free() ))#, response.text))
+        elif response.status_code == 201:
+            # all good
+            logger.debug("URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start_bytes - gc.mem_free()))#, response.text))
+        else:
+            # some other error
+            logger.warning("URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start_bytes - gc.mem_free()))
+        await asyncio.sleep_ms(0)
+        return [response.status_code, retry_in]
+
+    '''def _adjust_timing(self, status, retry_secs: int, time_spent, tilt_status):
         # todo: implement this probperly with ProviderTimer
         if status == 201:
             #self.rate_limiter.device_limiters[tilt_status.colour].period = int(600)
@@ -179,7 +210,7 @@ class GrainfatherCustomStreamCloudProvider():
         else:
             pass
             # something else wrong, log a message
-            #return "Something's wrong with the internet"
+            #return "Something's wrong with the internet"'''
 
     def _get_payload(self, tilt_status: TiltStatus):
         # GF payload data format
@@ -216,10 +247,3 @@ class GrainfatherCustomStreamCloudProvider():
             return "fahrenheit"
 
         raise ValueError("Grainfather temp unit must be F or C")
-
-'''
-#for testing/debug:
-def display_time():
-    year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
-    # logger.info a date - YYYY-MM-DD
-    return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))'''
