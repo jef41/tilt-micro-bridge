@@ -91,7 +91,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
     if providers is None:
         providers = normal_providers
     # add any webhooks defined in config
-    # !! not currently implemented/tested
+    # todo !! not currently implemented/tested
     webhook_providers = _get_webhook_providers(config)
     if webhook_providers:
         providers.extend(webhook_providers)
@@ -366,7 +366,7 @@ def get_time(rtc):
 
 def colour_dict(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
-    # this is how many records from erach tilt that will be saved
+    # this is how many records from each tilt that will be saved
     # todo: maybe //5? if Tilt transmits 1/5secs
     # called once per colour?
     col_max = {}

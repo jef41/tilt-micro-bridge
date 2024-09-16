@@ -13,8 +13,9 @@
     failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
     testedOK: test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads - yup
     done: at startup wait averaging period before sending first data, not log period
-    done: send a GF packet then immediately send another, how long are we asked to wait? 900 or less? lots of providers could cause upload time to vary, what tolerance do we have
-            seem to be asled to wait 13mins 59 secs, or maybe 14 mins (839 secs)
+    done: send a GF packet then immediately send another, how long are we asked to wait? 900 or less?
+            lots of providers could cause upload time to vary, what tolerance do we have
+            seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
     todo modify Grainfather Tilt provider to use async update & ProviderTimer
     todo move wifi, ntp & time defs from bridge_main to net-utility module
