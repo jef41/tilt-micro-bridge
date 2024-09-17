@@ -1,9 +1,9 @@
-''' 
-    changes in this version:
-    implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
-    code comments & linting
+'''
     
-    
+    tested OK: handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
+    tested OK: needs double check: on keyboard interrupt cancel timers & running tasks
+    tested OK: implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
+    tested OK: code comments & linting
     tested OK: implement console & file logging for debug using logging module & io.IOBase to copy to file
     tested OK: de-linting
     tested OK: clean up some code
@@ -13,20 +13,21 @@
     failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
     testedOK: test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads - yup
     done: at startup wait averaging period before sending first data, not log period
+    done: send a GF packet then immediately send another, how long are we asked to wait? 900 or less?
+            lots of providers could cause upload time to vary, what tolerance do we have
+            seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
     todo modify Grainfather Tilt provider to use async update & ProviderTimer
-    todo on keyboard interrupt cancel timers & running tasks
     todo move wifi, ntp & time defs from bridge_main to net-utility module
-    todo handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    todo refactor main & bridge lib to make more logical
+    todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
-    todo improve non-averaging e.g. filter max
-    todo make provider.uploads task(s)
+    todo improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
     todo implement watchdog (8secs max I think from memory)import ussl
     todo implement wifi countrycode properly into config
     todo implement wifi status check/reconnect
-    todo send a GF packet then immediately send another, how long are we asked to wait? 900 or less? lots of providers could cause upload time to vary, what tolerance do we have
-    
+    todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
+
     ideas:
     integrate aioble scanner into thread on core1
         
@@ -102,5 +103,3 @@ except Exception as e:
     print("...stopped: Tilt Scanner ({})".format(e))
 finally:
     asyncio.new_event_loop()  # Clear retained state
-
-
