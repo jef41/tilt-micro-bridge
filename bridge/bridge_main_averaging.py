@@ -262,8 +262,9 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
         #tilt_status = await bridge_q.get() #blocks until data available
         await asyncio.sleep_ms(0) # testing todo: reduce from 100ms
         for provider in enabled_providers:
-            #if provider.upload_due.is_set():
-            if provider_timers.upload_is_due(provider):
+            #if provider.update_in_progress:
+            #    logger.debug(f"{provider} update already in progress")
+            if provider_timers.upload_is_due(provider): # and not provider.update_in_progress:
                 logger.debug(f"upload due for {provider}")
                 #upload_task = asyncio.create_task(provider.update())
                 #await upload_task

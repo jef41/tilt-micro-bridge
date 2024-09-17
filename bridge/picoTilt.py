@@ -1,6 +1,6 @@
-''' 
-    testing: handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
+'''
     
+    tested OK: handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
     tested OK: needs double check: on keyboard interrupt cancel timers & running tasks
     tested OK: implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
     tested OK: code comments & linting
@@ -17,7 +17,6 @@
             lots of providers could cause upload time to vary, what tolerance do we have
             seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
-    todo implement an update in progress flag, to avoid repeatedly trying upload, provider should have flag & should set & clear flag, bridge main should check this flag
     todo modify Grainfather Tilt provider to use async update & ProviderTimer
     todo move wifi, ntp & time defs from bridge_main to net-utility module
     todo refactor main & bridge lib to make more logical

@@ -84,17 +84,13 @@ class TiltHistory():
             # get an average
             logger.debug(f"averaging period set, get average {av_period} secs")
             time_limit = now - int(av_period) # ensure an integer, float leads to rounding
-            #limit = 1724432992 - self.data_points # we have a match todo: time.time()
             tempF, sg = self.ringbuffer_list[colour].get_average(time_limit)
             #pass
         else:
-            # get most recent todo: check how robust this is
+            # get most recent 
             logger.debug(f"averaging not set, get most recent data, {now}-{log_period}")
             time_limit = now - int(log_period) # ensure an integer, float leads to rounding errors
-            #limit = 1724432992 - period # todo comment this out
             tempF, sg = self.ringbuffer_list[colour].get_most_recent(time_limit)
-            #pass
-        #logger.debug(f"data time limit is set to :{time_limit}")
         return [tempF, sg]
 
 

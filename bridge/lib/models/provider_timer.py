@@ -45,6 +45,7 @@ class UploadTimers():
         self.timer_list[provider].reinit(period_new*1000)
         self.timer_list[provider].adjusted = True
         logger.debug(f"{provider} timer adjusted to: {period_new}secs")
+        self.timer_list[provider].upload_due.clear() # ensure the flag is reset
         #oneshot timer object remains once it has expired
 
 class ProviderTimer():

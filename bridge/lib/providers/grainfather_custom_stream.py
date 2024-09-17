@@ -34,6 +34,7 @@ class GrainfatherCustomStreamCloudProvider():
         self.rate = 1
         self.period = (60 * 15)  # 15 minutes
         #self.update_due = False
+        #self.update_in_progress = False
         self.upload_timer = None
         try:
             self.averaging_period = config.grainfather_averaging_period
@@ -73,6 +74,7 @@ class GrainfatherCustomStreamCloudProvider():
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
             for colour in self.colour_urls:
+                #self.update_in_progress = True
                 status, wait_for = [None, None] 
                 #logger.debug(f"try to get {colour}, av_period={self.averaging_period}, log_period={log_period}")
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)#, averaging=True)
@@ -85,12 +87,16 @@ class GrainfatherCustomStreamCloudProvider():
                     #return [status, wait_for]
                 else:
                     logger.info(f"{colour} has no data")
+                #self.update_in_progress = False
                 return [status, wait_for] # either values or [None, None]
                 
         except requests.ConnectionError:
             logger.info('requests Connection error. todo: we need a task that periodically ensures WLAN connection is working')
         except Exception as e:
             logger.error(f"exception in provider.update: {e}")
+        finally:
+            pass
+            #self.update_in_progress = False
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a referene to the data queue, this is added after the object is created
