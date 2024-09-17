@@ -17,6 +17,7 @@
             lots of providers could cause upload time to vary, what tolerance do we have
             seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
+    todo implement an update in progress flag, to avoid repeatedly trying upload, provider should have flag & should set & clear flag, bridge main should check this flag
     todo modify Grainfather Tilt provider to use async update & ProviderTimer
     todo move wifi, ntp & time defs from bridge_main to net-utility module
     todo refactor main & bridge lib to make more logical

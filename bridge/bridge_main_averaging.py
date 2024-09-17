@@ -121,7 +121,7 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         for provider in enabled_providers:
             provider.attach_archive(data_archive)
             logger.debug(f"attached archive for {provider}")
-            logger.debug(f"add timer with:{provider.period} {provider.averaging_period}")
+            logger.debug(f"add timer with log_period:{provider.period} averaging_period:{provider.averaging_period} secs")
             provider_timers.add(provider, provider.period, provider.averaging_period)
             logger.debug(f"created timer for {provider}")
     except Exception as e:

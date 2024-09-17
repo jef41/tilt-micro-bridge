@@ -32,7 +32,7 @@ class GrainfatherCustomStreamCloudProvider():
         self.str_name = "Grainfather Custom URL"
         #self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
         self.rate = 1
-        self.period = 1 # debug test (60 * 15)  # 15 minutes
+        self.period = (60 * 15)  # 15 minutes
         #self.update_due = False
         self.upload_timer = None
         try:
@@ -68,11 +68,12 @@ class GrainfatherCustomStreamCloudProvider():
         # for colour in self.colour_urls
         #averagering_period = config.averaging_period
         #logger.debug(f"update called for GF Custom self.period/self.rate {self.period}/{self.rate}")
-        log_period = self.period/self.rate # older than this = stale data
+        log_period = self.period//self.rate # older than this = stale data, ensure this is an integer of seconds
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
             for colour in self.colour_urls:
+                status, wait_for = [None, None] 
                 #logger.debug(f"try to get {colour}, av_period={self.averaging_period}, log_period={log_period}")
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)#, averaging=True)
                 if tempF and SG:
@@ -81,10 +82,10 @@ class GrainfatherCustomStreamCloudProvider():
                     #logger.info(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
                     #asyncio.run(self.async_update(tilt_status))
                     status, wait_for = await self.async_update(tilt_status)
-                    return [status, wait_for]
+                    #return [status, wait_for]
                 else:
                     logger.info(f"{colour} has no data")
-                    pass
+                return [status, wait_for] # either values or [None, None]
                 
         except requests.ConnectionError:
             logger.info('requests Connection error. todo: we need a task that periodically ensures WLAN connection is working')

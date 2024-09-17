@@ -79,18 +79,22 @@ class TiltHistory():
         # use a memoryview
         # return a tuple of temp & sg
         tempF, sg = None, None
+        now = time.time()
         if av_period: # > 0 self.data_points:
             # get an average
-            limit = time.time() - av_period # self.data_points
+            logger.debug(f"averaging period set, get average {av_period} secs")
+            time_limit = now - int(av_period) # ensure an integer, float leads to rounding
             #limit = 1724432992 - self.data_points # we have a match todo: time.time()
-            tempF, sg = self.ringbuffer_list[colour].get_average(limit)
+            tempF, sg = self.ringbuffer_list[colour].get_average(time_limit)
             #pass
         else:
             # get most recent todo: check how robust this is
-            limit = time.time() - log_period
+            logger.debug(f"averaging not set, get most recent data, {now}-{log_period}")
+            time_limit = now - int(log_period) # ensure an integer, float leads to rounding errors
             #limit = 1724432992 - period # todo comment this out
-            tempF, sg = self.ringbuffer_list[colour].get_most_recent(limit)
+            tempF, sg = self.ringbuffer_list[colour].get_most_recent(time_limit)
             #pass
+        #logger.debug(f"data time limit is set to :{time_limit}")
         return [tempF, sg]
 
 
@@ -192,7 +196,8 @@ class TiltRingBuffer:
         try:
             latest_i = (self._ri + self.record_len) % self._size
             q_timestmp = mv_data[0+latest_i] | mv_data[1+latest_i]<<8 | mv_data[2+latest_i]<<16 | mv_data[3+latest_i]<<24
-            if q_timestmp > limit: # we have a match 
+            logger.debug(f"timestamp:{q_timestmp} limit:{limit}")
+            if q_timestmp > int(limit): # we have a match 
                 temp_match = mv_data[4+latest_i] | ((mv_data[5+latest_i] & 0x0F)<<8)
                 sg_match = mv_data[6+latest_i]<<4 | (mv_data[5+latest_i] & 0xF0)>>4
                 #logger.debug(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
