@@ -1,6 +1,8 @@
 import json
 import os
+import logging
 
+logger = logging.getLogger('BridgeConfig')
 
 class BridgeConfig:
 
@@ -89,9 +91,9 @@ class BridgeConfig:
         try:
             with open(file_path, "r") as file:
                 config_raw = json.load(file)
-            #print(f"got config {config_raw}")
+            logger.debug(f"got config {config_raw}")
         except OSError:
-            print(f"config file not found ({file_path})")
+            logger.error(f"config file not found ({file_path})")
             pass
 
         config = BridgeConfig(config_raw)
