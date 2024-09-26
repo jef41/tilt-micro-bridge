@@ -38,8 +38,10 @@ class WifiClient():
         self._sta_if = network.WLAN(network.STA_IF)
         self._ssid = config.ssid
         self._wifi_pw = config.password
-        self._country = config.country_code
-        # todo: allow _country is None
+        try:
+            self._country = config.country_code
+        except AttributeError:
+            self._country = None
 
     async def wifi_connect(self, quick=False):
         s = self._sta_if
@@ -49,8 +51,8 @@ class WifiClient():
             # para 3.6.3
             s.config(pm=0xA11140)
             import rp2
-            # todo: check if _country is None
-            rp2.country(self._country)
+            if self._country:
+                rp2.country(self._country)
         s.connect(self._ssid, self._wifi_pw)
         for _ in range(60):  # Break out on fail or success. Check once per sec.
             await asyncio.sleep(1)
