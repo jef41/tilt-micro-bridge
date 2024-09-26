@@ -1,4 +1,4 @@
-running picoTilt_6.py should work to scan for BLE signals and upload to 2 x Grainfather providers at 15 minute intervals
+running picoTilt.py works, tested scanning for BLE signals and upload to 2 x Grainfather providers at 15 minute intervals
 
 this is a bare minimum working sample
 
@@ -15,11 +15,12 @@ config.json looks like:
     "grainfather_averaging_period" = 300
     "grainfather_temp_unit": "C",
     "ssid": "yyyyy-xxxxx",
-    "password": "ssssssssssssss"
+    "password": "ssssssssssssss",
+    "country_code": "GB"
 }
 ```
 requires optimisation:
 
-* handle 429 responses
+* DONE handle 429 responses
 * handle timeout responses
 * lots of comments and additional code to be removed /tidied

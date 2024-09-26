@@ -1,5 +1,11 @@
-'''
-    
+''' latest change was separate wifi module & background checkll for wifi conenctivity
+    testing: move wifi, ntp & time defs from bridge_main to net-utility module
+    testing: implement wifi status check/reconnect
+    testing & possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
+
+    tested OK modify Grainfather Tilt provider to use async update & ProviderTimer
+    tested OK providers with different methods (averaging & latest reading)
+    tested OK providers with different upload intervals
     tested OK: handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
     tested OK: needs double check: on keyboard interrupt cancel timers & running tasks
     tested OK: implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
@@ -17,15 +23,12 @@
             lots of providers could cause upload time to vary, what tolerance do we have
             seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
-    todo modify Grainfather Tilt provider to use async update & ProviderTimer
-    todo move wifi, ntp & time defs from bridge_main to net-utility module
+    
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
-    todo improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
     todo implement watchdog (8secs max I think from memory)import ussl
     todo implement wifi countrycode properly into config
-    todo implement wifi status check/reconnect
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
 
     ideas:
@@ -55,8 +58,9 @@ logger.addHandler(consoleHandler)
 
 
 #import bridge_main_asyncv5 as bridge
-import bridge_main_averaging as bridge
 import asyncio
+import bridge_main_averaging as bridge
+from wifi_client import WifiClient
 #import _thread
 import gc
 
@@ -81,7 +85,9 @@ async def main():
 
     
 # get wifi network
-bridge.get_wifi(bridge.config)
+#bridge.get_wifi(bridge.config)
+wifi = WifiClient(bridge.config)
+asyncio.run(wifi.connect())
 
 # set system time - could have a UTC offset in config, but time is onyl used internally at the moment
 bridge.get_time(bridge.rtc)
