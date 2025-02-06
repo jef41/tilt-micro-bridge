@@ -53,6 +53,8 @@ Custom configurations can be used by creating a file `config.json` in the workin
 | `temp_range_max` (int) | Maximum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `212` | No example yet (PRs welcome!) |
 | `gravity_range_min` (int) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | No example yet (PRs welcome!) |
 | `gravity_range_max` (int) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | No example yet (PRs welcome!) |
+
+<!--
 | `webhook_urls` (array) | Adds webhook URLs for Tilt status updates | None/empty | [Example config](examples/webhook/pitch.json) |
 | `webhook_limit_rate` (int) | Number of webhooks to fire for the limit period (per URL) | 1 | [Example config](examples/webhook/pitch.json) |
 | `webhook_limit_period` (int) | Period for rate limiting (in seconds) | 1 | [Example config](examples/webhook/pitch.json) |
@@ -72,15 +74,18 @@ Custom configurations can be used by creating a file `config.json` in the workin
 | `influxdb2_bucket` (str) | Bucket to write data to in InfluxDB 2.0 | None/empty | `bucket_name`
 | `influxdb_timeout_seconds` (int) | Timeout of InfluxDB reads/writes | `5` | No example yet (PRs welcome!) |
 | `brewfather_custom_stream_url` (str) | URL of Brewfather Custom Stream | None/empty | No example yet (PRs welcome!) |
+-->
 | `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather/pitch.json) |
 | `grainfather_tilt_stream_urls` (dict) | Dict of color (key) and URLs (value), as above, but seen as a Tilt Device | None/empty | [Example config](bridge/readme.md) |
 | `grainfather_averaging_period` (int) | Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period.  | `300` |  &nbsp; |
 | `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` |  [Example config](examples/grainfather/pitch.json) |
-| `brewersfriend_api_key` (str) | API Key for Brewer's Friend | None/empty | No example yet (PRs welcome!) |
+<!--|
+ `brewersfriend_api_key` (str) | API Key for Brewer's Friend | None/empty | No example yet (PRs welcome!) |
 | `taplistio_url` (str) | URL of Taplist.io Tilt reporting webhook | None/empty | No example |
 | `azure_iot_hub_connectionstring` (str) | Azure IoT Hub Device Connection String | None/empty | [Example config](examples/azure_iot/readme.md) |
 | `azure_iot_hub_limit_rate` (int) | Rate limit according to selected IoT Hub tier. | 8000 | [Example config](examples/azure_iot/pitch.json) |
 | `azure_iot_hub_limit_period` (int) | Period during which to observe rate limit, defaults to one day. | 86400 | [Example config](examples/azure_iot/pitch.json) |
+-->
 | `{color}_name` (str) | Name of your brew, where {color} is the color of the Tilt (purple, red, etc) | Color (e.g. purple, red, etc) | No example yet (PRs welcome!) |
 | `{color}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | No example yet (PRs welcome!) |
 | `{color}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | No example yet (PRs welcome!) |
