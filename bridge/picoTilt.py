@@ -3,6 +3,7 @@
     TODO: 		check for cal at 1.000, if not present then insert?
                 if uncal > or < cal points then regression/forecast?
                 log info/debug uncal & cal values uploaded
+                currently only 20 values from tilt are displayed - need a better calibration process
     testing: 	done, I think? todo implement wifi countrycode properly into config
     
     tested OK: 	separate wifi module & background checkll for wifi conenctivity

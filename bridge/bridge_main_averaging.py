@@ -23,6 +23,8 @@ from configuration import BridgeConfig
 from models.provider_timer import UploadTimers
 gc.collect()
 
+debug_recvd_counter = 0  #for dev purposes, need a better implementation
+
 logger = logging.getLogger('bridge')
 '''
 if "RP2040" in  sys.implementation._machine:
@@ -219,7 +221,7 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
     # todo: this isn't actually an async routine
     # check bluetooth data and store on a queue (TiltHistory object)
     #    return
-
+    global debug_recvd_counter
     colour = uuid_to_colours.get(uuid)
     if colour in data_archive.ringbuffer_list:
         #logger.info("beacon_callback colour match, {}".format(colour))
@@ -238,6 +240,13 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
             #logger.info("debug: putting...\n {}".format(dir(beacon_data)))
             #bridge_q.put_nowait(beacon_data)
             #bridge_q.put_sync(beacon_data) #, block=False) # Raises IndexError if the queue is full
+            
+            # todo show these messages only if in cal mode - maybe a button, or different main.py & timer
+            # in cal mode perhaps show 30 values then show the average, repeat
+            if debug_recvd_counter < 20:
+                logger.debug(f"data from {colour} tilt SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+            debug_recvd_counter += 1
+            
             try:
                 #await bridge_q.put(beacon_data)
                 # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 or calibrated vals))
