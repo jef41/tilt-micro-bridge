@@ -1,15 +1,15 @@
 # Micro Bridge (Tilt Hydrometer tool)
 
-This project is a remodelling of the work already done in [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). That project is written in Python. This project aims to convert functionality to Micropython.
+This project was originally a fork of [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). It is a remodelling of the work already done in that project. Tilt-Pitch project is written in Python. This project aims to convert functionality to Micropython.
 
-The intention is to create a minimal hardware Wifi & Bluetooth bridge, this project has been developed using a Raspberry Pi Pico W. Should require;
+The intention is to create a minimal hardware Bluetooth -> Wifi bridge, this project has been developed using a Raspberry Pi Pico W. Should require;
 
 * Raspberry Pi Pico W (wifi and bluetooth)
 * micro USB cable
 * Thonny software
 * UF2 [Instructions](https://micropython.org/download/RPI_PICO/)
 
-Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with Grainfather and then to get some averaging of values: the Tilt seems to tranmit very regularly (as in every second), Grainfather allows loggin every 15 minutes (which seems reasonable). Rather than log noise maybe store the latest minute of data in a buffer, when a timer has elapsed do some normalisation and averaging on that data and log that. 
+Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with Grainfather and then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
 
 # Features
 
