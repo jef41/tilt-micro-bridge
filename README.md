@@ -19,7 +19,7 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Get Grainfather provider working
 * [ ] Tilt status data saved to log file (JSON)
 * [x] Enable averaging
-* [ ] More robust WiFi check/reconnect
+* [x] More robust WiFi check/reconnect - though more can be added in here
 * [ ] Watchdog/restarts
 * [x] Error logging
 * [ ] Calibrate Tilt readings with known good values

@@ -6,10 +6,11 @@ import logging
 import gc
 import sys
 import ntptime
-import network
+#import network
 import time
 import asyncio
 from aioble import central as aioble_central
+gc.collect()
 #import bluetooth
 #from threadsafe import ThreadSafeQueue, Message, Context
 from primitives import Queue
@@ -20,16 +21,17 @@ from providers import *
 from configuration import BridgeConfig
 #from rate_limiter import RateLimitedException
 from models.provider_timer import UploadTimers
+gc.collect()
 
 logger = logging.getLogger('bridge')
-
+'''
 if "RP2040" in  sys.implementation._machine:
     import rp2
     RP2040 = True
 else:
     RP2040 = False
     #network.country(country)
-
+'''
 #############################################
 # Statics
 #############################################
@@ -306,7 +308,7 @@ def _get_webhook_providers(config: BridgeConfig):
         webhook_providers.append(WebhookCloudProvider(url, config))
     return webhook_providers
 
-
+'''
 def get_wifi(config):
     # todo this should probably loop infinitely until success
     # or maybe indicate failure
@@ -345,7 +347,7 @@ def get_wifi(config):
         logger.info('connected')
         status = wlan.ifconfig()
         logger.info( 'ip = ' + status[0] )
-
+'''
 
 def get_time(rtc):
     result = False
