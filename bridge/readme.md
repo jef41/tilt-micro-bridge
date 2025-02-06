@@ -16,11 +16,8 @@ config.json looks like:
     "grainfather_temp_unit": "C",
     "ssid": "yyyyy-xxxxx",
     "password": "ssssssssssssss",
-    "country_code": "GB"
+    "country_code": "GB",
+    "blue_gravity_offsets" : [ [1.000,1.002], [1.100,1.105], [1.060,1.063] ] 
 }
 ```
-requires optimisation:
 
-* DONE handle 429 responses
-* handle timeout responses
-* lots of comments and additional code to be removed /tidied
