@@ -118,6 +118,7 @@ Add the uncalibrated values and their associated calibration points to the confi
 ```
 
 **Note** that for each pair, the first value is the (uncalibrated) reading from the debug messages, the second value is the calibration point
+
 <!---
 ## Running without a Tilt or on Mac/Windows
 
@@ -138,7 +139,9 @@ beacon events instead of scanning for Tilt events via Bluetooth.
 * [ ] [Taplist.io](#taplistio)
 * [ ] [Azure IoT Hub](#Azure-IoT-Hub)
 
-Don't see one you want, send a PR <!--implementing [CloudProviderBase](https://github.com/linjmeyer/tilt-pitch/blob/master/pitch/abstractions/cloud_provider.py)
+Don't see one you want, send a PR 
+
+<!--implementing [CloudProviderBase](https://github.com/linjmeyer/tilt-pitch/blob/master/pitch/abstractions/cloud_provider.py)
 
 ## Prometheus Metrics
 
