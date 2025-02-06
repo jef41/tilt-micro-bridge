@@ -22,7 +22,7 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] More robust WiFi check/reconnect - though more can be added in here
 * [ ] Watchdog/restarts
 * [x] Error logging
-* [ ] Calibrate Tilt readings with known good values
+* [x] Calibrate Tilt readings with known good values
 * [ ] Build Instructions
 * [ ] UF2 release
 
@@ -84,7 +84,7 @@ Custom configurations can be used by creating a file `config.json` in the workin
 | `{color}_name` (str) | Name of your brew, where {color} is the color of the Tilt (purple, red, etc) | Color (e.g. purple, red, etc) | No example yet (PRs welcome!) |
 | `{color}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | No example yet (PRs welcome!) |
 | `{color}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | No example yet (PRs welcome!) |
-| `{color}_gravity_offset` (float) | Gravity offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration)  | 0 | No example yet (PRs welcome!) |
+| `{color}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | 0 | No example yet (PRs welcome!) |
 <!---
 ## Rate Limiting and Batching
 
@@ -94,46 +94,51 @@ providers have handled the event.  Additionally some providers may implement the
 queue size is met before sending a batch of events, and the Brewfather and Grainfather integrations will only send updates every fifteen minutes.
 
 Refer to the above configuration and the integration list below for details on how this works for different integrations.
-
+-->
 ## Calibration
 
-You can calibrate temperature and gravity for each Tilt by color.  To do this stop Pitch if it is running in the background, then run the following command:
+You can calibrate gravity for each Tilt by colour.  At the moment, to do this you will need to run picoTilt.py from Thonny or other terminal and observe the data.  
 
-`pitch --calibrate={color} --actual-temp=70 --actual-gravity=1.060`
+Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.200. 
 
-Pitch will run for 5 seconds, and log any readings from the color given along with recommended offsets to gravity and temperature.  These can be put in the `pitch.json`
-config file to calibrate the Tilt.  Recommendations will be positive when a Tilt is reading low, but negative when a Tilt is reading high.
+The bridge will run and show uncalibrated values  as debug messages as they are received.
 
 Example output:
 
 ```
-pitch --calibrate=purple --actual-gravity=1.070 --actual-temp=50
-purple: gravity=1.035, gravity_offset=0.03500000000000014; temp_f=70, temp_offset=-20
-purple: gravity=1.035, gravity_offset=0.03500000000000014; temp_f=70, temp_offset=-20
-purple: gravity=1.035, gravity_offset=0.03500000000000014; temp_f=70, temp_offset=-20
+2025-02-06 15:39:01 [TiltHistory ] [DEBUG]  uncal values recvd, temp;72.41 SG:1.0246
 ```
 
+Once the value is stable, write down this value and repeat with the next solution. 
 
+Add the uncalibrated values and their associated calibration points to the config file, using the correct colour code, e.g.:
+
+```
+    "blue_gravity_offsets" : [[1.005,1.000], [1.090,1.100], [1.060,1.060]],
+```
+
+**Note** that for each pair, the first value is the (uncalibrated) reading from the debug messages, the second value is the calibration point
+<!---
 ## Running without a Tilt or on Mac/Windows
 
 If you want to run Tilt on a non-linux system, for development, or without a Tilt you can use the `--simulate-beacons` flag to create fake
 beacon events instead of scanning for Tilt events via Bluetooth.  
 
 `python3 -m pitch --simulate-beacons`
-
+-->
 # Integrations
 
-* [Prometheus](#Prometheus-Metrics)
-* [InfluxDb](#InfluxDB-Metrics)
-* [Webhook](#Webhook)
-* [JSON Log File](#JSON-Log-File)
-* [Brewfather](#Brewfather)
-* [Brewer's Friend](#BrewersFriend)
-* [Grainfather](#Grainfather)
-* [Taplist.io](#taplistio)
-* [Azure IoT Hub](#Azure-IoT-Hub)
+* [ ] [Prometheus](#Prometheus-Metrics)
+* [ ] [InfluxDb](#InfluxDB-Metrics)
+* [ ] [Webhook](#Webhook)
+* [ ] [JSON Log File](#JSON-Log-File)
+* [ ] [Brewfather](#Brewfather)
+* [ ] [Brewer's Friend](#BrewersFriend)
+* [x] [Grainfather](#Grainfather)
+* [ ] [Taplist.io](#taplistio)
+* [ ] [Azure IoT Hub](#Azure-IoT-Hub)
 
-Don't see one you want, send a PR implementing [CloudProviderBase](https://github.com/linjmeyer/tilt-pitch/blob/master/pitch/abstractions/cloud_provider.py)
+Don't see one you want, send a PR <!--implementing [CloudProviderBase](https://github.com/linjmeyer/tilt-pitch/blob/master/pitch/abstractions/cloud_provider.py)
 
 ## Prometheus Metrics
 
