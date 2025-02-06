@@ -82,6 +82,14 @@ class BridgeConfig:
     def get_brew_name(self, colour: str):
         return self.__dict__.get(colour + '_name', colour)
 
+    def get_gravity_offsets(self, colour: str):
+        ''' return a list of offsets or None
+                [[1.000,1.000],[1.100,1.100]]
+                TODO verify format/content
+        '''
+        #logger.debug(f"cal values: {self.__dict__.get(colour + '_gravity_offsets')}")
+        return self.__dict__.get(colour + '_gravity_offsets', None)
+
 
     @staticmethod
     def load(additional_config: dict = None):

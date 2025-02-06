@@ -15,7 +15,8 @@ class UploadTimers():
         self.timer_list = dict()
     
     def add(self, provider, period, adjust=None):
-        adjust = None if adjust == 0 else adjust # ensure we don't set invalid adjustment period
+        #adjust = None if adjust == 0 else adjust # ensure we don't set invalid adjustment period
+        adjust = 10 if adjust == 0 else adjust # ensure we don't set invalid adjustment period, set to small value to force initial upload
         self.timer_list[provider] = self._get_new_timer(period, adjust)
     
     def _get_new_timer(self, period, adjust):

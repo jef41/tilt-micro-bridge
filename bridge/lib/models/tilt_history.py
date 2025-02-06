@@ -4,6 +4,8 @@
     600 records per tilt (approx 10 mins of data) and 8 tilts = 4,800 records
     952bytes + 7 * no of records
     
+    temp & gravity are packed into 24bits, time into 32 bits = 56bits, 7bytes per record
+    
     would be good to benchmark performance in retrieving records and subtract that time from the log interval
     i.e. if log period is 900 seconds and it takes 5ms to retrieve an averaged value, then log interval should be set to 899.995
 
@@ -165,8 +167,12 @@ class TiltRingBuffer:
             rnd = 0 if self.hd else 1
             avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
             avg_tempf = round(sum_tempf / num_results, 1)
+            # TODO: how come we have integer values for T & SG here? shouldn't they be e.g. 1.040 by now?
+            if self.hd:
+                avg_sg /= 10
+                avg_tempf /= 10
             #todo get colour index
-            logger.debug(f"{num_results} averaged values, temp;{avg_tempf} SG:{avg_sg*0.001}")
+            logger.debug(f"{num_results} averaged uncal values, temp;{avg_tempf} SG:{avg_sg*0.001}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)

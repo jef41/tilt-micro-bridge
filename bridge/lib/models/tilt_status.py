@@ -14,16 +14,19 @@ class TiltStatus(JsonSerialize):
         self.colour = colour
         self.name = config.get_brew_name(colour)
         self.hd = current_gravity > 2  # Tilt Pro?
-
+        #print(f"self.hd: {self.hd}, {current_gravity}")
         # With Tilt Pro values have more precision, which has to be adjusted
         if self.hd:
             current_gravity /= 10
             temp_fahrenheit /= 10
+        #print(f"self.hd: {self.hd}, {current_gravity}")
 
         self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
         self.temp_celsius = TiltStatus.get_celsius(self.temp_fahrenheit)
         self.original_gravity = config.get_original_gravity(colour)
-        self.gravity = current_gravity + config.get_gravity_offset(colour)
+        #self.gravity = current_gravity + config.get_gravity_offset(colour)
+        self.gravity = TiltStatus.check_cal(current_gravity, config.get_gravity_offsets(colour))
+        #print(f"calibrated gravity: {self.gravity}")
         self.degrees_plato = TiltStatus.get_degrees_plato(self.gravity)
         self.alcohol_by_volume = TiltStatus.get_alcohol_by_volume(self.original_gravity, self.gravity)
         self.apparent_attenuation = TiltStatus.get_apparent_attenuation(self.original_gravity, self.gravity)
@@ -50,7 +53,8 @@ class TiltStatus(JsonSerialize):
     def get_alcohol_by_volume(original_gravity, current_gravity):
         if original_gravity is None:
             return 0
-        alcohol_by_volume = (original_gravity - current_gravity) * 131.25
+        #alcohol_by_volume = (original_gravity - current_gravity) * 131.25
+        alcohol_by_volume = (76.08 * (original_gravity - current_gravity) / (1.775 - original_gravity)) * (current_gravity / 0.794)
         return round(alcohol_by_volume, 2)
 
     @staticmethod
@@ -63,3 +67,32 @@ class TiltStatus(JsonSerialize):
     @staticmethod
     def get_gravity_points(gravity):
         """Converts gravity reading like 1.035 to just 35"""
+
+    @staticmethod
+    def check_cal(current_gravity, cal_vals):
+        if cal_vals is None: # config.get_gravity_offsets(colour) is None:
+            return current_gravity
+        cal_gravity = TiltStatus.linear_interpolate(current_gravity, cal_vals)
+        return round(cal_gravity, 4)
+        
+    def linear_interpolate(xin,cal_vals):
+        ''' takes input of an x value & list of x,y values
+        returns interpolated x
+        SG/temp passed here should be e.g. 1.035 not 1035
+        how to handle if only 1 cal value present? offset?
+    '''
+        cal_vals.sort()
+        # should we add 1000,1000 here? probably not
+        if xin < cal_vals[0][0] or xin > cal_vals[-1][0]:
+            return xin    # cannot interpolate
+        ''' Tilt App does this:
+        # adding small and large values, this seems hacky
+        cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
+        '''
+        for x,y in cal_vals:
+            if x == xin:  # <- exact match
+                return y
+            if x > xin:   # px<xin<x <- assuming there was already a px
+                return py + (y-py)*(xin-px)/(x-px)
+            px = x
+            py = y

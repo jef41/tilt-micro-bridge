@@ -240,7 +240,7 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
             #bridge_q.put_sync(beacon_data) #, block=False) # Raises IndexError if the queue is full
             try:
                 #await bridge_q.put(beacon_data)
-                # testing add to data archive
+                # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 or calibrated vals))
                 data_archive.add_data(colour, major, minor, time.time())
                 #logger.info(f"added:{colour}, {major}, {minor}, {time.time()}")
                 #data_archive.add_data(colour, sg=1200, tempF=55, tstamp=1724432992)
@@ -307,47 +307,6 @@ def _get_webhook_providers(config: BridgeConfig):
     for url in config.webhook_urls:
         webhook_providers.append(WebhookCloudProvider(url, config))
     return webhook_providers
-
-'''
-def get_wifi(config):
-    # todo this should probably loop infinitely until success
-    # or maybe indicate failure
-    
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if RP2040:
-        wlan.config(pm = 0xa11140) # Disable power-save mode
-        country = "GB"
-        rp2.country(country)
-        #wlan.country(country)
-    wlan.connect(config.ssid, config.password)
-
-    # Wait for connect or fail
-    max_wait = 10
-    while max_wait > 0:
-        if wlan.status() < 0 or wlan.status() >= 3:
-            break
-        max_wait -= 1
-        logger.info('waiting for connection...')
-        time.sleep(2)
-
-    # Return value of cyw43_wifi_link_status
-    #define CYW43_LINK_DOWN (0)
-    #define CYW43_LINK_JOIN (1)
-    #define CYW43_LINK_NOIP (2)
-    #define CYW43_LINK_UP (3)
-    #define CYW43_LINK_FAIL (-1)
-    #define CYW43_LINK_NONET (-2)
-    #define CYW43_LINK_BADAUTH (-3)
-
-    # Handle connection error
-    if wlan.status() != 3:
-        raise RuntimeError('network connection failed')
-    else:
-        logger.info('connected')
-        status = wlan.ifconfig()
-        logger.info( 'ip = ' + status[0] )
-'''
 
 def get_time(rtc):
     result = False

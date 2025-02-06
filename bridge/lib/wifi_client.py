@@ -9,9 +9,7 @@ import network
 import logging
 from sys import platform
 
-# debug/test: todo: remove
-#import config
-VERSION = (0, 0, 2)
+VERSION = (0, 1, 0)
 
 RP2 = platform == "rp2"
 
@@ -34,7 +32,7 @@ class WifiClient():
         #self._ping_interval = 20000
         #self._in_connect = False
         #self._has_connected = False  # Define 'Clean Session' value to use.
-        self.check_interval = 60 # check every n seconds
+        self.check_interval = 600 # check every n seconds
         self._sta_if = network.WLAN(network.STA_IF)
         self._ssid = config.ssid
         self._wifi_pw = config.password
@@ -84,21 +82,6 @@ class WifiClient():
             logger.info("Got reliable connection")
 
     async def connect(self, *, quick=False):  # Quick initial connect option for battery apps
-        '''if not self._has_connected:
-            await self.wifi_connect(quick)  # On 1st call, caller handles error
-            # Note this blocks if DNS lookup occurs. Do it once to prevent
-            # blocking during later internet outage:
-            self._addr = socket.getaddrinfo(self.server, self.port)[0][-1]
-        self._in_connect = True  # Disable low level ._isconnected check
-
-        # If we get here without error broker/LAN must be up.
-        self._isconnected = True
-        self._in_connect = False  # Low level code can now check connectivity.
-        if not self._events:
-            asyncio.create_task(self._wifi_handler(True))  # User handler.
-        if not self._has_connected:
-            self._has_connected = True  # Use normal clean flag on reconnect.
-        '''
         s = self._sta_if
         if not s.isconnected():
             await self.wifi_connect(quick)
@@ -113,7 +96,7 @@ class WifiClient():
         while True: # s.active():
             logger.debug("running in _keep_connected")
             if s.isconnected():  # Pause for 1 second
-                #await asyncio.sleep(1) # todo: self.check_interval
+                #await asyncio.sleep(1) # debug
                 await asyncio.sleep(self.check_interval)
                 gc.collect()
             else:  # Link is down
