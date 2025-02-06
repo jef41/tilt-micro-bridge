@@ -1,5 +1,5 @@
 ''' latest change was separate wifi module & background checkll for wifi conenctivity
-    tested OK : move wifi, ntp & time defs from bridge_main to lib/wifi module
+    tested OK : move wifi, ntp & time defs from bridge_main to lib/wifi_client module
     tested OK  implement wifi status check/reconnect
     testing & possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
 
