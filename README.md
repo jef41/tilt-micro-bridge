@@ -249,11 +249,11 @@ To setup login into Brewfather > Settings > PowerUps > Enable Custom Stream > Co
 -->
 ## Grainfather
 
-Tilt data can be logged to Grainfather using their Custom Fermenation Device feature.  See [Configuration section](#Configuration) for setting this up in the Pitch config.  Grainfather only allows logging data ever fifteen minutes per Tilt which Pitch adheres to.  You must create a custom device per Tilt and save each URL into the Pitch config.
+Tilt data can be logged to Grainfather using their Custom Fermenation Device feature.  See [Configuration section](#Configuration) for setting this up in the file config.json.  Grainfather only allows logging data every fifteen minutes per Tilt, which Pitch adheres to.  You must create a custom device per Tilt and save each URL into the Pitch config.
 
-Tilt data can alternatively be logged to Grainfather using their **Tilt** Fermenation Device feature.  The set up is as per the Custom device, the only difference being whether Grainfather records your device as a *Custom* or a *Tilt* device.
+Tilt data can alternatively be logged to Grainfather using their **Tilt** Fermentation Device feature.  The set up is the same as per the Custom device, the only difference being whether Grainfather displays your device as a *Custom* or a *Tilt* device.
 
-Note that temperatures displayed on the Grainfather website will use the preference you have configured on their website. This means you can upload data in Farenheit or Centigrade, it will be converted and displayed in your preference by the Grainfather website.
+Note that temperatures displayed on the Grainfather website will use the preference you have configured on their website. This means whether you configure Pitch to upload data in Farenheit or Centigrade, the temperature will be converted by the Grainfather website and displayed in your preference configured there. i.e. the Tilt hydrometer natively uses Farenheit, if you want to see temperature data displayed in Centigrade, then change your configuration on the Grainfather website.
 
 To setup login into Grainfather > My Equipment > Add Fermenation Device > Set the name and save > Press the "i" (info) button next to the device > Copy the URL into pitch.config
 <!---
