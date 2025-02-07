@@ -44,8 +44,9 @@ Custom configurations can be used by creating a file `config.json` in the workin
 
 | Option                       | Purpose                      | Default               | Example               |
 | ---------------------------- | ---------------------------- | --------------------- | --------------------- |
-|`ssid` (str) | SSID for your WiFi newtork | None | [Example config](bridge/readme.md) |
-|`password` (str) | password for your WiFi newtork | None | [Example config](bridge/readme.md) |
+|`ssid` (str) | SSID for your Wifi newtork | None | [Example config](bridge/readme.md) |
+|`password` (str) | password for your Wifi newtork | None | [Example config](bridge/readme.md) |
+|`country_code` (str) | ISO 3166-1 alpha-2 character country code for Wifi | None | [Example config](bridge/readme.md) |
 |`averaging_period` (int) |  Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period. This default will be used if no provider averaging period is present | `600` | &nbsp; |
 | `queue_size` (int) | Max queue size for all Tilt event broadcasts.  Events are removed from the queue once all enabled providers have handled the event.  New events are dropped when the queue is maxed.  | `3` | [Example config](examples/queue/pitch.json) |
 | `queue_empty_sleep_seconds` (int) | Time in seconds Pitch will sleep when the queue reaches 0. The higher the value the less CPU time Pitch uses.  Can be 0 or negative (this disables sleep and Pitch will always run). | `1` | [Example config](examples/queue/pitch.json) |
@@ -53,14 +54,14 @@ Custom configurations can be used by creating a file `config.json` in the workin
 | `temp_range_max` (int) | Maximum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `212` | No example yet (PRs welcome!) |
 | `gravity_range_min` (int) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | No example yet (PRs welcome!) |
 | `gravity_range_max` (int) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | No example yet (PRs welcome!) |
-| `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather/pitch.json) |
-| `grainfather_tilt_stream_urls` (dict) | Dict of color (key) and URLs (value), as above, but seen as a Tilt Device | None/empty | [Example config](bridge/readme.md) |
-| `grainfather_averaging_period` (int) | Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period.  | `300` |  &nbsp; |
-| `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` |  [Example config](examples/grainfather/pitch.json) |
-| `{color}_name` (str) | Name of your brew, where {color} is the color of the Tilt (purple, red, etc) | Color (e.g. purple, red, etc) | No example yet (PRs welcome!) |
-| `{color}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | No example yet (PRs welcome!) |
-| `{color}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | No example yet (PRs welcome!) |
-| `{color}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | 0 | No example yet (PRs welcome!) |
+| `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather.md) |
+| `grainfather_tilt_stream_urls` (dict) | Dict of color (key) and URLs (value), as above, but seen as a Tilt Device | None/empty | [Example config](examples/grainfather.md) |
+| `grainfather_averaging_period` (int) | Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period.  | `300` |  [Example config](examples/grainfather.md) |
+| `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` |  [Example config](examples/grainfather.md) |
+| `{coluor}_name` (str) | Name of your brew, where {color} is the color of the Tilt (purple, red, etc) | Color (e.g. purple, red, etc) | No example yet (PRs welcome!) |
+| `{colour}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | No example yet (PRs welcome!) |
+| `{colour}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | No example yet (PRs welcome!) |
+| `{colour}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | 0 | No example yet (PRs welcome!) |
 
 <!--
 | `webhook_urls` (array) | Adds webhook URLs for Tilt status updates | None/empty | [Example config](examples/webhook/pitch.json) |
@@ -104,7 +105,7 @@ Refer to the above configuration and the integration list below for details on h
 
 You can calibrate gravity for each Tilt by colour.  At the moment, to do this you will need to run picoTilt.py from Thonny or other terminal and observe the data.  
 
-Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.200. 
+Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.200, leaving the device to settle in each. 
 
 The bridge will run and show uncalibrated values  as debug messages as they are received.
 
@@ -116,7 +117,7 @@ Example output:
 
 Once the value is stable, write down this value and repeat with the next solution. 
 
-Add the uncalibrated values and their associated calibration points to the config file, using the correct colour code, e.g.:
+Add the uncalibrated values and their associated calibration points to the config file, using the correct colour code for the Tilt, e.g.:
 
 ```
     "blue_gravity_offsets" : [[1.005,1.000], [1.090,1.100], [1.060,1.060]],
