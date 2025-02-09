@@ -1,15 +1,15 @@
 # Micro Bridge (Tilt Hydrometer tool)
 
-This project was originally a fork of [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). It is a remodelling of the work already done in that project. Tilt-Pitch project is written in Python. This project aims to convert functionality to Micropython.
+This project was originally a fork of [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). It is a remodelling of the work already done in that project. Tilt-Pitch is written in Python. This project aims to convert functionality to MicroPython.
 
 The intention is to create a minimal hardware Bluetooth -> Wifi bridge, this project has been developed using a Raspberry Pi Pico W. Should require;
 
 * Raspberry Pi Pico W (wifi and bluetooth)
 * micro USB cable
 * Thonny software
-* UF2 [Instructions](https://micropython.org/download/RPI_PICO/)
+* UF2 
 
-Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with Grainfather and then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
+Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with the Grainfather system and website, then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
 
 # Features
 
@@ -28,15 +28,15 @@ The following features are implemented, planned, or will be investigated in the 
 
 # Installation
 
-Install an appropriate Micropython distribution onto the microcontroller
+Install an appropriate Micropython distribution onto the microcontroller, [Instructions](https://micropython.org/download/RPI_PICO/)
 
-Using Thonny, copy the contents of the 'bridge' folder to the root of the device
+Using Thonny, copy the contents of the 'bridge' folder from this repository to the root of the device
 
-create a config.json file on the root of the device. Specify Wifi credentials, Tilt colour & Grainfather upload URL
+On the Pico create a config.json file on the root of the device. In that configuration file as a minimum specify Wifi credentials, Tilt colour & Grainfather upload URL. 
 
-Using Thonny run the file picoTilt_6.py (or rename that file to main.py so it autoruns).
+Using Thonny run the file picoTilt.py (alternativley rename that file to main.py so it autoruns when the deivce is powered).
 
-This version is a working in principle version. It is functional, but requires a lot more refinement before it could be considered a stable, working version for release.
+This version is a working in principle version. It is probably functional, but requires a lot more refinement before it could be considered a stable, working version for release. CIurrently I do not own a Tilt so it has not been tested on hardware.
 
 ## Configuration
 
@@ -105,7 +105,7 @@ Refer to the above configuration and the integration list below for details on h
 
 You can calibrate gravity for each Tilt by colour.  At the moment, to do this you will need to run picoTilt.py from Thonny or other terminal and observe the data.  
 
-Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.200, leaving the device to settle in each. 
+Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.100, leaving the device to settle in each. 
 
 The bridge will run and show uncalibrated values  as debug messages as they are received.
 
@@ -263,13 +263,13 @@ To setup login into Brewfather > Settings > PowerUps > Enable Custom Stream > Co
 -->
 ## Grainfather
 
-Tilt data can be logged to Grainfather using their Custom Fermenation Device feature.  See [Configuration section](#Configuration) for setting this up in the file config.json.  Grainfather only allows logging data every fifteen minutes per Tilt, which Pitch adheres to.  You must create a custom device per Tilt and save each URL into the Pitch config.
+Tilt data can be logged to Grainfather using their Custom Fermenation Device feature.  See [Configuration section](#Configuration) for setting this up in the file config.json.  Grainfather only allows logging data every fifteen minutes per Tilt, which micro-bridge adheres to.  You must create a custom device per Tilt and save each URL into the micro-bridge config.
 
 Tilt data can alternatively be logged to Grainfather using their **Tilt** Fermentation Device feature.  The set up is the same as per the Custom device, the only difference being whether Grainfather displays your device as a *Custom* or a *Tilt* device.
 
-Note that temperatures displayed on the Grainfather website will use the preference you have configured on their website. This means whether you configure Pitch to upload data in Farenheit or Centigrade, the temperature will be converted by the Grainfather website and displayed in your preference configured there. i.e. the Tilt hydrometer natively uses Farenheit, if you want to see temperature data displayed in Centigrade, then change your configuration on the Grainfather website.
+Note that temperatures displayed on the Grainfather website will use the preference you have configured on their website. This means whether you configure micro-bridge to upload data in Farenheit or Centigrade, the temperature will be converted by the Grainfather website and displayed in your preference configured there. i.e. the Tilt hydrometer natively uses Farenheit, if you want to see temperature data displayed in Centigrade, then change your configuration on the Grainfather website.
 
-To setup login into Grainfather > My Equipment > Add Fermenation Device > Set the name and save > Press the "i" (info) button next to the device > Copy the URL into pitch.config
+To setup, first log in into Grainfather then go to My Equipment > Add Fermenation Device > Set the name and save > Press the "i" (info) button next to the device > Copy the URL into pitch.config. See [Example Grainfather config](examples/grainfather.md) for more detail.
 <!---
 ![Configuring Brewfather Custom Stream URL](misc/grainfather_custom_stream.png)
 
