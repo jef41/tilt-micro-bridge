@@ -50,8 +50,8 @@ Custom configurations can be used by creating a file `config.json` in the workin
 |`averaging_period` (int) |  Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period. This default will be used if no provider averaging period is present | `600` | &nbsp; |
 | `queue_size` (int) | Max queue size for all Tilt event broadcasts.  Events are removed from the queue once all enabled providers have handled the event.  New events are dropped when the queue is maxed.  | `3` | [Example config](examples/queue/pitch.json) |
 | `queue_empty_sleep_seconds` (int) | Time in seconds Pitch will sleep when the queue reaches 0. The higher the value the less CPU time Pitch uses.  Can be 0 or negative (this disables sleep and Pitch will always run). | `1` | [Example config](examples/queue/pitch.json) |
-| `temp_range_min` (int) | Minimum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `32` | No example yet (PRs welcome!) |
-| `temp_range_max` (int) | Maximum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `212` | No example yet (PRs welcome!) |
+| `temp_range_min` (int) | Minimum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `32` | [Example config](examples/min_max.md) |
+| `temp_range_max` (int) | Maximum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `212` | [Example config](examples/min_max.md)  |
 | `gravity_range_min` (int) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | No example yet (PRs welcome!) |
 | `gravity_range_max` (int) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | No example yet (PRs welcome!) |
 | `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather.md) |

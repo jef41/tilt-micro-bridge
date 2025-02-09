@@ -6,8 +6,8 @@ A config.json example looks like:
 {
     "gravity_range_min" : 0.980,
     "gravity_range_max" : 1.210,
-    "temp_range_min" : 0,
-    "temp_range_max" : 185
+    "temp_range_min" : 32,
+    "temp_range_max" : 120
 }
 ```
 
