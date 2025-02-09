@@ -87,6 +87,8 @@ class TiltStatus(JsonSerialize):
             return xin    # cannot interpolate
         ''' Tilt App does this:
         # adding small and large values, this seems hacky
+        # it is a simple & reasonable approximation if uncal value is close to last cal point
+        # certainly avoids a big step up/down that could be caused with no cal applied
         cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
         '''
         for x,y in cal_vals:

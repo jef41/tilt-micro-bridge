@@ -1,35 +1,45 @@
-''' latest change was separate wifi module & background checkll for wifi conenctivity
-    tested OK : move wifi, ntp & time defs from bridge_main to lib/wifi_client module
-    tested OK  implement wifi status check/reconnect
-    testing & possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
+''' latest change was adding a feature to use calibration values from config
+    tested OK: 	working in principle
 
-    tested OK modify Grainfather Tilt provider to use async update & ProviderTimer
-    tested OK providers with different methods (averaging & latest reading)
-    tested OK providers with different upload intervals
-    tested OK: handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
-    tested OK: needs double check: on keyboard interrupt cancel timers & running tasks
-    tested OK: implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
-    tested OK: code comments & linting
-    tested OK: implement console & file logging for debug using logging module & io.IOBase to copy to file
-    tested OK: de-linting
-    tested OK: clean up some code
-    tested OK: test & implement timers & averaging instead of rate limiter
-    tested OK: bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
-    testedOK: rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
+    TODO:  		check for cal at 1.000, if not present then insert?
+                if uncal > or < cal points then regression/forecast?
+                log info/debug uncal & cal values uploaded
+                currently only 20 values from tilt are displayed - need a better calibration process
+    testing: 	done, I think? todo implement wifi countrycode properly into config
+    
+    tested OK: 	separate wifi module & background checkll for wifi conenctivity
+    tested OK: 	move wifi, ntp & time defs from bridge_main to lib/wifi_client module
+    tested OK  	implement wifi status check/reconnect
+    testing & 	possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
+
+    tested OK 	modify Grainfather Tilt provider to use async update & ProviderTimer
+    tested OK 	providers with different methods (averaging & latest reading)
+    tested OK 	providers with different upload intervals
+    tested OK: 	handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
+    tested OK: 	needs double check: on keyboard interrupt cancel timers & running tasks
+    tested OK: 	implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
+    tested OK: 	code comments & linting
+    tested OK: 	implement console & file logging for debug using logging module & io.IOBase to copy to file
+    tested OK: 	de-linting
+    tested OK: 	clean up some code
+    tested OK: 	test & implement timers & averaging instead of rate limiter
+    tested OK: 	bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
+    testedOK: 	rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
     failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
-    testedOK: test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads - yup
-    done: at startup wait averaging period before sending first data, not log period
-    done: send a GF packet then immediately send another, how long are we asked to wait? 900 or less?
-            lots of providers could cause upload time to vary, what tolerance do we have
-            seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
+    testedOK: 	test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads - yup
+    done: 		at startup wait averaging period before sending first data, not log period
+    done: 		send a GF packet then immediately send another, how long are we asked to wait? 900 or less?
+                lots of providers could cause upload time to vary, what tolerance do we have
+                seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
     
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
-    todo implement watchdog (8secs max I think from memory)import ussl
-    todo implement wifi countrycode properly into config
+    todo implement watchdog (8secs max I think from memory)
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
+    todo saving OG somewhere - to calc ABV
+    todo add display - ABV latest cal SG & last averaged cal SG
 
     ideas:
     integrate aioble scanner into thread on core1

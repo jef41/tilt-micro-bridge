@@ -16,11 +16,12 @@ config.json looks like:
     "grainfather_temp_unit": "C",
     "ssid": "yyyyy-xxxxx",
     "password": "ssssssssssssss",
-    "country_code": "GB"
+    "country_code": "GB",
+    "simulated_gravity_offsets" : [[1.005,1.000], [1.090,1.100], [1.060,1.060]],
+    "gravity_range_min" : 0.980,
+    "gravity_range_max" : 1.210,
+    "temp_range_min" : 0,
+    "temp_range_max" : 185
 }
 ```
-requires optimisation:
 
-* DONE handle 429 responses
-* handle timeout responses
-* lots of comments and additional code to be removed /tidied
