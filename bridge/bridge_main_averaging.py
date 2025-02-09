@@ -243,8 +243,9 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
             
             # todo show these messages only if in cal mode - maybe a button, or different main.py & timer
             # in cal mode perhaps show 30 values then show the average, repeat
-            if debug_recvd_counter < 20:
-                logger.debug(f"data from {colour} tilt SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+            if debug_recvd_counter < 60:
+                # only print to screen
+                print(f"data from {colour} tilt SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
             debug_recvd_counter += 1
             
             try:

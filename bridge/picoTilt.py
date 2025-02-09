@@ -1,17 +1,16 @@
-''' latest change was adding a feature to use calibration values from config
-    tested OK: 	working in principle
-
-    TODO:  		check for cal at 1.000, if not present then insert?
-                if uncal > or < cal points then regression/forecast?
-                log info/debug uncal & cal values uploaded
-                currently only 20 values from tilt are displayed - need a better calibration process
+''' latest change 
     testing: 	done, I think? todo implement wifi countrycode properly into config
     
+    tested OK: 	adding a feature to use calibration values from config
+    tested OK: 	add [[-0.001,-0.001], [10**5,10**5]] to cal points
+    tested OK: 	for calibration points first 60 results printed to console only, not logged - need a better calibration process
+                config.json examples for each feature, with explanation - maybe just a .md file in /examples
+    tested OK: 	test with gravity or temp out of range
+    tested OK: 	log info/debug uncal & cal values uploaded
     tested OK: 	separate wifi module & background checkll for wifi conenctivity
     tested OK: 	move wifi, ntp & time defs from bridge_main to lib/wifi_client module
     tested OK  	implement wifi status check/reconnect
     testing & 	possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
-
     tested OK 	modify Grainfather Tilt provider to use async update & ProviderTimer
     tested OK 	providers with different methods (averaging & latest reading)
     tested OK 	providers with different upload intervals
@@ -32,21 +31,18 @@
                 lots of providers could cause upload time to vary, what tolerance do we have
                 seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
-    
+    todo: log to file
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
     todo implement watchdog (8secs max I think from memory)
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
-    todo saving OG somewhere - to calc ABV
+    todo saving OG in config & log to file
     todo add display - ABV latest cal SG & last averaged cal SG
 
-    ideas:
-    integrate aioble scanner into thread on core1
-        
+    ideas:        
     button to set into calibration mode?
     
-    method to identify a starting gravity & then calc ABV etc.
         
 '''
 
