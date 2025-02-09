@@ -229,7 +229,7 @@ class TiltRingBuffer:
         data_archive = memoryview(self._q)
         c = self.record_len #len(data)
         if not c == len(data):
-            raise Exception(f"Invalid data: data length l{en(data)} does not match expected length {c}")
+            raise Exception(f"Invalid data: data length {len(data)} does not match expected length {c}")
         data_archive[self._wi:self._wi+c] = data # add new data into next buffer point
         self._evput.set()  # Schedule any tasks waiting on get
         self._evput.clear()
@@ -239,7 +239,8 @@ class TiltRingBuffer:
             raise IndexError  # Caller can ignore if overwrites are OK
 
     async def _put(self, data):  # Usage: await queue.put(item)
+        # TODO #7 is this function used, possibly left over, otherwise add attribute TiltRungBuffer.full
         while self.full():  # Queue full
             await self._evget.wait()  # May be >1 task waiting on ._evget
             # Task(s) waiting to get from queue, schedule first Task
-        self.put_nowait(data)   
+        self._put_nowait(data)   
