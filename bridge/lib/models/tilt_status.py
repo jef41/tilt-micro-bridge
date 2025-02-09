@@ -79,18 +79,10 @@ class TiltStatus(JsonSerialize):
         ''' takes input of an x value & list of x,y values
         returns interpolated x
         SG/temp passed here should be e.g. 1.035 not 1035
-        how to handle if only 1 cal value present? offset?
-    '''
-        cal_vals.sort()
-        # should we add 1000,1000 here? probably not
-        if xin < cal_vals[0][0] or xin > cal_vals[-1][0]:
-            return xin    # cannot interpolate
-        ''' Tilt App does this:
-        # adding small and large values, this seems hacky
-        # it is a simple & reasonable approximation if uncal value is close to last cal point
-        # certainly avoids a big step up/down that could be caused with no cal applied
-        cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
         '''
+        #Tilt App does this:
+        cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
+        cal_vals.sort()
         for x,y in cal_vals:
             if x == xin:  # <- exact match
                 return y
