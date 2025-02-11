@@ -238,34 +238,21 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, simulated):#, bri
         elif not beacon_data.gravity_valid:
             logger.warning("Ignoring broadcast due to invalid gravity: " + str(beacon_data.gravity))
         else:
-            #logger.info("debug: putting...\n {}".format(dir(beacon_data)))
-            #bridge_q.put_nowait(beacon_data)
-            #bridge_q.put_sync(beacon_data) #, block=False) # Raises IndexError if the queue is full
-            
-            # todo show these messages only if in cal mode - maybe a button, or different main.py & timer
-            # in cal mode perhaps show 30 values then show the average, repeat
-            '''if debug_recvd_counter < 30:
-                # only print to screen TODO this seems to consume memory e.g. increase >60 gc here?
-                ###print(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
-                pass
-            debug_recvd_counter += 1
-            '''
-            print(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+            if data_archive.print_raw:
+                # check if we should print raw values as they are received (useful for calibration)
+                print(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
             
             try:
                 #await bridge_q.put(beacon_data)
-                # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 or calibrated vals))
+                # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 not calibrated vals))
                 data_archive.add_data(colour, major, minor, time.time())
                 #logger.info(f"added:{colour}, {major}, {minor}, {time.time()}")
-                #data_archive.add_data(colour, sg=1200, tempF=55, tstamp=1724432992)
             except Exception as e:
                 logger.error(f"queue put error: {e}")
                 raise
             #logger.info("{}\t beacon packet received".format(beacon_data.timestamp))
-            #logger.info("debug: bridge_q after {}".format(bridge_q.qsize()))
-        #logger.info("debug: end of if colour")
     else:
-        # todo enable this only if simulated !+ true
+        # if simulated !+ true then warn about unconfigured Tilt
         if simulated == False:
             logger.warning(f"data received for an unconfigured Tilt: {colour}")
         #pass
