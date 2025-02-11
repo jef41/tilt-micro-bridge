@@ -1,4 +1,4 @@
-Until I oroduce a UF2 file to put on the Pico pleaswe follow these notes.
+Until I produce a UF2 file to put on the Pico please follow these notes...
 1) usin Thonny upload a MicroPython UF2 file to the Pico - this is like an operating system
 2) copy the contents of this foler to the Pico
 3) the Pico should now have a folder called /lib, /bridge_main_averaging.py & /picoTilt.py
