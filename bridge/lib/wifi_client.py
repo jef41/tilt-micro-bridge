@@ -41,7 +41,8 @@ class WifiClient():
         except AttributeError:
             self._country = None
 
-    async def wifi_connect(self, quick=False):
+    async def wifi_connect(self, onboard_led, quick=False):
+        await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
         s = self._sta_if
         s.active(True)
         if RP2:  # Disable auto-sleep.
@@ -57,6 +58,7 @@ class WifiClient():
             # Loop while connecting or no IP
             if s.isconnected():
                 logger.info("Wifi connected")
+                await onboard_led.set_status(onboard_led.WIFI_CONNECTED)
                 break
             if RP2:  # 1 is joining. 2 is No IP, ie in process of connecting
                 if not 1 <= s.status() <= 3:
@@ -64,6 +66,7 @@ class WifiClient():
                     break
         else:  # Timeout: still in connecting state
             s.disconnect()
+            await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
             await asyncio.sleep(1)
 
         if not s.isconnected():  # Timed out
@@ -81,10 +84,10 @@ class WifiClient():
             #self.dprint("Got reliable connection")
             logger.info("Got reliable connection")
 
-    async def connect(self, *, quick=False):  # Quick initial connect option for battery apps
+    async def connect(self, onboard_led, quick=False):  # Quick initial connect option for battery apps
         s = self._sta_if
         if not s.isconnected():
-            await self.wifi_connect(quick)
+            await self.wifi_connect(onboard_led, quick)
         if s.isconnected():
             asyncio.create_task(self._keep_connected())
             # Runs forever unless user issues .disconnect()
@@ -155,3 +158,4 @@ async def wan_ok(
     finally:
         s.close()
     return False
+

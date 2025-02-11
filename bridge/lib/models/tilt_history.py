@@ -17,6 +17,7 @@
     todo: check all necessary defs are present - see primitives/ringbuffer_queue.py
     todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
+from machine import Timer
 from configuration import BridgeConfig
 #from .json_serialize import JsonSerialize
 import time
@@ -30,7 +31,9 @@ logger = logging.getLogger('TiltHistory')
 
 
 class TiltHistory():
-    # 
+    ''' stores received raw (uncalibrated) sample data for each Tilt device
+        in a binary format, in a circular buffer
+    '''
     def __init__(self, colour_dict):
         # colour dict is; colour: max of averaging period
         #if kwargs:
@@ -40,8 +43,16 @@ class TiltHistory():
         #self.data_points = config.averaging_period # todo allow this per provider ...
         # for each colour in config find max averaging
         # get a list of colour:number
+        self.print_raw = True
+        self.print_timer = Timer(
+            mode=Timer.ONE_SHOT, period=15_000, callback=self._timeout_callback
+        )
         self.ringbuffer_list = dict()
         self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
+        
+    def _timeout_callback(self, timer):
+        # stop printing data: statements to serial
+        self.print_raw = False
         
     def initialise_ringbuffer(self, colour_dict): 
         # create empty buffer(s)
@@ -229,7 +240,7 @@ class TiltRingBuffer:
         data_archive = memoryview(self._q)
         c = self.record_len #len(data)
         if not c == len(data):
-            raise Exception(f"Invalid data: data length l{en(data)} does not match expected length {c}")
+            raise Exception(f"Invalid data: data length {len(data)} does not match expected length {c}")
         data_archive[self._wi:self._wi+c] = data # add new data into next buffer point
         self._evput.set()  # Schedule any tasks waiting on get
         self._evput.clear()
@@ -238,8 +249,10 @@ class TiltRingBuffer:
             self._ri = (self._ri + c) % self._size  # Discard a message
             raise IndexError  # Caller can ignore if overwrites are OK
 
-    async def _put(self, data):  # Usage: await queue.put(item)
+    '''async def _put(self, data):  # Usage: await queue.put(item)
+        # TODO #7 is this function used, possibly left over, otherwise add attribute TiltRungBuffer.full
         while self.full():  # Queue full
             await self._evget.wait()  # May be >1 task waiting on ._evget
             # Task(s) waiting to get from queue, schedule first Task
-        self.put_nowait(data)   
+        self._put_nowait(data)
+    '''
