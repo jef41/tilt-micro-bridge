@@ -93,7 +93,7 @@ class BridgeConfig:
         cal_vals = None
         cfg_cal_vals = self.__dict__.get(colour + '_gravity_offsets')
         if cfg_cal_vals:
-            cal_vals = [ [-0.001,-0.001], [10**5,10**5] ] + self.__dict__.get(colour + '_gravity_offsets')
+            cal_vals = [ [-0.001,-0.001], [10**5,10**5] ] + cfg_cal_vals
             cal_vals.sort(key=lambda x: x[1]) # sort by 2nd value in list
         return cal_vals
 
