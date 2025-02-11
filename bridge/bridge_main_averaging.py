@@ -23,7 +23,7 @@ from configuration import BridgeConfig
 from models.provider_timer import UploadTimers
 gc.collect()
 
-debug_recvd_counter = 0  #for dev purposes, need a better implementation
+#debug_recvd_counter = 0  #for dev purposes, need a better implementation
 
 logger = logging.getLogger('bridge')
 '''
@@ -196,7 +196,7 @@ async def _scan_for_ibeacons(simulate=False):
                         logger.info(f"MAC: {result.device.addr_hex()} Beacon: {result.name}")
 
                         # Call the callback function with the extracted data
-                        await _beacon_callback(uuid, major, minor, tx_power, rssi)#, bridge_q)
+                        await _beacon_callback(uuid, major, minor, tx_power, rssi, simulate)#, bridge_q)
                         #_beacon_callback("a495bb40-c5b1-4b44-b512-1370f02d74df", 65, 1021, 0, 0, bridge_q)
                     if simulate:
                         #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
@@ -205,7 +205,7 @@ async def _scan_for_ibeacons(simulate=False):
                         uuid = random.choice(list(uuid_to_colours.keys()))
                         major = random.randrange(700, 750) # HD ->SD (50, 85)
                         minor = random.randrange(10150, 10350) # HD -> SD (1005, 1045)
-                        await _beacon_callback(uuid, major, minor, 0, 0)#, bridge_q)
+                        await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
                         #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             except AttributeError:
                 #logger.info(f"scanner result is:{result} scanner is:{scanner}")
@@ -216,12 +216,12 @@ async def _scan_for_ibeacons(simulate=False):
 
 
 #def _beacon_callback(bt_addr, rssi, packet, additional_info, bridge_q):
-async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
+async def _beacon_callback(uuid, major, minor, tx_power, rssi, simulated):#, bridge_q):
     global data_archive
     # todo: this isn't actually an async routine
     # check bluetooth data and store on a queue (TiltHistory object)
     #    return
-    global debug_recvd_counter
+    #global debug_recvd_counter
     colour = uuid_to_colours.get(uuid)
     if colour in data_archive.ringbuffer_list:
         #logger.info("beacon_callback colour match, {}".format(colour))
@@ -229,6 +229,7 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
         # major = degrees in F (int)
         # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
         #start = gc.mem_free()
+        gc.collect() #testing
         beacon_data = TiltStatus(colour, major, _get_decimal_gravity(minor), config)
         #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
         #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
@@ -243,10 +244,13 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
             
             # todo show these messages only if in cal mode - maybe a button, or different main.py & timer
             # in cal mode perhaps show 30 values then show the average, repeat
-            if debug_recvd_counter < 60:
-                # only print to screen
-                print(f"data from {colour} tilt SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+            '''if debug_recvd_counter < 30:
+                # only print to screen TODO this seems to consume memory e.g. increase >60 gc here?
+                ###print(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+                pass
             debug_recvd_counter += 1
+            '''
+            print(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
             
             try:
                 #await bridge_q.put(beacon_data)
@@ -261,9 +265,11 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi):#, bridge_q):
             #logger.info("debug: bridge_q after {}".format(bridge_q.qsize()))
         #logger.info("debug: end of if colour")
     else:
-        #logger.info(f"beacon_callback no colour match: {colour}")
-        #todo: log a warning here
-        pass
+        # todo enable this only if simulated !+ true
+        if simulated == False:
+            logger.warning(f"data received for an unconfigured Tilt: {colour}")
+        #pass
+
 
 
 #def _handle_bridge_queue(enabled_providers: list, console_log: bool):
