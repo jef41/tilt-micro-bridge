@@ -133,6 +133,20 @@ beacon events instead of scanning for Tilt events via Bluetooth.
 
 `python3 -m pitch --simulate-beacons`
 -->
+
+# Status LED
+
+The Pico board has an onbaord LED. This is used to give a basic visual indication of the condittion of the code. The table below should helpinterpret the LED ststus;
+
+
+| Condition                     | Appearance                 | Timing (on/off) milliseconds           | Indication                |
+| ---------------------------- | ---------------------------- | --------------------- | --------------------- |
+|STARTUP | solid ON | None | The Pico is in its initial startup state, loading variables etc. It should progress within 1 second to initiate a Wifi connection |
+|CONNECTING | fast blink (on-off > once per second) | 10, 400 | Initial configuration loaded, connecting to Wifi |
+|CONNECTED | 1Hz blink brief | 200, 800 | The Pico has connected to Wifi. It willl progress from this state once a stable Wifi connection has been established |
+|NOT CONNECTED | 1Hz blink slow | 800, 200 | A Wifi connection has not been established. If not using Wifi (i.e. logging locally to file) this will not be a problem |
+|RUNNING | blink once per 3 secs | 10, 3,000 | The application is running and listenting for data from Tilt devices |
+
 # Integrations
 
 * [ ] [Prometheus](#Prometheus-Metrics)
