@@ -85,8 +85,7 @@ rtc = RTC()
 #############################################
 
 
-async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = False):
-    # todo don't think we need timeout_seconds any longer? check
+async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
     # todo remove providers here too?
     global data_archive
     global provider_timers
@@ -117,6 +116,9 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
                     enabled_colours.append(colour) 
     
     gc.collect()
+    # for debug, intermittently log memory usage/leak
+    asyncio.create_task(debug_memory())
+    
     # size the TiltHistory object for each colour accordingly
     # and create upload timers
     data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
@@ -143,18 +145,16 @@ async def bridge_main(providers, timeout_seconds: int, simulate_beacons: bool = 
         scanner = asyncio.create_task(_scan_for_ibeacons()) 
         #pass
     try:
-        a = 12000 # for debugging
+        #a = 12000 # for debugging
         while True:
             # this loop will process the incoming data queue
             # todo: calling handler seems unnecessary?
             #handler = asyncio.create_task(_handle_bridge_queue(bridge_q, console_log))
             handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
             await handler # wait for handler to return
-            if a == 15000: # 15000 * 100 = roughly 28mins
-                logger.debug(f"gc: {gc.mem_free()}")#\t qsize:{bridge_q.qsize()}")
-                a = 0
-            a = a + 1 # for debugging
-            await asyncio.sleep_ms(100) # could be less, 100ms works fine
+            #await onboard_led.change_rate(10, 3000) # blink led at 3sec intervals to show running OK
+            await onboard_led.set_status(onboard_led.STATUS_OK) # blink led at 3sec intervals to show running OK
+            #asyncio.sleep_ms(100)
     except asyncio.CancelledError:
         print('Trapped cancelled error.')
         raise
@@ -347,4 +347,10 @@ def colour_dict(providers, colours):
             raise
     #logger.debug(f"col_max: {col_max}")
     return col_max
+    
+async def debug_memory():
+    # intermittently log memory usage, every 30 mins
+    while True:
+        await asyncio.sleep(30 * 60)
+        logger.debug(f"gc: {gc.mem_free()}")
     
