@@ -45,7 +45,6 @@
     
         
 '''
-
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
 from rotating_file_handler import RotatingLogFileHandler
 import logging, sys
@@ -64,7 +63,9 @@ logger.addHandler(consoleHandler)
 
 
 #import bridge_main_asyncv5 as bridge
+from machine import Pin
 import asyncio
+import indicator
 import bridge_main_averaging as bridge
 from wifi_client import WifiClient
 #import _thread
@@ -74,6 +75,7 @@ logger = logging.getLogger('main')
 logger.info("**************  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
+
 
 def set_global_exception():
     def handle_exception(loop, context):
@@ -87,13 +89,15 @@ def set_global_exception():
 async def main():
     set_global_exception()  # Debug aid
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
-    await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = True)# , console_log=True)
+    global onboard_led # = indicator.Status() # turn on the LED status indicator
+    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons = True)# , console_log=True)
 
-    
+
+onboard_led = indicator.Status() # turn on the LED status indicator    
 # get wifi network
 #bridge.get_wifi(bridge.config)
 wifi = WifiClient(bridge.config)
-asyncio.run(wifi.connect())
+asyncio.run(wifi.connect(onboard_led))
 
 # set system time - could have a UTC offset in config, but time is onyl used internally at the moment
 bridge.get_time(bridge.rtc)
@@ -115,3 +119,4 @@ except Exception as e:
     print("...stopped: Tilt Scanner ({})".format(e))
 finally:
     asyncio.new_event_loop()  # Clear retained state
+    Pin('LED',Pin.OUT).off()
