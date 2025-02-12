@@ -103,7 +103,7 @@ Refer to the above configuration and the integration list below for details on h
 -->
 ## Calibration
 
-You can calibrate gravity for each Tilt by colour.  At the moment, to do this you will need to run picoTilt.py from Thonny or other terminal and observe the data.  
+You can calibrate gravity for each Tilt by colour.  At the moment, to do this you will need to run picoTilt.py from Thonny or other terminal and observe the data. 
 
 Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.100, leaving the device to settle in each. 
 
