@@ -62,13 +62,13 @@ Custom configurations can be used by creating a file `config.json` in the workin
 | `{colour}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | No example yet (PRs welcome!) |
 | `{colour}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | No example yet (PRs welcome!) |
 | `{colour}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | 0 | No example yet (PRs welcome!) |
-
+| `log_file_path` (str) | Path to file forCSV event logging | `bridge_log.json` | No example yet (PRs welcome!) |
+| `log_file_max_bytes` (int) | Max CSV log file size in bytes | `1024` | No example yet (PRs welcome!) |
 <!--
 | `webhook_urls` (array) | Adds webhook URLs for Tilt status updates | None/empty | [Example config](examples/webhook/pitch.json) |
 | `webhook_limit_rate` (int) | Number of webhooks to fire for the limit period (per URL) | 1 | [Example config](examples/webhook/pitch.json) |
-| `webhook_limit_period` (int) | Period for rate limiting (in seconds) | 1 | [Example config](examples/webhook/pitch.json) |
-| `log_file_path` (str) | Path to file for JSON event logging | `pitch_log.json` | No example yet (PRs welcome!) |
-| `log_file_max_mb` (int) | Max JSON log file size in megabytes | `10` | No example yet (PRs welcome!) |
+| `webhook_limit_period` (int) | Period for rate limiting (in seconds) | 1 | [Example config](examples/webhook/pitch.json) |-->
+<!--
 | `prometheus_enabled` (bool) | Enable/Disable Prometheus metrics | `true` | No example yet (PRs welcome!) |
 | `prometheus_port` (int) | Port number for Prometheus Metrics | `8000` | No example yet (PRs welcome!) |
 | `influxdb_hostname` (str) | Hostname for InfluxDB database | None/empty | No example yet (PRs welcome!) |
