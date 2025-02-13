@@ -74,7 +74,7 @@ class GrainfatherTiltStreamCloudProvider():
     
 
     async def async_update(self, tilt_status: TiltStatus):
-        start_time = time.ticks_ms()
+        #start_time = time.ticks_ms()
         if tilt_status.colour in self.colour_urls.keys():
             url = self.colour_urls[tilt_status.colour]
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
@@ -86,7 +86,7 @@ class GrainfatherTiltStreamCloudProvider():
                 response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
                 # do some logging
                 status, wait_for = await self.process_response(response, start)
-                time_spent = time.ticks_diff(time.ticks_ms(), start_time)
+                #time_spent = time.ticks_diff(time.ticks_ms(), start_time)
                 return [status, wait_for]
             except requests.ConnectionError:
                 logger.error("ConnectionError: uploading Grainfather Tilt")
