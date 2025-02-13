@@ -17,7 +17,7 @@ The following features are implemented, planned, or will be investigated in the 
 
 * [x] Get a minimal demonstration working
 * [x] Get Grainfather provider working
-* [ ] Tilt status data saved to log file (JSON)
+* [x] Tilt status data saved to log file (JSON)
 * [x] Enable averaging
 * [x] More robust WiFi check/reconnect - though more can be added in here
 * [ ] Watchdog/restarts
@@ -152,7 +152,7 @@ The Pico board has an onbaord LED. This is used to give a basic visual indicatio
 * [ ] [Prometheus](#Prometheus-Metrics)
 * [ ] [InfluxDb](#InfluxDB-Metrics)
 * [ ] [Webhook](#Webhook)
-* [ ] [JSON Log File](#JSON-Log-File)
+* [x] [CSV Log File](#CSV-Log-File)
 * [ ] [Brewfather](#Brewfather)
 * [ ] [Brewer's Friend](#BrewersFriend)
 * [x] [Grainfather](#Grainfather)
@@ -212,20 +212,33 @@ Webhooks are sent as HTTP POST with the following json payload:
     "apparent_attenuation": 32.32
 }
 ```
+-->
+## CSV Log File
 
-## JSON Log File
-
-Tilt status broadcast events can be logged to a json file using the config option `log_file_path`.  Each event is a newline.  Example file:
+Tilt status broadcast events can be logged to a csv file using the config option `log_file_path`.  Each event is a newline.  Example file:
 
 ```
-{"timestamp": "2020-09-11T02:15:30.525232", "name": "Pumpkin Ale", "color": "purple", "temp_fahrenheit": 70, "temp_celsius": 21, "gravity": 0.997, "alcohol_by_volume": 5.63, "apparent_attenuation": 32.32}
-{"timestamp": "2020-09-11T02:15:32.539619", "name": "Pumpkin Ale", "color": "purple", "temp_fahrenheit": 70, "temp_celsius": 21, "gravity": 0.997, "alcohol_by_volume": 5.63, "apparent_attenuation": 32.32}
-{"timestamp": "2020-09-11T02:15:33.545388", "name": "Pumpkin Ale", "color": "purple", "temp_fahrenheit": 70, "temp_celsius": 21, "gravity": 0.997, "alcohol_by_volume": 5.63, "apparent_attenuation": 32.32}
-{"timestamp": "2020-09-11T02:15:34.548556", "name": "Pumpkin Ale", "color": "purple", "temp_fahrenheit": 70, "temp_celsius": 21, "gravity": 0.997, "alcohol_by_volume": 5.63, "apparent_attenuation": 32.32}
-{"timestamp": "2020-09-11T02:15:35.557411", "name": "Pumpkin Ale", "color": "purple", "temp_fahrenheit": 70, "temp_celsius": 21, "gravity": 0.997, "alcohol_by_volume": 5.63, "apparent_attenuation": 32.32}
-{"timestamp": "2020-09-11T02:15:36.562158", "name": "Pumpkin Ale", "color": "purple", "temp_fahrenheit": 70, "temp_celsius": 21, "gravity": 0.996, "alcohol_by_volume": 5.63, "apparent_attenuation": 32.32}
+2025-02-12 15:18:13, simulated, Festbier, 3.44%ABV, 48.9%AA, 22.3°C, SG1.0214
+2025-02-12 15:19:13, simulated, Festbier, 3.45%ABV, 49.09%AA, 22.4°C, SG1.0213
+2025-02-12 15:20:13, simulated, Festbier, 3.23%ABV, 45.85%AA, 22.6°C, SG1.023
+2025-02-12 15:21:13, simulated, Festbier, 3.06%ABV, 43.36%AA, 22.2°C, SG1.0243
+2025-02-12 15:22:13, simulated, Festbier, 3.06%ABV, 43.36%AA, 22.5°C, SG1.0243
 ```
 
+The data logged are;
+* Timestamp
+* Tilt colour
+* Beer name
+* ABV
+* Apparent Attenuation
+* Temperature (°C or °F as specified)
+* SG 
+
+If beer name is not included in the config file then this field will not be present
+
+If original gravity for the beer is not detailed in the config file then ABV and apparent attenuation will not be present
+
+<!--
 ## InfluxDB Metrics
 
 Metrics can be sent to an InfluxDB database.  See [Configuration section](#Configuration) for setting this up.  Pitch does not create the database
