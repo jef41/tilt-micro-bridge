@@ -62,7 +62,7 @@ data_archive = bytearray()
 
 normal_providers = [
         #PrometheusCloudProvider(config),
-        #FileCloudProvider(config),
+        FileCloudProvider(config),
         #InfluxDbCloudProvider(config),
         #InfluxDb2CloudProvider(config),
         #BrewfatherCustomStreamCloudProvider(config),
@@ -240,7 +240,7 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, simulated):#, bri
         else:
             if data_archive.print_raw:
                 # check if we should print raw values as they are received (useful for calibration)
-                print(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+                logger.debug(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
             
             try:
                 #await bridge_q.put(beacon_data)
@@ -270,7 +270,7 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
             #if provider.update_in_progress:
             #    logger.debug(f"{provider} update already in progress")
             if provider_timers.upload_is_due(provider): # and not provider.update_in_progress:
-                logger.debug(f"upload due for {provider}")
+                logger.debug(f"update due for {provider}")
                 #upload_task = asyncio.create_task(provider.update())
                 #await upload_task
                 response_code, wait_for_secs = await provider.update()
