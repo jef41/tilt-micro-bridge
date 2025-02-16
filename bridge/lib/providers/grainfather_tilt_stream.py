@@ -59,14 +59,15 @@ class GrainfatherTiltStreamCloudProvider():
                     status, wait_for = await self.async_update(tilt_status)
                 else:
                     logger.info(f"{colour} has no data")
-                return [status, wait_for] # either values or [None, None]
+                #return [status, wait_for] # either values or [None, None]
                 
         except requests.ConnectionError:
             logger.info('requests Connection error. todo: we need a task that periodically ensures WLAN connection is working')
         except Exception as e:
             logger.error(f"exception in provider.update: {e}")
         finally:
-            pass
+            #pass
+            return [status, wait_for] # either values or [None, None]
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a referene to the data queue, this is added after the object is created
@@ -93,11 +94,13 @@ class GrainfatherTiltStreamCloudProvider():
                 raise Exception('requests Connection error.')
             except requests.TimeoutError:
                 logger.warning("TimeoutError: uploading Grainfather Tilt")
-                response = None
+                #response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
                 #todo: handle this in the calling function
             finally:  # Usual way to do cleanup 
-                pass
+                #pass
+                # return an error - TODO establish error reponse types & how to handle systematically
+                return[False, False] 
  
     def enabled(self):
         return True if self.colour_urls else False
