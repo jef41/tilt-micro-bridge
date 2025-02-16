@@ -1,6 +1,9 @@
-''' latest change 
-    testing: 	done, I think? todo implement wifi countrycode properly into config
+''' latest change
+    testing:	add a file handler
+    TODO:		what happens with multiple Tilt colours in config for GF & File handlers, does this work?
+    TODO:		data storage management for local files - calc free spzce & size appropriately
     
+    tested OK: 	 implement wifi countrycode properly into config - test with no country code in config
     tested OK: 	adding a feature to use calibration values from config
     tested OK: 	add [[-0.001,-0.001], [10**5,10**5]] to cal points
     tested OK: 	for calibration points first 60 results printed to console only, not logged - need a better calibration process
@@ -49,11 +52,11 @@ import time # micropython-lib/python-stdlib/time extends std time module, requir
 from rotating_file_handler import RotatingLogFileHandler
 import logging, sys
 logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
-logger = logging.getLogger()
+logger = logging.getLogger() # using no name seems necessary to log to console & file?
 logger.handlers = [] # this is necessary
 logger.setLevel(logging.DEBUG)
 
-fileHandler = RotatingLogFileHandler("debug.log", 100_000, 8) #logging.FileHandler("duallog.txt")
+fileHandler = RotatingLogFileHandler("debug.log", 102_400, 1) #logging.FileHandler("duallog.txt")
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 

@@ -95,8 +95,9 @@ class GrainfatherCustomStreamCloudProvider():
         except Exception as e:
             logger.error(f"exception in provider.update: {e}")
         finally:
-            pass
+            #pass
             #self.update_in_progress = False
+            return [status, wait_for] # either values or [None, None]
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a referene to the data queue, this is added after the object is created
