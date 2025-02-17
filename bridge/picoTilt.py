@@ -1,9 +1,12 @@
 ''' latest change
-    testing:	add a file handler
-    TODO:		what happens with multiple Tilt colours in config for GF & File handlers, does this work?
+    working on: check correct data is logged for multiple Tilts in CSV file provider
+    TODO:		what happens with multiple Tilt colours in config for GF providers, does this work?
     TODO:		data storage management for local files - calc free spzce & size appropriately
     
-    tested OK: 	 implement wifi countrycode properly into config - test with no country code in config
+    tested OK:	2 x Tilt 1 with name, 1 without named beer (& therefore OG), tested with CSV file handler
+    not doing:	set BridgeConfig in Class attributes to avoid having to pass this refernce about
+    tested OK:  add a file handler
+    tested OK: 	implement wifi countrycode properly into config - test with no country code in config
     tested OK: 	adding a feature to use calibration values from config
     tested OK: 	add [[-0.001,-0.001], [10**5,10**5]] to cal points
     tested OK: 	for calibration points first 60 results printed to console only, not logged - need a better calibration process
@@ -34,13 +37,11 @@
                 lots of providers could cause upload time to vary, what tolerance do we have
                 seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
-    todo: log to file
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
     todo implement watchdog (8secs max I think from memory)
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
-    todo saving OG in config & log to file
     todo add display - ABV latest cal SG & last averaged cal SG
 
     ideas:        
@@ -65,17 +66,15 @@ consoleHandler.setFormatter(logFormatter)
 logger.addHandler(consoleHandler)
 
 
-#import bridge_main_asyncv5 as bridge
 from machine import Pin
 import asyncio
 import indicator
 import bridge_main_averaging as bridge
 from wifi_client import WifiClient
-#import _thread
 import gc
 
 logger = logging.getLogger('main')
-logger.info("**************  Startup")
+logger.info("***  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 

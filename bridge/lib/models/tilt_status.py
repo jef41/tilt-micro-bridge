@@ -5,12 +5,12 @@ import time
 
 
 class TiltStatus(JsonSerialize):
-
+    
     def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig):
+        #print(f"***  BridgeConfig class attribute: {config.get_brew_name("simulated")}")
         #self.timestamp = datetime.datetime.now()
         # TODO get net connection, get correct timestamp
-        #rtc = RTC()
-        #self.timestamp = TiltStatus.get_timestamp()
+        self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
         self.hd = current_gravity > 2  # Tilt Pro?

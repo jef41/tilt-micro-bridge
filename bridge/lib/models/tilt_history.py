@@ -18,7 +18,7 @@
     todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
 from machine import Timer
-from configuration import BridgeConfig
+#from configuration import BridgeConfig
 #from .json_serialize import JsonSerialize
 import time
 import asyncio
@@ -44,8 +44,9 @@ class TiltHistory():
         # for each colour in config find max averaging
         # get a list of colour:number
         self.print_raw = True
+        # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
         self.print_timer = Timer(
-            mode=Timer.ONE_SHOT, period=15_000, callback=self._timeout_callback
+            mode=Timer.ONE_SHOT, period=180_000, callback=self._timeout_callback
         )
         self.ringbuffer_list = dict()
         self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
@@ -183,7 +184,7 @@ class TiltRingBuffer:
                 avg_sg /= 10
                 avg_tempf /= 10
             #todo get colour index
-            logger.debug(f"{num_results} averaged uncal values, temp;{avg_tempf} SG:{avg_sg*0.001}")
+            logger.debug(f"{num_results} averaged uncal values, temp;{avg_tempf:.2f} SG:{avg_sg*0.001:.4f}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
