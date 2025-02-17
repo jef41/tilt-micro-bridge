@@ -62,7 +62,7 @@ data_archive = bytearray()
 
 normal_providers = [
         #PrometheusCloudProvider(config),
-        FileCloudProvider(config),
+        CSVFileProvider(config),
         #InfluxDbCloudProvider(config),
         #InfluxDb2CloudProvider(config),
         #BrewfatherCustomStreamCloudProvider(config),
@@ -113,7 +113,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
             # find configured colours
             for colour in provider.colour_urls.keys():
                 if colour not in enabled_colours:
-                    enabled_colours.append(colour) 
+                    enabled_colours.append(colour)
     
     gc.collect()
     # for debug, intermittently log memory usage/leak
@@ -121,7 +121,8 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
     
     # size the TiltHistory object for each colour accordingly
     # and create upload timers
-    data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
+    data_archive = TiltHistory(max_av_period(enabled_providers, enabled_colours))
+    
     #logger.debug("data archive created")
     try:
         for provider in enabled_providers:
@@ -274,6 +275,7 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
                 #upload_task = asyncio.create_task(provider.update())
                 #await upload_task
                 response_code, wait_for_secs = await provider.update()
+                # provider.update must return a2 values, code & wait - can be None
                 #logger.debug(f"got: response;{response_code}, wait:{wait_for_secs}")
                 # upload_task should return the [response code, seconds to wait] if a 429 response
                 # response code logging should be managed in provider module
@@ -329,7 +331,7 @@ def get_time(rtc):
     return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))'''
 
 
-def colour_dict(providers, colours):
+def max_av_period(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
     # todo: maybe //5? if Tilt transmits 1/5secs
@@ -339,11 +341,13 @@ def colour_dict(providers, colours):
     for provider in providers:
         try:
             for colour in colours:
+                #print(f"test {provider}: {colour}, {provider.colour_urls.keys()}")
                 if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av:
-                    max_av = provider.averaging_period + 1 # so if passed 0 then this wills till work
+                    #print(f"colour match: {colour}")
+                    max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
                     col_max[colour] = max_av
         except Exception as e:
-            logger.error(f"max_of_averaging error: {s}")
+            logger.error(f"max_av_period error: {e}")
             raise
     #logger.debug(f"col_max: {col_max}")
     return col_max

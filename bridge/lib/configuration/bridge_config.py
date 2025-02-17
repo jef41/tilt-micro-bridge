@@ -10,10 +10,11 @@ class BridgeConfig:
         # Wifi
         self.ssid = None
         self.password = None
+        self.country_code = None
         # Queue
         self.queue_size = 15
         self.queue_empty_sleep_seconds = 1
-        self.averaging_period = 60 # 0 21000
+        self.averaging_period = 30 # 0 21000
         # Broadcast Data ranges
         self.temp_range_min = 32
         self.temp_range_max = 212
@@ -23,9 +24,13 @@ class BridgeConfig:
         self.webhook_urls = list()
         self.webhook_limit_rate = 1
         self.webhook_limit_period = 1
-        # File Path
-        self.log_file_path = 'tilt_bridge.log'
-        self.log_file_max_mb = 10
+        # CSV File
+        self.csv_log_max_kb = 60
+        self.csv_log_temp_unit = "C"
+        self.csv_log_rate = 1
+        self.csv_log_period = 60
+        #self.csv_log_averaging_period = 60
+        self.csv_log_tilt_colours = None
         # Prometheus
         self.prometheus_enabled = True
         self.prometheus_port = 8000
@@ -52,7 +57,7 @@ class BridgeConfig:
         self.brewersfriend_temp_unit = "F"
         # Grainfather
         self.grainfather_temp_unit = "C"
-        self.grainfather_averaging_period = 300
+        #self.grainfather_averaging_period = 300
         # Grainfather custom (choose to send C or F)
         self.grainfather_custom_stream_urls = None
         # Grainfather (appear as Tilt device)

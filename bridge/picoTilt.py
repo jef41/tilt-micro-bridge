@@ -56,7 +56,7 @@ logger = logging.getLogger() # using no name seems necessary to log to console &
 logger.handlers = [] # this is necessary
 logger.setLevel(logging.DEBUG)
 
-fileHandler = RotatingLogFileHandler("debug.log", 102_400, 1) #logging.FileHandler("duallog.txt")
+fileHandler = RotatingLogFileHandler("debug.log", (60 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 

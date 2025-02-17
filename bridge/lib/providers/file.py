@@ -19,54 +19,73 @@ import json
 
 ''' TODO
     different log file per colour
+    log  file named colour_name.log
+    document size & number of log files - xx free space 
+    os.statvfs("/") - first is block size, 3rd is free blocks (4096 * 121 ) /1024 = 484kb
+    set debug and file_log sizes in bridge_config.py - as a list
+    keep file sizes to multiples of 4kb to use full blocks only
+    test with multiple Tilts
+    currently testing with 60*2 debug & 60*6 file log = 480kb & 484 free
 '''
 logger = logging.getLogger('File_pvdr')
 logger.info("Startup")
 
-class FileCloudProvider():
+class CSVFileProvider():
 
     def __init__(self, config: BridgeConfig):
-        self.colour_urls = FileCloudProvider._normalise_colour_keys(config.log_file_tilt_colours) 
-        self.temp_unit = FileCloudProvider._get_temp_unit(config)
-        self.str_name = "File Logger" # .format(config.log_file_path)
+        self.bridge_config = config
+        self.temp_unit = CSVFileProvider._get_temp_unit(config)
+        #self.colours_enabled = self._normalise_colour_keys(config.csv_log_tilt_colours) 
+        self.colour_urls = self._get_colour_dict()
+        self.colours_enabled = self.colour_urls # TODO: improve on this, colour_urls as an object?
+        self.str_name = f"CSV Logger" # .format(config.csv_log_path)
         self.log_pvdr = logging.getLogger(self.str_name)
+        self.csv_loggers = dict() # collection of loggers
         self.rate = 1
         self.period = (60 * 1)  # 1 minutes
         self.upload_timer = None
         try:
-            self.averaging_period = config.log_file_averaging_period # TODO add these to config
+            self.averaging_period = config.csv_log_averaging_period
         except AttributeError:
             self.averaging_period = config.averaging_period
-        self.bridge_config = config
 
     def __str__(self):
         return self.str_name
 
     def start(self):
-        max_bytes = self.bridge_config.log_file_max_bytes
-        logFormatter = logging.Formatter("%(asctime)s %(message)s, ")
+        max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
+        '''
+        logFormatter = logging.Formatter("%(asctime)s, %(message)s")
         #logger = logging.getLogger()
         self.log_pvdr.handlers = [] # this is necessary
         #self.log_pvdr.setLevel(logging.WARNING)
         self.log_pvdr.setLevel(logging.DEBUG)
-        #print(self.colour_urls)
-        for colour, f_path in self.colour_urls.items():
-            #fileHandler = RotatingLogFileHandler(self.colour_urls[f_path], max_bytes, 10)
-            logFileHandler = RotatingLogFileHandler(f_path, max_bytes, 3)
+        #print(self.colours_enabled)
+        #print(f"***   dict:{self.colour_urls}   ***")
+        '''
+        for colour, f_path in self.colours_enabled.items():
+            '''
+            #fileHandler = RotatingLogFileHandler(self.colours_enabled[f_path], max_bytes, 10)
+            # use brew name, or colour for filename
+            fname = f_path if f_path else colour
+            logFileHandler = RotatingLogFileHandler(fname + ".log", max_bytes, 5)
             logFileHandler.setFormatter(logFormatter)
             self.log_pvdr.addHandler(logFileHandler)
-            logger.info(f"{colour}: {f_path} logger added")
-            self.log_pvdr.info(f"{colour}: {f_path} logger added")
+            logger.info(f"{colour} Tilt: {fname  + ".log"} logger added")
+            namestr = ": " + f_path  if f_path else ""
+            self.log_pvdr.info(f"{colour} Tilt{namestr} logger added")
+            # TODO: add a log line about OG & columns below
         
-        #maxBytes = self.bridge_config.log_file_max_bytes # * 1024 * 1024
-        #handler = logging.handlers.RotatingFileHandler(self.bridge_config.log_file_path, maxBytes=maxBytes)
-        #self.log_pvdr.addHandler(fileHandler)
-
-    #def update(self, tilt_status: TiltStatus):
-    #    self.log_pvdr.warning(tilt_status.json())
+    '''
+            
+            if colour not in self.csv_loggers:
+                
+                self.csv_loggers[colour] = self._get_new_logger(colour, max_bytes, f_path)
 
     def enabled(self):
-        return (self.colour_urls)
+        #print(f"***   enabled?{self.colours_enabled}   ***")
+        #return (self.colours_enabled)
+        return True if self.colours_enabled else False
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a referene to the data queue, this is added after the object is created
@@ -78,7 +97,7 @@ class FileCloudProvider():
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
-            for colour in self.colour_urls:
+            for colour in self.colours_enabled:
                 status, wait_for = [None, None] 
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)
                 if tempF and SG:
@@ -86,26 +105,27 @@ class FileCloudProvider():
                     #print(tilt_status.toJson())
                     #status = await self.log_pvdr.info(json.dumps(tilt_status.__dict__, separators=(',', ':')))
                     #self.log_pvdr.info(tilt_status.toJson())
-                    self.log_pvdr.info(self.prepare_payload(tilt_status))
+                    
+                    #self.log_pvdr.info(self.prepare_payload(tilt_status))
+                    
+                    status, wait_for = self.csv_loggers[colour].log_data(tilt_status)
+                    
                     #logger.debug(self.prepare_payload(tilt_status))
                     status = True
                     logger.debug(f"{self.str_name} updated for {colour} Tilt")
                 else:
                     logger.info(f"{colour} has no data")
-                return [status, wait_for] # either values or [None, None]
-                
-        #except requests.ConnectionError:
-        #    logger.info('requests Connection error. todo: we need a task that periodically ensures WLAN connection is working')
+                #return [status, wait_for] # either values or [None, None]
         except Exception as e:
             logger.error(f"exception in provider.update: {e}")
+            status, wait_for = [False, None] 
         finally:
-            return [False, False]
+            return [status, wait_for]
         
+    '''
     def prepare_payload(self, tilt_status):
         # prepare the text to write to file
-        #{"alcohol_by_volume": 3.38, "temp_celsius": 22.4, "original_gravity": 1.047, "degrees_plato": 5.6,
-        #"gravity": 1.0219, "colour": "simulated", "name": "Festbier", "temp_fahrenheit": 72.4, "temp_valid": true,
-        #"apparent_attenuation": 47.95, "hd": false, "gravity_valid": true}
+        # TODO if it is the first log then add a header line
         colour = tilt_status.colour + ", " if tilt_status.colour else ""
         name = tilt_status.name + ", " if tilt_status.name else ""
         temp = str(f"{tilt_status.temp_fahrenheit:.2f}") + "°F, " if self.temp_unit == "F" else str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
@@ -116,50 +136,110 @@ class FileCloudProvider():
         out_str = f"{colour}{name}{abv}{attenuation}{temp}{gravity}"
         # trim any trailing ", "
         return (out_str[:-2] if out_str[-2:] == ", " else out_str)
-        
-        
+    '''
     
-    # takes dict of colours:filenames
-    # returns list with all colours in lowercase letters for easier matching later
-    @staticmethod
-    def _normalise_colour_keys(colour_urls):
+    def _get_new_logger(self, colour, max_bytes, f_name):
+        
+        return CSVLogger(colour, max_bytes, f_name) 
+    
+    
+    # takes list of colours
+    # returns dict with all colours in lowercase letters for easier matching later
+    # if set, key is set to brew name
+    def _get_colour_dict(self):
+        #normalised_colours = list()
         normalised_colours = dict()
-        try:
-            for colour in colour_urls:
-                normalised_colours[colour.lower()] = colour_urls[colour]
-            return normalised_colours
-        except:
-            logger.error(f"config; log_file_tilt_colours must be dict: {colour_list}")
-            raise Exception("Error in config for File provider, log_file_tilt_colours malformed")
+        #try:
+        colours_config = self.bridge_config.csv_log_tilt_colours
+        if colours_config:
+            for colour in colours_config:
+                #print(f"\ngetting colours {colour}")
+                lower_colour = colour.lower()
+                #print(lower_colour)
+                brew_name = self.bridge_config.get_brew_name(lower_colour)
+                # if we have a beer name then add to the dict
+                if brew_name.lower() == lower_colour:
+                    normalised_colours[lower_colour] = ""
+                else:
+                    normalised_colours[lower_colour] = brew_name
+        #print(normalised_colours)
+        return normalised_colours
+        #except:
+        #    logger.error(f"config; csv_log_tilt_colours must be formatted as a JSON list")
+        #    raise Exception("Error in config for File provider, csv_log_tilt_colours malformed")
+        #finally:
+        #    return normalised_colours
 
 
     @staticmethod
     def _get_temp_unit(config: BridgeConfig):
-        temp_unit = config.log_file_temp_unit.upper()
+        temp_unit = config.csv_log_temp_unit.upper()
         if temp_unit == "C":
             return "C"
         elif temp_unit == "F":
             return "F"
         raise ValueError("temperature scale used by File provider must be F or C")
-'''
-class FileCloudProvider(implements(CloudProviderBase)):
 
-    def __init__(self, config: PitchConfig):
-        self.config = config
-        self.str_name = "File ({})".format(config.log_file_path)
-        self.logger = logging.getLogger(self.str_name)
 
-    def __str__(self):
-        return self.str_name
-
-    def start(self):
-        maxBytes = self.config.log_file_max_mb * 1024 * 1024
-        handler = logging.handlers.RotatingFileHandler(self.config.log_file_path, maxBytes=maxBytes)
-        self.logger.addHandler(handler)
-
-    def update(self, tilt_status: TiltStatus):
-        self.logger.warning(tilt_status.json())
-
-    def enabled(self):
-        return (self.config.log_file_path)
-'''        
+class CSVLogger():
+    '''
+        collection of loggers - one for each Tilt
+        if we have > 1 Tilt storage space will be an issue - manual or auto handling
+        of max file size?
+    '''
+    def __init__(self, colour, size_b, brew_name=None):
+        
+        self.tilt_log = logging.getLogger(colour)
+        # use brew name, or colour for filename
+        fname = brew_name if brew_name else colour
+        #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
+        logFormatter = logging.Formatter("%(asctime)s, %(message)s")
+        logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, 5)
+        logFileHandler.setFormatter(logFormatter)
+        self.tilt_log.addHandler(logFileHandler)
+        logger.info(f"{colour} Tilt: {fname  + ".log"} logger added")
+        namestr = ": " + brew_name if brew_name else ""
+        self.tilt_log.info(f"{colour} Tilt{namestr} logger added")
+        self.initial = True
+    
+    def log_data(self, tilt_status):
+        
+        result = self.tilt_log.info(self._prepare_payload(tilt_status))
+        #return [status, wait_for]
+        # TODO improve/add test
+        return [True, None]
+    
+    def _prepare_payload(self, tilt_status):
+        # TODO needs a tidy up after testing correct data is logged to correct file(s)
+        colour = tilt_status.colour + ", " if tilt_status.colour else ""
+        namestr = " for " + tilt_status.name if tilt_status.name else ""
+        units = self._get_parmeters(tilt_status)
+        if self.initial:
+            # log header line(s)
+            self.tilt_log.info(f"\n{tilt_status.colour} Tilt header{namestr}:\n{units}")
+            # log field names/units
+            self.initial = False
+        
+        # TODO: sort out temp unit
+        temp = str(f"{tilt_status.temp_fahrenheit:.2f}") # + "°F, " if self.temp_unit == "F" else str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
+        gravity = "SG " + str(f"{tilt_status.gravity:.4f}") + ", "
+        abv = str(f"{tilt_status.alcohol_by_volume:.2f}") + "%ABV, " if tilt_status.original_gravity else ""
+        attenuation = str(f"{tilt_status.apparent_attenuation:.2f}") + "%AA, " if tilt_status.original_gravity else ""
+        if namestr:
+            namestr = namestr[4:] + ", "
+        out_str = f"{colour}{namestr}{abv}{attenuation}{temp}{gravity}"
+        # trim any trailing ", "
+        return (out_str[:-2] if out_str[-2:] == ", " else out_str)
+    
+    @staticmethod
+    def _get_parmeters(tilt_status):
+        params = "timestamp, colour"
+        if tilt_status.name:
+            params += ", name"
+        if tilt_status.original_gravity:
+            params += ", %ABV, %Apparent Attenuation"
+        #params += f", Temperature ({CSVFileProvider.temp_unit}), Specific Gravity"
+        params += ", Temperature (TODO), Specific Gravity"
+        return params
+        
+       

@@ -1,7 +1,8 @@
+# https://github.com/PolarGoose/MicroPython-Logging-RotatingFileHandler
+
 from logging import Handler
 from os import stat, remove, rename
 from _thread import allocate_lock
-
 
 rotating_file_handler_version = "v1.0~203c93f"
 
