@@ -11,6 +11,7 @@ class BridgeConfig:
         self.ssid = None
         self.password = None
         self.country_code = None
+        self.check_interval = 600
         # Queue
         self.queue_size = 15
         self.queue_empty_sleep_seconds = 1
@@ -78,11 +79,11 @@ class BridgeConfig:
     def get_original_gravity(self, colour: str):
         return self.__dict__.get(colour + '_original_gravity')
 
-    def get_gravity_offset(self, colour: str):
-        return self.__dict__.get(colour + '_gravity_offset', 0)
+    #def get_gravity_offset(self, colour: str):
+    #    return self.__dict__.get(colour + '_gravity_offset', 0)
 
     def get_temp_offset(self, colour: str):
-        return 0 #self.__dict__.get(colour + '_temp_offset', 0) #does this return hang onto memory if so maybe because called async??
+        return self.__dict__.get(colour + '_temp_offset', 0)
 
     def get_brew_name(self, colour: str):
         return self.__dict__.get(colour + '_name', colour)

@@ -7,6 +7,7 @@ import asyncio
 gc.collect()
 import network
 import logging
+from random import randrange
 from sys import platform
 
 VERSION = (0, 1, 0)
@@ -32,14 +33,15 @@ class WifiClient():
         #self._ping_interval = 20000
         #self._in_connect = False
         #self._has_connected = False  # Define 'Clean Session' value to use.
-        self.check_interval = 600 # check every n seconds
         self._sta_if = network.WLAN(network.STA_IF)
         self._ssid = config.ssid
         self._wifi_pw = config.password
         try:
             self._country = config.country_code
+            self.check_interval = config.check_interval
         except AttributeError:
             self._country = None
+            self.check_interval = 600 # check every n seconds
 
     async def wifi_connect(self, onboard_led, quick=False):
         await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
@@ -101,7 +103,7 @@ class WifiClient():
             logger.debug("running in _keep_connected")
             if s.isconnected():  # Pause for 1 second
                 #await asyncio.sleep(1) # debug
-                await asyncio.sleep(self.check_interval)
+                await asyncio.sleep(randrange(int(self.check_interval*0.8), int(self.check_interval*1.2)))
                 gc.collect()
             else:  # Link is down
                 try:

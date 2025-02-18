@@ -1,4 +1,5 @@
 ''' latest change
+                randomise wifi test 80% to 120% of value, wifi check interval in config
     working on: 
                 data storage management for local files - calc free spzce & size appropriately
     TODO:		
