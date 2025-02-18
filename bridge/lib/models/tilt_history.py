@@ -130,7 +130,7 @@ class TiltRingBuffer:
     def add_data(self, tempF, sg, tstamp):
         # pack 4byte timestamp & 2 x 12 bit numbers into 7 bytes
         #self.hd = sg > 2  # Tilt Pro?
-        #todo: test handling gravity in either 3 or 4 decimal places
+        # subtract the minimum possible value from SG, to keep integer as small as possible
         if sg <9900:
             sg = sg-990
             self.hd = False
@@ -182,12 +182,11 @@ class TiltRingBuffer:
             rnd = 0 if self.hd else 1
             avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
             avg_tempf = round(sum_tempf / num_results, 1)
-            # TODO: how come we have integer values for T & SG here? shouldn't they be e.g. 1.040 by now?
             if self.hd:
                 avg_sg /= 10
                 avg_tempf /= 10
-            #todo get colour index
-            logger.debug(f"{num_results} averaged cal adjusted values, temp;{avg_tempf:.2f} SG:{avg_sg*0.001:.4f}")
+            #todo get colour index for debug statement
+            logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.2f} SG:{avg_sg*0.001:.4f}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
@@ -212,11 +211,11 @@ class TiltRingBuffer:
         #t2 = time.ticks_ms()
         try:
             #latest_i = (self._ri + self.record_len) % self._size
-            # while numresults==0 ?loop here
             # read backwards until we get below timestamp limit
+            # if _wi=0 only reads one value - shouldn't be a problem, but currently no failsafe
             startb = self._wi - self.record_len
             stopb =-1 * self.record_len
-            stepb = -1*self.record_len
+            stepb = -1 * self.record_len
             #print(f"start, stop, step {startb}, {stopb}, {stepb}")
             for latest_i in range(startb, stopb, stepb):
                 #latest_i = self._wi - self.record_len
@@ -245,7 +244,7 @@ class TiltRingBuffer:
             multiplier = 0.1 if self.hd else 1
             sg_match = ((sg_match+min) * multiplier) * 0.001
             temp_match = temp_match * multiplier
-            logger.debug(f"{num_results} most recent cal adjusted value, temp;{temp_match:.2f} SG:{sg_match:.4f}")
+            logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.2f} SG:{sg_match:.4f}")
             return [temp_match, sg_match]
             
         else:

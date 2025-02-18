@@ -1,12 +1,10 @@
 ''' latest change
     working on: 
-                setting csv averaging to 0 works, but returns wrong value? 
-                was TiltHistory get_most_recent, logic was starting from byte 0 rather than previous write index
+                data storage management for local files - calc free spzce & size appropriately
+    TODO:		log 'connecting to Wifi message'
     
-    TODO:		data storage management for local files - calc free spzce & size appropriately
-                test if TilTHistory get_most_recent & get_averaged are returning calibration adjusted values or uncalibrated ones?
-
-    tested OK:	testing multiple GF Tilt uploads - Line 60 in TiltHistory
+    tested OK:	test if TilTHistory get_most_recent & get_averaged are returning calibration adjusted values or uncalibrated ones?
+    tested OK:	csv log interval read from config file
     tested OK:	fix error (not reading most recent value) when reading most recent value
     tested OK:	ringbuffer for second Tilt is too small (configured in GF_Tilt & CSV_file)
     tested OK:	what happens with multiple Tilt colours in config for GF providers, does this work?

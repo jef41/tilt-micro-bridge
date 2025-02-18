@@ -204,8 +204,8 @@ async def _scan_for_ibeacons(simulate=False):
                         # fake callback
                         import random
                         uuid = random.choice(list(uuid_to_colours.keys()))
-                        major = random.randrange(700, 750) # HD ->SD (50, 85)
-                        minor = random.randrange(10150, 10350) # HD -> SD (1005, 1045)
+                        major = random.randrange(700, 750) # (500, 850) HD ->SD (50, 85)
+                        minor = random.randrange(10150, 10350) # (10050, 10450) HD -> SD (1005, 1045)
                         await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
                         #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             except AttributeError:
@@ -231,7 +231,7 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, simulated):#, bri
         # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
         #start = gc.mem_free()
         gc.collect() #testing
-        beacon_data = TiltStatus(colour, major, _get_decimal_gravity(minor), config)
+        beacon_data = TiltStatus(colour, major, _get_decimal_gravity(minor), config, raw=True)
         #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
         #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
         if not beacon_data.temp_valid:

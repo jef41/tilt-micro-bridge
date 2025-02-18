@@ -95,6 +95,7 @@ class CSVFileProvider():
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)
                 if tempF and SG:
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
+                    # data offsets/calibration is applied here in TiltStatus
                     #print(tilt_status.toJson())
                     #status = await self.log_pvdr.info(json.dumps(tilt_status.__dict__, separators=(',', ':')))
                     #self.log_pvdr.info(tilt_status.toJson())
