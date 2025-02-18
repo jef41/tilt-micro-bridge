@@ -1,8 +1,9 @@
 ''' latest change
     working on: 
                 data storage management for local files - calc free spzce & size appropriately
-    TODO:		log 'connecting to Wifi message'
+    TODO:		
     
+    tested OK:	log 'connecting to Wifi message'
     tested OK:	test if TilTHistory get_most_recent & get_averaged are returning calibration adjusted values or uncalibrated ones?
     tested OK:	csv log interval read from config file
     tested OK:	fix error (not reading most recent value) when reading most recent value
