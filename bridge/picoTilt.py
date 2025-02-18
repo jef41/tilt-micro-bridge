@@ -1,8 +1,16 @@
 ''' latest change
-    working on: check correct data is logged for multiple Tilts in CSV file provider
-    TODO:		what happens with multiple Tilt colours in config for GF providers, does this work?
-    TODO:		data storage management for local files - calc free spzce & size appropriately
+    working on: 
+                setting csv averaging to 0 works, but returns wrong value? 
+                was TiltHistory get_most_recent, logic was starting from byte 0 rather than previous write index
     
+    TODO:		data storage management for local files - calc free spzce & size appropriately
+                test if TilTHistory get_most_recent & get_averaged are returning calibration adjusted values or uncalibrated ones?
+
+    tested OK:	testing multiple GF Tilt uploads - Line 60 in TiltHistory
+    tested OK:	fix error (not reading most recent value) when reading most recent value
+    tested OK:	ringbuffer for second Tilt is too small (configured in GF_Tilt & CSV_file)
+    tested OK:	what happens with multiple Tilt colours in config for GF providers, does this work?
+    tested OK:	check correct data is logged in correct locations for multiple Tilts in CSV file provider
     tested OK:	2 x Tilt 1 with name, 1 without named beer (& therefore OG), tested with CSV file handler
     not doing:	set BridgeConfig in Class attributes to avoid having to pass this refernce about
     tested OK:  add a file handler

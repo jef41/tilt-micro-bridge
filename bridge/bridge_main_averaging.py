@@ -338,17 +338,22 @@ def max_av_period(providers, colours):
     # called once per colour?
     col_max = {}
     max_av = 0
-    for provider in providers:
-        try:
+    try:
+        for provider in providers:
+            #print(f"***  colours {colours}")
             for colour in colours:
-                #print(f"test {provider}: {colour}, {provider.colour_urls.keys()}")
-                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av:
-                    #print(f"colour match: {colour}")
+                #print(f"***  test {provider}: {colour}, {provider.colour_urls.keys()}")
+                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av -1:
+                    #print(f"***   colour match: {colour}")
                     max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
                     col_max[colour] = max_av
-        except Exception as e:
-            logger.error(f"max_av_period error: {e}")
-            raise
+                    #print(f"***   {col_max}")
+                else:
+                    #print(f"***   no match {colour} av_period {provider.averaging_period}")
+                    pass
+    except Exception as e:
+        logger.error(f"max_av_period error: {e}")
+        raise
     #logger.debug(f"col_max: {col_max}")
     return col_max
     

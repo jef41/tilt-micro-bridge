@@ -104,7 +104,7 @@ class CSVFileProvider():
                     status, wait_for = self.csv_loggers[colour].log_data(tilt_status)
                     
                     #logger.debug(self.prepare_payload(tilt_status))
-                    status = True
+                    #status = True
                     logger.debug(f"{self.str_name} updated for {colour} Tilt")
                 else:
                     logger.info(f"{colour} has no data")
@@ -222,30 +222,33 @@ class CSVLogger():
         
         # TODO: sort out temp unit
         if self.temp_unit == "C":
-            temp = str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
+            #temp = str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
+            temp = str(f"{tilt_status.temp_celsius:.2f}") + ", "
         else:
-            temp = str(f"{tilt_status.temp_fahrenheit:.2f}") + "°F, " #  if self.temp_unit == "F" else str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
+            #temp = str(f"{tilt_status.temp_fahrenheit:.2f}") + "°F, " #  if self.temp_unit == "F" else str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
+            temp = str(f"{tilt_status.temp_fahrenheit:.2f}") + ", "
         gravity = (f"{tilt_status.gravity:.4f}") + ", "
         abv = str(f"{tilt_status.alcohol_by_volume:.2f}") + ", " if tilt_status.original_gravity else ""
         attenuation = str(f"{tilt_status.apparent_attenuation:.2f}") + ", " if tilt_status.original_gravity else ""
-        if namestr:
-            namestr = namestr[5:] + ", "
-        out_str = f"{colour}{namestr}{abv}{attenuation}{temp}{gravity}"
+        #if namestr:
+        #    namestr = namestr[5:] + ", "
+        #out_str = f"{colour}{namestr}{abv}{attenuation}{temp}{gravity}"
+        out_str = f"{abv}{attenuation}{temp}{gravity}"
         # trim any trailing ", "
         return (out_str[:-2] if out_str[-2:] == ", " else out_str)
     
     @staticmethod
     def _get_parameters(tilt_status, temp_unit):
-        params = "timestamp, Tilt colour"
-        #if tilt_status.name:
-        if tilt_status.name == tilt_status.colour:
-            pass
-        else:
-            params += ", Name"
+        params = "timestamp"
+        #params = "timestamp, Tilt colour"
+        #if tilt_status.name == tilt_status.colour:
+        #    pass
+        #else:
+        #    params += ", Name"
         if tilt_status.original_gravity:
-            params += ", %ABV, %Apparent Attenuation"
+            params += ", ABV (%), Apparent Attenuation (%)"
         #params += f", Temperature ({CSVFileProvider.temp_unit}), Specific Gravity"
-        params += f", Temperature ({temp_unit}), Specific Gravity"
+        params += f", Temperature (°{temp_unit}), Specific Gravity"
         return params
         
        
