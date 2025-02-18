@@ -20,7 +20,7 @@ import json
     set debug and file_log sizes in bridge_config.py - as a list
     keep file sizes to within multiples of 44096bytes to use full blocks only
 '''
-logger = logging.getLogger('File_pvdr')
+logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
 
 #class CSVFileProvider(CloudProviderBase):
@@ -35,8 +35,8 @@ class CSVFileProvider():
         self.str_name = f"CSV Logger"
         self.log_pvdr = logging.getLogger(self.str_name)
         self.csv_loggers = dict() # collection of loggers
-        self.rate = 1
-        self.period = (60 * 1)  # 1 minute TODO: read from config
+        self.rate = self.bridge_config.csv_log_rate
+        self.period = self.bridge_config.csv_log_period  # seconds
         self.upload_timer = None
         try:
             self.averaging_period = self.bridge_config.csv_log_averaging_period

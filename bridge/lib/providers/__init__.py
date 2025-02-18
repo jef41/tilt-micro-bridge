@@ -1,6 +1,6 @@
 #from providers.prometheus import PrometheusCloudProvider
 #from providers.webhook import WebhookCloudProvider
-from providers.file import CSVFileProvider
+from providers.file_csv import CSVFileProvider
 #from providers.influxdb import InfluxDbCloudProvider
 #from providers.influxdb2 import InfluxDb2CloudProvider
 #from providers.brewfather_custom_stream import BrewfatherCustomStreamCloudProvider
