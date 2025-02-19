@@ -1,7 +1,8 @@
 ''' latest change
-                
+                testing CSV log file auto sized
+                testing debug.log sized form config
     working on: 
-                data storage management for local files - calc free spzce & size appropriately
+                
     TODO:		
     
     tested OK:	randomise wifi test 80% to 120% of value, wifi check interval in config
@@ -61,20 +62,6 @@
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
 from rotating_file_handler import RotatingLogFileHandler
 import logging, sys
-logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
-logger = logging.getLogger() # using no name seems necessary to log to console & file?
-logger.handlers = [] # this is necessary
-logger.setLevel(logging.DEBUG)
-
-fileHandler = RotatingLogFileHandler("debug.log", (60 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
-fileHandler.setFormatter(logFormatter)
-logger.addHandler(fileHandler)
-
-consoleHandler = logging.StreamHandler() #logging.StreamHandler(logging.StreamHandler(sys.stdout))
-consoleHandler.setFormatter(logFormatter)
-logger.addHandler(consoleHandler)
-
-
 from machine import Pin
 import asyncio
 import indicator
@@ -82,7 +69,25 @@ import bridge_main_averaging as bridge
 from wifi_client import WifiClient
 import gc
 
-logger = logging.getLogger('main')
+# set up root logger
+logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
+# initial log files size limit 10kb, overwritten after config loaded
+#fileHandler = RotatingLogFileHandler("debug.log", (10 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
+log_max_kb = bridge.config.debug_log[0]
+log_nbr_backups = bridge.config.debug_log[1]
+fileHandler = RotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups)
+fileHandler.setFormatter(logFormatter)
+consoleHandler = logging.StreamHandler() #logging.StreamHandler(logging.StreamHandler(sys.stdout))
+consoleHandler.setFormatter(logFormatter)
+
+logger = logging.getLogger() # using no name seems necessary to log to console & file?
+logger.handlers = [] # this is necessary
+logger.setLevel(logging.DEBUG)
+logger.addHandler(fileHandler)
+logger.addHandler(consoleHandler)
+
+#logger = logging.getLogger('main')
+logger = logging.getLogger()
 logger.info("***  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())

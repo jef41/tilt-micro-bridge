@@ -12,6 +12,8 @@ class BridgeConfig:
         self.password = None
         self.country_code = None
         self.wifi_check_interval = 600
+        # Debug log
+        self.debug_log = [20, 1]
         # Queue
         self.queue_size = 15
         self.queue_empty_sleep_seconds = 1
@@ -29,6 +31,7 @@ class BridgeConfig:
         self.csv_log_max_kb = 60
         self.csv_log_temp_unit = "C"
         self.csv_log_period = 60
+        self.csv_bkp_count = 4
         #self.csv_log_averaging_period = 60
         self.csv_log_tilt_colours = None
         # Prometheus

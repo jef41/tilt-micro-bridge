@@ -22,6 +22,7 @@ import json
 logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
 
+
 class CSVFileProvider(BridgeProviderBase):
     #class CSVFileProvider():
     # expect a single instance of this class
@@ -35,6 +36,7 @@ class CSVFileProvider(BridgeProviderBase):
         self.log_pvdr = logging.getLogger(self.str_name)
         self.csv_loggers = dict() # collection of loggers
         self.rate = 1 # self.bridge_config.csv_log_rate
+        self.csv_bkp_count = config.csv_bkp_count
         self.period = self.bridge_config.csv_log_period  # seconds
         self.upload_timer = None
         try:
@@ -46,7 +48,9 @@ class CSVFileProvider(BridgeProviderBase):
         return self.str_name
 
     def start(self):
-        max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
+        #print(f"***  logger maxbytes:{logging.getLogger().handlers[0].max_file_size_in_bytes}")
+        max_bytes = self._calc_log_size(len(self.colours_enabled), self.csv_bkp_count)
+        #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         # TODO: max bytes should be calculated from free disk space - log file size from config
         # ((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
         '''
@@ -132,7 +136,7 @@ class CSVFileProvider(BridgeProviderBase):
     '''
     
     def _get_new_logger(self, colour, max_bytes, f_name):
-        return CSVLogger(colour, max_bytes, self.temp_unit, f_name) 
+        return CSVLogger(colour, max_bytes, self.temp_unit, self.csv_bkp_count, f_name) 
     
     
     # takes list of colours
@@ -162,6 +166,52 @@ class CSVFileProvider(BridgeProviderBase):
         #finally:
         #    return normalised_colours
 
+    @staticmethod
+    def _calc_log_size(tilt_count, csv_bkp_count):
+        ''' from free disk space calculate log file sizes
+            the debug.log size is also declared in config, so could be passed in
+            tries to allocate whole blocks 
+        '''
+        #logging.getLogger().handlers[0].max_file_size_in_bytes - root logger
+        #((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
+        from os import statvfs
+        from math import ceil
+        f_info = statvfs('/')
+        # Check handlers in the parent (root) logger
+        ''' returns "Logger object has no attribute parent"
+        parent_logger = logger
+        while parent_logger:
+            for handler in parent_logger.handlers:
+                if isinstance(handler, RotatingLogFileHandler):
+                    print("Log file max size:", handler.max_file_size_in_bytes)
+            parent_logger = parent_logger.parent if parent_logger.parent else None
+        '''
+        # TODO below is hacky - assumes we have a root logger
+        debug_max_bytes = logging.getLogger().handlers[0].max_file_size_in_bytes
+        debug_count = 1 + logging.getLogger().handlers[0].number_of_backup_files
+        debug_blocks = ceil((debug_max_bytes * debug_count / f_info[0]))
+        
+        nbr_files = tilt_count * (csv_bkp_count + 1) # TODO retrieve count of colours * number to keep+1
+        spare_blocks = 1
+        #csv_bkp_count = 4 # TODO read from config?
+        
+        free_blocks = f_info[3] - debug_blocks - spare_blocks
+        blocks_per_csv = free_blocks // nbr_files
+        max_size_bytes = blocks_per_csv * f_info[0]
+        allocated_blocks = (blocks_per_csv * nbr_files) + debug_blocks + spare_blocks
+        unallocated_blocks = f_info[3] - allocated_blocks
+        
+        # TODO test if log size is unfeasibly small & alert/error fail
+        '''
+        print(f'debug.log is {debug_blocks} blocks {(debug_max_bytes * debug_count)/1024}kb')
+        print(f"recording for {tilt_count} Tilts, {nbr_files} files total")
+        print(f"free blocks are {free_blocks} = {f_info[3]} - {debug_blocks} - {spare_blocks}")
+        print(f"blocks_per_csv = {free_blocks} // {nbr_files} = {free_blocks // nbr_files}")
+        print(f"max_bytes {max_size_bytes}")
+        print(f"unallocated space will be {f_info[3]} - {allocated_blocks} = {unallocated_blocks} blocks")
+        '''
+
+        return max_size_bytes
 
     @staticmethod
     def _get_temp_unit(config: BridgeConfig):
@@ -179,7 +229,7 @@ class CSVLogger():
         if we have > 1 Tilt storage space will be an issue - manual or auto handling
         of max file size?
     '''
-    def __init__(self, colour, size_b, temp_unit, brew_name=None):
+    def __init__(self, colour, size_b, temp_unit, csv_bkp_count, brew_name=None):
         #super().__init__(temp_unit) # get parent methods
         #print(f"***  temp_unit{self.temp_unit}")
         self.temp_unit = temp_unit
@@ -188,10 +238,10 @@ class CSVLogger():
         fname = brew_name if brew_name else colour
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         logFormatter = logging.Formatter("%(asctime)s, %(message)s")
-        logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, 5)
+        logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, csv_bkp_count)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
-        logger.info(f"{colour} Tilt: {fname  + ".log"} logger added")
+        logger.info(f"{colour} Tilt: {fname  + ".log"} logger added {size_b/1024}kb per file")
         namestr = ": " + brew_name if brew_name else ""
         self.tilt_log.info(f"{colour[0].upper() + colour[1:].lower()} Tilt{namestr} logger added")
         self.initial = True
@@ -249,21 +299,4 @@ class CSVLogger():
         #params += f", Temperature ({CSVFileProvider.temp_unit}), Specific Gravity"
         params += f", Temperature (°{temp_unit}), Specific Gravity"
         return params
-
-
-def calc_log_size():
-    ''' from free disk space calculate log file sizes
-        the debug.log size is declared in picoTilt.py (or main.py):
-            fileHandler = RotatingLogFileHandler("debug.log", (60 * 1024)
-    '''
-    #((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
-    from os import statvfs
-    f_info = statvfs('/')
-    debug_logs = (60 * 1024) * 2 # bytes; 2 log files at 60kb each
-    nbr_files = 2 * 5 # TODO retrieve count of colours * number to keep+1
-    free_blocks = ((( f_info[0] * f_info[3] ) - debug_logs ) // f_info[0]) #keep some free blocks?
-    max_size = int(( free_blocks / nbr_files ) * f_info[0])
-    max_size -= 500 # try to keep csv log files below a full block size
-    # TODO test if log size is unfeasibly small & alert/error fail
-    return max_size
        
