@@ -26,8 +26,9 @@ A config.json example looks like:
 `csv_log_period` an integer of seconds at which to log data
 
 ## Output
-Two sample excerpts of log files with dummy data are shown below. The first illustrates a file where no beer name nor Original Gravity was specified, in the second both criteria were specified in the congif.json
+Two sample excerpts of log files with dummy data are shown below. The first illustrates a file where no beer name nor Original Gravity was specified, in the second both criteria were specified in the congfig.json. 
 
+### red.log
 ```
 2025-02-18 18:44:56, Red Tilt logger added
 2025-02-18 18:45:26, Header: Red Tilt
@@ -37,6 +38,7 @@ timestamp, Temperature (°C), Specific Gravity
 2025-02-18 18:47:26, 22.40, 1.0236
 ```
 
+### Festbier.log
 ```
 2025-02-18 18:44:56, Simulated Tilt: Festbier logger added
 2025-02-18 18:45:26, Header: Simulated Tilt for Festbier
@@ -52,7 +54,7 @@ There follows a header line detailing the type of parameter and unit being recor
 
 Subsequent data will be recorded at the logging interval. In the data above a 30 second averaging and 60 second logging interval were used.
 
-## Ammount of data storage
+## Calculating data storage
 
 Bear in mind that a Pico and similar microcontrollers typically have limited flash storage. In development there is approximately 480kb free on the Pico, once I have compiled a UF2 this should be increased somewhat, but storage is still limited. 
 
