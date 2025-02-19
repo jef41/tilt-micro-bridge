@@ -9,7 +9,7 @@ import time
 import logging
 from models import TiltStatus
 from models import TiltHistory
-#from abstractions import CloudProviderBase
+from abstractions import BridgeProviderBase
 from configuration import BridgeConfig
 import asyncio
 import async_urequests as requests
@@ -22,7 +22,7 @@ logger = logging.getLogger('GF_tilt_pvdr')
 logger.info("Startup")
 
 #class GrainfatherTiltStreamCloudProvider(implements(CloudProviderBase)):
-class GrainfatherTiltStreamCloudProvider():
+class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
         self.colour_urls = GrainfatherTiltStreamCloudProvider._normalise_colour_keys(config.grainfather_tilt_stream_urls)

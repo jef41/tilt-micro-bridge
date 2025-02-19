@@ -11,7 +11,7 @@ class BridgeConfig:
         self.ssid = None
         self.password = None
         self.country_code = None
-        self.check_interval = 600
+        self.wifi_check_interval = 600
         # Queue
         self.queue_size = 15
         self.queue_empty_sleep_seconds = 1
@@ -28,7 +28,6 @@ class BridgeConfig:
         # CSV File
         self.csv_log_max_kb = 60
         self.csv_log_temp_unit = "C"
-        self.csv_log_rate = 1
         self.csv_log_period = 60
         #self.csv_log_averaging_period = 60
         self.csv_log_tilt_colours = None

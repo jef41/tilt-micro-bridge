@@ -38,7 +38,7 @@ class WifiClient():
         self._wifi_pw = config.password
         try:
             self._country = config.country_code
-            self.check_interval = config.check_interval
+            self.check_interval = config.wifi_check_interval
         except AttributeError:
             self._country = None
             self.check_interval = 600 # check every n seconds
@@ -77,8 +77,8 @@ class WifiClient():
             raise OSError("Wi-Fi connect timed out")
         if not quick:  # Skip on first connection only if power saving
             # Ensure connection stays up for a few secs.
-            #self.dprint("Checking wifi integrity.")
-            logger.info("Checking wifi integrity.")
+            #self.dprint("Checking wifi integrity")
+            logger.info("Checking wifi integrity")
             for _ in range(5):
                 if not s.isconnected():
                     logger.warning("Connection Unstable")
@@ -92,8 +92,11 @@ class WifiClient():
         if not s.isconnected():
             await self.wifi_connect(onboard_led, quick)
         if s.isconnected():
-            asyncio.create_task(self._keep_connected())
-            # Runs forever unless user issues .disconnect()
+            if self.check_interval > 0:
+                asyncio.create_task(self._keep_connected())
+                # Runs forever unless user issues .disconnect()
+            else:
+                logger.info("wifi connection checks disabled")
 
     # Scheduled on 1st successful connection. Runs forever maintaining wifi and
     # broker connection. Must handle conditions at edge of wifi range.

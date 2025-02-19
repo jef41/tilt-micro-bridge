@@ -6,14 +6,13 @@ from rotating_file_handler import RotatingLogFileHandler
 import logging
 from models import TiltStatus
 from models import TiltHistory
-#from abstractions import CloudProviderBase
+from abstractions import BridgeProviderBase
 from configuration import BridgeConfig
 import asyncio
 #import async_urequests as requests
 import json
 #import gc # for development only
 #from machine import Timer
-
 ''' TODO
     document size & number of log files - xx free space 
     os.statvfs("/") - first is block size, 3rd is free blocks (4096 * 121 ) /1024 = 484kb
@@ -23,8 +22,8 @@ import json
 logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
 
-#class CSVFileProvider(CloudProviderBase):
-class CSVFileProvider():
+class CSVFileProvider(BridgeProviderBase):
+    #class CSVFileProvider():
     # expect a single instance of this class
     def __init__(self, config: BridgeConfig):
         self.bridge_config = config
@@ -35,7 +34,7 @@ class CSVFileProvider():
         self.str_name = f"CSV Logger"
         self.log_pvdr = logging.getLogger(self.str_name)
         self.csv_loggers = dict() # collection of loggers
-        self.rate = self.bridge_config.csv_log_rate
+        self.rate = 1 # self.bridge_config.csv_log_rate
         self.period = self.bridge_config.csv_log_period  # seconds
         self.upload_timer = None
         try:
@@ -194,7 +193,7 @@ class CSVLogger():
         self.tilt_log.addHandler(logFileHandler)
         logger.info(f"{colour} Tilt: {fname  + ".log"} logger added")
         namestr = ": " + brew_name if brew_name else ""
-        self.tilt_log.info(f"{colour} Tilt{namestr} logger added")
+        self.tilt_log.info(f"{colour[0].upper() + colour[1:].lower()} Tilt{namestr} logger added")
         self.initial = True
     
     def log_data(self, tilt_status):
@@ -217,11 +216,10 @@ class CSVLogger():
             # log header line(s)
             units = self._get_parameters(tilt_status, self.temp_unit)
             #Title case the Tilt Colour
-            self.tilt_log.info(f"\nHeader: {tilt_status.colour[0].upper() + tilt_status.colour[1:].lower()} Tilt{namestr}\n{units}")
+            self.tilt_log.info(f"Header: {tilt_status.colour[0].upper() + tilt_status.colour[1:].lower()} Tilt{namestr}\n{units}")
             # log field names/units
             self.initial = False
         
-        # TODO: sort out temp unit
         if self.temp_unit == "C":
             #temp = str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
             temp = str(f"{tilt_status.temp_celsius:.2f}") + ", "
@@ -251,5 +249,21 @@ class CSVLogger():
         #params += f", Temperature ({CSVFileProvider.temp_unit}), Specific Gravity"
         params += f", Temperature (°{temp_unit}), Specific Gravity"
         return params
-        
+
+
+def calc_log_size():
+    ''' from free disk space calculate log file sizes
+        the debug.log size is declared in picoTilt.py (or main.py):
+            fileHandler = RotatingLogFileHandler("debug.log", (60 * 1024)
+    '''
+    #((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
+    from os import statvfs
+    f_info = statvfs('/')
+    debug_logs = (60 * 1024) * 2 # bytes; 2 log files at 60kb each
+    nbr_files = 2 * 5 # TODO retrieve count of colours * number to keep+1
+    free_blocks = ((( f_info[0] * f_info[3] ) - debug_logs ) // f_info[0]) #keep some free blocks?
+    max_size = int(( free_blocks / nbr_files ) * f_info[0])
+    max_size -= 500 # try to keep csv log files below a full block size
+    # TODO test if log size is unfeasibly small & alert/error fail
+    return max_size
        

@@ -9,7 +9,7 @@ import time
 import logging
 from models import TiltStatus
 from models import TiltHistory
-#from abstractions import CloudProviderBase
+from abstractions import BridgeProviderBase
 from configuration import BridgeConfig
 #from rate_limiter import DeviceRateLimiter
 import asyncio
@@ -24,7 +24,7 @@ logger = logging.getLogger('GFcstm_pvdr')
 logger.info("Startup")
 
 #class GrainfatherCustomStreamCloudProvider(implements(CloudProviderBase)):
-class GrainfatherCustomStreamCloudProvider():
+class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
         self.colour_urls = GrainfatherCustomStreamCloudProvider._normalize_colour_keys(config.grainfather_custom_stream_urls)

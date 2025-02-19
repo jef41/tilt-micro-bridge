@@ -1,9 +1,10 @@
 ''' latest change
-                randomise wifi test 80% to 120% of value, wifi check interval in config
+                
     working on: 
                 data storage management for local files - calc free spzce & size appropriately
     TODO:		
     
+    tested OK:	randomise wifi test 80% to 120% of value, wifi check interval in config
     tested OK:	log 'connecting to Wifi message'
     tested OK:	test if TilTHistory get_most_recent & get_averaged are returning calibration adjusted values or uncalibrated ones?
     tested OK:	csv log interval read from config file

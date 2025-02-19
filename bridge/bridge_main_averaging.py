@@ -202,10 +202,10 @@ async def _scan_for_ibeacons(simulate=False):
                     if simulate:
                         #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
                         # fake callback
-                        import random
-                        uuid = random.choice(list(uuid_to_colours.keys()))
-                        major = random.randrange(700, 750) # (500, 850) HD ->SD (50, 85)
-                        minor = random.randrange(10150, 10350) # (10050, 10450) HD -> SD (1005, 1045)
+                        from random import randrange, choice
+                        uuid = choice(list(uuid_to_colours.keys()))
+                        major = randrange(700, 750) # (500, 850) HD ->SD (50, 85)
+                        minor = randrange(10150, 10350) # (10050, 10450) HD -> SD (1005, 1045)
                         await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
                         #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             except AttributeError:
