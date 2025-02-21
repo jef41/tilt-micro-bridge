@@ -10,6 +10,7 @@ import ntptime
 import time
 import asyncio
 from aioble import central as aioble_central
+from ubinascii import hexlify
 gc.collect()
 #import bluetooth
 #from threadsafe import ThreadSafeQueue, Message, Context
@@ -22,8 +23,9 @@ from configuration import BridgeConfig
 #from rate_limiter import RateLimitedException
 from models.provider_timer import UploadTimers
 gc.collect()
-
+import bluetooth
 #debug_recvd_counter = 0  #for dev purposes, need a better implementation
+#_TILT_UUID = bluetooth.UUID("a495bb60c5b14b44b5121370f02d74de")
 
 logger = logging.getLogger('bridge')
 '''
@@ -38,15 +40,15 @@ else:
 # Statics
 #############################################
 uuid_to_colours = {
-        "a495bb20-c5b1-4b44-b512-1370f02d74de": "green",
-        "a495bb30-c5b1-4b44-b512-1370f02d74de": "black", 
-        "a495bb10-c5b1-4b44-b512-1370f02d74de": "red",
-        "a495bb60-c5b1-4b44-b512-1370f02d74de": "blue",
-        "a495bb50-c5b1-4b44-b512-1370f02d74de": "orange",
-        "a495bb70-c5b1-4b44-b512-1370f02d74de": "yellow",
-        "a495bb40-c5b1-4b44-b512-1370f02d74de": "purple",
-        "a495bb80-c5b1-4b44-b512-1370f02d74de": "pink",
-        "a495bb40-c5b1-4b44-b512-1370f02d74df": "simulated"  # reserved for fake beacons during simulation mode
+        bluetooth.UUID("a495bb20c5b14b44b5121370f02d74de"): "green",
+        bluetooth.UUID("a495bb30c5b14b44b5121370f02d74de"): "black", 
+        bluetooth.UUID("a495bb10c5b14b44b5121370f02d74de"): "red",
+        bluetooth.UUID("a495bb60c5b14b44b5121370f02d74de"): "blue",
+        bluetooth.UUID("a495bb50c5b14b44b5121370f02d74de"): "orange",
+        bluetooth.UUID("a495bb70c5b14b44b5121370f02d74de"): "yellow",
+        bluetooth.UUID("a495bb40c5b14b44b5121370f02d74de"): "purple",
+        bluetooth.UUID("a495bb80c5b14b44b5121370f02d74de"): "pink",
+        bluetooth.UUID("a495bb40c5b14b44b5121370f02d74df"): "simulated"  # reserved for fake beacons during simulation mode
     }
 
 colours_to_uuid = dict((v, k) for k, v in uuid_to_colours.items())
@@ -62,7 +64,7 @@ data_archive = bytearray()
 
 normal_providers = [
         #PrometheusCloudProvider(config),
-        FileCloudProvider(config),
+        CSVFileProvider(config),
         #InfluxDbCloudProvider(config),
         #InfluxDb2CloudProvider(config),
         #BrewfatherCustomStreamCloudProvider(config),
@@ -113,7 +115,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
             # find configured colours
             for colour in provider.colour_urls.keys():
                 if colour not in enabled_colours:
-                    enabled_colours.append(colour) 
+                    enabled_colours.append(colour)
     
     gc.collect()
     # for debug, intermittently log memory usage/leak
@@ -121,7 +123,8 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
     
     # size the TiltHistory object for each colour accordingly
     # and create upload timers
-    data_archive = TiltHistory(colour_dict(enabled_providers, enabled_colours))
+    data_archive = TiltHistory(max_av_period(enabled_providers, enabled_colours))
+    
     #logger.debug("data archive created")
     try:
         for provider in enabled_providers:
@@ -173,56 +176,76 @@ async def _scan_for_ibeacons(simulate=False):
     #global bridge_q
     #logger.info("debug: starting scanner...")
     # Constants for iBeacon
-    iBeacon_prefix = b'\x4C\x00\x02\x15'  # Apple company ID + iBeacon type
+    iBeacon_prefix = b'\x4C\x00\x02\x15\xa4\x95'  # Apple company ID + iBeacon type + 2 bytes of Tilt uuid
     # Tilt format based on iBeacon format with Tilt specific uuid preamble (a495)
-    TILT = "0215a495"
+    #TILT = "0215a495"
     # Start scanning for advertisements
     while True:
-        async with aioble_central.scan(duration_ms=1000, 
-                                       interval_us=160000,
-                                       window_us=16000) as scanner:
+        async with aioble_central.scan(duration_ms=5000, 
+                                       interval_us=100_000,
+                                       window_us=100_000, active=True) as scanner:
             try:
                 async for result in scanner: 
+                    #if result.name():
+                    #    print(result, result.name(), result.rssi, result.services())
                     # Check if the advertisement contains the iBeacon prefix
                     #if result.manufacturer and result.manufacturer.startswith(IBEACON_PREFIX):
-                    if iBeacon_prefix in result.manufacturer():
-                        # Extract and process iBeacon data
-                        adv_data = result.adv_data
-                        uuid = adv_data[4:20]    # UUID (16 bytes)
-                        major = int.from_bytes(adv_data[20:22], 'big')  # Major (2 bytes)
-                        minor = int.from_bytes(adv_data[22:24], 'big')  # Minor (2 bytes)
-                        tx_power = int.from_bytes(adv_data[24:25], 'big', signed=True)  # TX Power (1 byte)
+                    
+                    if result.adv_data and result.adv_data[5:11]==iBeacon_prefix:
+                        #print("match")
                         rssi = result.rssi
-                        logger.info(f"MAC: {result.device.addr_hex()} Beacon: {result.name}")
-
+                        #try:
+                        #    logger.info(f"MAC: {result}")#, {iBeacon_data.uuid}")
+                        #except Exception as e:
+                        #    print(e)
+                        
+                        #adv_data = result.adv_data
+                        '''
+                        uuid = bluetooth.UUID(''.join(['{:02X}'.format(b) for b in adv_data[9:25]]))
+                        #uuid = uuid1   # UUID (16 bytes)
+                        major = int.from_bytes(adv_data[25:27], 'big')  # Major (2 bytes) Temp
+                        minor = int.from_bytes(adv_data[27:29], 'big')  # Minor (2 bytes) SG
+                        tx_power = int.from_bytes(adv_data[29:], 'big', True) # signed=True)  # TX Power (1 byte)
+                        '''
+                        # Extract and process iBeacon data
+                        iBeacon_data = build_iBeacon_packet(result.adv_data)
+                        #print(iBeacon_data)
                         # Call the callback function with the extracted data
-                        await _beacon_callback(uuid, major, minor, tx_power, rssi, simulate)#, bridge_q)
+                        await _beacon_callback(iBeacon_data, rssi, simulate)#, bridge_q)
                         #_beacon_callback("a495bb40-c5b1-4b44-b512-1370f02d74df", 65, 1021, 0, 0, bridge_q)
+                    #else:
+                    #    if result.name():
+                    #        #print(dir(result.manufacturer()))
+                    #        print(f"{list(result.services())} name: {result.name()}")
                     if simulate:
                         #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
                         # fake callback
-                        import random
-                        uuid = random.choice(list(uuid_to_colours.keys()))
-                        major = random.randrange(700, 750) # HD ->SD (50, 85)
-                        minor = random.randrange(10150, 10350) # HD -> SD (1005, 1045)
+                        from random import randrange, choice
+                        uuid = choice(list(uuid_to_colours.keys()))
+                        major = randrange(700, 750) # (500, 850) HD ->SD (50, 85)
+                        minor = randrange(10150, 10350) # (10050, 10450) HD -> SD (1005, 1045)
                         await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
                         #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
             except AttributeError:
                 #logger.info(f"scanner result is:{result} scanner is:{scanner}")
                 #logger.info(f"scanner result.adv_data is {result.adv_data}")
-                logger.info(f"Attribute Error")
+                logger.info(f"Attribute Error in bridge scanner")
                 #raise
         asyncio.sleep_ms(100)
 
 
 #def _beacon_callback(bt_addr, rssi, packet, additional_info, bridge_q):
-async def _beacon_callback(uuid, major, minor, tx_power, rssi, simulated):#, bridge_q):
+async def _beacon_callback(iBeacon_packet, rssi, simulated):#, bridge_q):
     global data_archive
     # todo: this isn't actually an async routine
     # check bluetooth data and store on a queue (TiltHistory object)
     #    return
     #global debug_recvd_counter
-    colour = uuid_to_colours.get(uuid)
+    #print(iBeacon_packet)
+    try:
+        colour = uuid_to_colours.get(iBeacon_packet['uuid'])
+    except Exception as e:
+        print(e)
     if colour in data_archive.ringbuffer_list:
         #logger.info("beacon_callback colour match, {}".format(colour))
         # iBeacon packets have major/minor attributes with data
@@ -230,22 +253,22 @@ async def _beacon_callback(uuid, major, minor, tx_power, rssi, simulated):#, bri
         # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
         #start = gc.mem_free()
         gc.collect() #testing
-        beacon_data = TiltStatus(colour, major, _get_decimal_gravity(minor), config)
+        beacon_data = TiltStatus(colour, iBeacon_packet['major'], _get_decimal_gravity(iBeacon_packet['minor']), config, raw=True)
         #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
         #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
         if not beacon_data.temp_valid:
-            logger.warning("Ignoring broadcast due to invalid temperature: {}F".format(beacon_data.temp_fahrenheit))
+            logger.warning(f"Ignoring broadcast due to invalid temperature: {beacon_data.temp_fahrenheit}°F")
         elif not beacon_data.gravity_valid:
-            logger.warning("Ignoring broadcast due to invalid gravity: " + str(beacon_data.gravity))
+            logger.warning(f"Ignoring broadcast due to invalid gravity: {beacon_data.gravity}" )
         else:
             if data_archive.print_raw:
                 # check if we should print raw values as they are received (useful for calibration)
-                logger.debug(f"data: {colour} SG:{beacon_data.gravity} {beacon_data.temp_fahrenheit}°F")
+                logger.debug(f"data: {colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")
             
             try:
                 #await bridge_q.put(beacon_data)
                 # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 not calibrated vals))
-                data_archive.add_data(colour, major, minor, time.time())
+                data_archive.add_data(colour, iBeacon_packet['major'], iBeacon_packet['minor'], time.time())
                 #logger.info(f"added:{colour}, {major}, {minor}, {time.time()}")
             except Exception as e:
                 logger.error(f"queue put error: {e}")
@@ -274,6 +297,7 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
                 #upload_task = asyncio.create_task(provider.update())
                 #await upload_task
                 response_code, wait_for_secs = await provider.update()
+                # provider.update must return a2 values, code & wait - can be None
                 #logger.debug(f"got: response;{response_code}, wait:{wait_for_secs}")
                 # upload_task should return the [response code, seconds to wait] if a 429 response
                 # response code logging should be managed in provider module
@@ -329,22 +353,29 @@ def get_time(rtc):
     return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))'''
 
 
-def colour_dict(providers, colours):
+def max_av_period(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
     # todo: maybe //5? if Tilt transmits 1/5secs
     # called once per colour?
     col_max = {}
     max_av = 0
-    for provider in providers:
-        try:
+    try:
+        for provider in providers:
+            #print(f"***  colours {colours}")
             for colour in colours:
-                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av:
-                    max_av = provider.averaging_period + 1 # so if passed 0 then this wills till work
+                #print(f"***  test {provider}: {colour}, {provider.colour_urls.keys()}")
+                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av -1:
+                    #print(f"***   colour match: {colour}")
+                    max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
                     col_max[colour] = max_av
-        except Exception as e:
-            logger.error(f"max_of_averaging error: {s}")
-            raise
+                    #print(f"***   {col_max}")
+                else:
+                    #print(f"***   no match {colour} av_period {provider.averaging_period}")
+                    pass
+    except Exception as e:
+        logger.error(f"max_av_period error: {e}")
+        raise
     #logger.debug(f"col_max: {col_max}")
     return col_max
     
@@ -353,4 +384,12 @@ async def debug_memory():
     while True:
         await asyncio.sleep(30 * 60)
         logger.debug(f"gc: {gc.mem_free()}")
-    
+
+
+def build_iBeacon_packet(d):
+    # 
+    uuid = bluetooth.UUID(''.join(['{:02X}'.format(b) for b in d[9:25]]))
+    major = int.from_bytes(d[25:27], 'big')  # Major (2 bytes) Temp
+    minor = int.from_bytes(d[27:29], 'big')  # Minor (2 bytes) SG
+    tx_power = int.from_bytes(d[29:], 'big', True) # signed=True)  # TX Power (1 byte)
+    return { "uuid":uuid, "major":major, "minor":minor, "tx_power":tx_power }
