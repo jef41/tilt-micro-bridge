@@ -1,11 +1,12 @@
 ''' latest change
-                bugfix get ble working for iiBeacon
+                redesign simulated beacon generation
                 testing CSV log file auto sized
                 testing debug.log sized form config
     working on: 
                 
     TODO:		
     
+    tested OK:	bugfix get ble working for iiBeacon
     tested OK:	randomise wifi test 80% to 120% of value, wifi check interval in config
     tested OK:	log 'connecting to Wifi message'
     tested OK:	test if TilTHistory get_most_recent & get_averaged are returning calibration adjusted values or uncalibrated ones?
@@ -107,7 +108,8 @@ async def main():
     set_global_exception()  # Debug aid
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
     global onboard_led # = indicator.Status() # turn on the LED status indicator
-    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=False)# , console_log=True)
+    #await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=False)# , console_log=True)
+    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=True)
 
 
 onboard_led = indicator.Status() # turn on the LED status indicator    
