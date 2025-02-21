@@ -186,7 +186,7 @@ class TiltRingBuffer:
                 avg_sg /= 10
                 avg_tempf = round(avg_tempf / 10, 1) #10
             #todo get colour index for debug statement
-            logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.2f} SG:{avg_sg*0.001:.4f}")
+            logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.1f} SG:{avg_sg*0.001:.4f}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
@@ -244,7 +244,7 @@ class TiltRingBuffer:
             multiplier = 0.1 if self.hd else 1
             sg_match = ((sg_match+min) * multiplier) * 0.001
             temp_match = temp_match * multiplier
-            logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.2f} SG:{sg_match:.4f}")
+            logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.1f} SG:{sg_match:.4f}")
             return [temp_match, sg_match]
             
         else:
