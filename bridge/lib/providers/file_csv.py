@@ -11,13 +11,12 @@ from configuration import BridgeConfig
 import asyncio
 #import async_urequests as requests
 import json
+from os import statvfs, stat
+from math import ceil
 #import gc # for development only
 #from machine import Timer
 ''' TODO
-    document size & number of log files - xx free space 
-    os.statvfs("/") - first is block size, 3rd is free blocks (4096 * 121 ) /1024 = 484kb
-    set debug and file_log sizes in bridge_config.py - as a list
-    keep file sizes to within multiples of 44096bytes to use full blocks only
+    around 97 re-assign rotatinglog file size if necessary
 '''
 logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
@@ -50,6 +49,7 @@ class CSVFileProvider(BridgeProviderBase):
     def start(self):
         #print(f"***  logger maxbytes:{logging.getLogger().handlers[0].max_file_size_in_bytes}")
         max_bytes = self._calc_log_size(len(self.colours_enabled), self.csv_bkp_count)
+        #print(f"max_bytes {max_bytes}")
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         # TODO: max bytes should be calculated from free disk space - log file size from config
         # ((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
@@ -77,6 +77,24 @@ class CSVFileProvider(BridgeProviderBase):
             '''
             if colour not in self.csv_loggers:
                 self.csv_loggers[colour] = self._get_new_logger(colour, max_bytes, f_path)
+        # TODO now need to iterate through all the loggers, check how many of those log files already exist
+        # then reallocate size accordingly
+        # TODO read debug log files names rather than harcode
+        file_check_list = ["debug.log", "debug.log.1"]
+        for name in self.csv_loggers:
+            #logging.getLogger().handlers[0].max_file_size_in_bytes
+            test = logging.getLogger(name).handlers[0].file_full_name
+            file_check_list += [test]
+            #number of backup files
+            count = logging.getLogger(name).handlers[0].number_of_backup_files
+            #print(f"{test} {count}")
+            for c in range(count):
+                file_check_list += [f"{test}.{c+1}"]
+            #if isinstance(CSVFileProvider)
+        #print(file_check_list)
+        max_bytes = self._calc_log_size(len(self.colours_enabled), self.csv_bkp_count, file_check_list)
+        #print(f"max_bytes {max_bytes}")
+        #TODO reassign each logfile handler size
 
     def enabled(self):
         #print(f"***   enabled?{self.colours_enabled}   ***")
@@ -167,15 +185,13 @@ class CSVFileProvider(BridgeProviderBase):
         #    return normalised_colours
 
     @staticmethod
-    def _calc_log_size(tilt_count, csv_bkp_count):
+    def _calc_log_size(tilt_count, csv_bkp_count, check_for=('debug.log','debug.log.1')):
         ''' from free disk space calculate log file sizes
             the debug.log size is also declared in config, so could be passed in
             tries to allocate whole blocks 
         '''
         #logging.getLogger().handlers[0].max_file_size_in_bytes - root logger
         #((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
-        from os import statvfs
-        from math import ceil
         f_info = statvfs('/')
         # Check handlers in the parent (root) logger
         ''' returns "Logger object has no attribute parent"
@@ -186,6 +202,8 @@ class CSVFileProvider(BridgeProviderBase):
                     print("Log file max size:", handler.max_file_size_in_bytes)
             parent_logger = parent_logger.parent if parent_logger.parent else None
         '''
+        # TODO read filenames rather than hardcode them
+        already_allocated_dbg_blocks = check_for_existing_files(check_for)
         # TODO below is hacky - assumes we have a root logger
         debug_max_bytes = logging.getLogger().handlers[0].max_file_size_in_bytes
         debug_count = 1 + logging.getLogger().handlers[0].number_of_backup_files
@@ -195,7 +213,7 @@ class CSVFileProvider(BridgeProviderBase):
         spare_blocks = 1
         #csv_bkp_count = 4 # TODO read from config?
         
-        free_blocks = f_info[3] - debug_blocks - spare_blocks
+        free_blocks = f_info[3] - debug_blocks - spare_blocks + already_allocated_dbg_blocks
         blocks_per_csv = free_blocks // nbr_files
         max_size_bytes = blocks_per_csv * f_info[0]
         allocated_blocks = (blocks_per_csv * nbr_files) + debug_blocks + spare_blocks
@@ -299,4 +317,20 @@ class CSVLogger():
         #params += f", Temperature ({CSVFileProvider.temp_unit}), Specific Gravity"
         params += f", Temperature (°{temp_unit}), Specific Gravity"
         return params
-       
+
+
+def check_for_existing_files(file_names: list):
+    # check for exisiting debug logs and return the number of blocks used by them
+    used_blocks = 0
+    for dbg_file in file_names:
+        try:
+            used_bytes = stat(dbg_file)[6] if stat(dbg_file) else 0
+            if used_bytes:
+                used_blocks += ceil(used_bytes / statvfs('/')[0])
+        except OSError as e:
+            # print(f"caught {e} {dbg_file} {used_blocks}")
+            # file not found
+            pass
+        except Exception as e:
+            print(e)
+    return used_blocks

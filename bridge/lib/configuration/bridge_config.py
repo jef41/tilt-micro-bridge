@@ -28,7 +28,7 @@ class BridgeConfig:
         self.webhook_limit_rate = 1
         self.webhook_limit_period = 1
         # CSV File
-        self.csv_log_max_kb = 60
+        #self.csv_log_max_kb = 60
         self.csv_log_temp_unit = "C"
         self.csv_log_period = 60
         self.csv_bkp_count = 4
