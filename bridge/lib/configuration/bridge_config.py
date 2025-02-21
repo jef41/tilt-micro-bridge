@@ -83,12 +83,19 @@ class BridgeConfig:
         return self.__dict__.get(colour + '_name', colour)
 
     def get_gravity_offsets(self, colour: str):
-        ''' return a list of offsets or None
+        ''' return a list of offsets
+            where in each pair 1st value = raw, 2nd value = reference point
                 [[1.000,1.000],[1.100,1.100]]
-                TODO verify format/content
         '''
         #logger.debug(f"cal values: {self.__dict__.get(colour + '_gravity_offsets')}")
-        return self.__dict__.get(colour + '_gravity_offsets', None)
+        #TODO add -0.0001 & 10**5 pairs and order the list here, convert to tuple
+        #Tilt App does this:
+        cal_vals = None
+        cfg_cal_vals = self.__dict__.get(colour + '_gravity_offsets')
+        if cfg_cal_vals:
+            cal_vals = [ [-0.001,-0.001], [10**5,10**5] ] + cfg_cal_vals
+            cal_vals.sort(key=lambda x: x[1]) # sort by 2nd value in list
+        return cal_vals
 
 
     @staticmethod

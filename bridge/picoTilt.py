@@ -1,17 +1,19 @@
-''' latest change was adding a feature to use calibration values from config
-    tested OK: 	working in principle
-
-    TODO:  		check for cal at 1.000, if not present then insert?
-                if uncal > or < cal points then regression/forecast?
-                log info/debug uncal & cal values uploaded
-                currently only 20 values from tilt are displayed - need a better calibration process
-    testing: 	done, I think? todo implement wifi countrycode properly into config
+''' latest change
+    testing:	add a file handler
+    TODO:		what happens with multiple Tilt colours in config for GF & File handlers, does this work?
+    TODO:		data storage management for local files - calc free spzce & size appropriately
     
+    tested OK: 	 implement wifi countrycode properly into config - test with no country code in config
+    tested OK: 	adding a feature to use calibration values from config
+    tested OK: 	add [[-0.001,-0.001], [10**5,10**5]] to cal points
+    tested OK: 	for calibration points first 60 results printed to console only, not logged - need a better calibration process
+                config.json examples for each feature, with explanation - maybe just a .md file in /examples
+    tested OK: 	test with gravity or temp out of range
+    tested OK: 	log info/debug uncal & cal values uploaded
     tested OK: 	separate wifi module & background checkll for wifi conenctivity
     tested OK: 	move wifi, ntp & time defs from bridge_main to lib/wifi_client module
     tested OK  	implement wifi status check/reconnect
     testing & 	possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
-
     tested OK 	modify Grainfather Tilt provider to use async update & ProviderTimer
     tested OK 	providers with different methods (averaging & latest reading)
     tested OK 	providers with different upload intervals
@@ -32,33 +34,29 @@
                 lots of providers could cause upload time to vary, what tolerance do we have
                 seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
 
-    
+    todo: log to file
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
     todo implement watchdog (8secs max I think from memory)
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
-    todo saving OG somewhere - to calc ABV
+    todo saving OG in config & log to file
     todo add display - ABV latest cal SG & last averaged cal SG
 
-    ideas:
-    integrate aioble scanner into thread on core1
-        
+    ideas:        
     button to set into calibration mode?
     
-    method to identify a starting gravity & then calc ABV etc.
         
 '''
-
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
 from rotating_file_handler import RotatingLogFileHandler
 import logging, sys
 logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
-logger = logging.getLogger()
+logger = logging.getLogger() # using no name seems necessary to log to console & file?
 logger.handlers = [] # this is necessary
 logger.setLevel(logging.DEBUG)
 
-fileHandler = RotatingLogFileHandler("debug.log", 100_000, 8) #logging.FileHandler("duallog.txt")
+fileHandler = RotatingLogFileHandler("debug.log", 102_400, 1) #logging.FileHandler("duallog.txt")
 fileHandler.setFormatter(logFormatter)
 logger.addHandler(fileHandler)
 
@@ -68,7 +66,9 @@ logger.addHandler(consoleHandler)
 
 
 #import bridge_main_asyncv5 as bridge
+from machine import Pin
 import asyncio
+import indicator
 import bridge_main_averaging as bridge
 from wifi_client import WifiClient
 #import _thread
@@ -78,6 +78,7 @@ logger = logging.getLogger('main')
 logger.info("**************  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
+
 
 def set_global_exception():
     def handle_exception(loop, context):
@@ -91,13 +92,15 @@ def set_global_exception():
 async def main():
     set_global_exception()  # Debug aid
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
-    await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = True)# , console_log=True)
+    global onboard_led # = indicator.Status() # turn on the LED status indicator
+    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons = True)# , console_log=True)
 
-    
+
+onboard_led = indicator.Status() # turn on the LED status indicator    
 # get wifi network
 #bridge.get_wifi(bridge.config)
 wifi = WifiClient(bridge.config)
-asyncio.run(wifi.connect())
+asyncio.run(wifi.connect(onboard_led))
 
 # set system time - could have a UTC offset in config, but time is onyl used internally at the moment
 bridge.get_time(bridge.rtc)
@@ -119,3 +122,4 @@ except Exception as e:
     print("...stopped: Tilt Scanner ({})".format(e))
 finally:
     asyncio.new_event_loop()  # Clear retained state
+    Pin('LED',Pin.OUT).off()
