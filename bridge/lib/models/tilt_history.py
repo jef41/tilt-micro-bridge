@@ -184,7 +184,7 @@ class TiltRingBuffer:
             avg_tempf = round(sum_tempf / num_results, 1)
             if self.hd:
                 avg_sg /= 10
-                avg_tempf /= 10
+                avg_tempf = round(avg_tempf / 10, 1) #10
             #todo get colour index for debug statement
             logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.2f} SG:{avg_sg*0.001:.4f}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)

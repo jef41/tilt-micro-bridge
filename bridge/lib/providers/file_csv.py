@@ -290,10 +290,10 @@ class CSVLogger():
         
         if self.temp_unit == "C":
             #temp = str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
-            temp = str(f"{tilt_status.temp_celsius:.2f}") + ", "
+            temp = str(f"{tilt_status.temp_celsius:.1f}") + ", "
         else:
             #temp = str(f"{tilt_status.temp_fahrenheit:.2f}") + "°F, " #  if self.temp_unit == "F" else str(f"{tilt_status.temp_celsius:.2f}") + "°C, "
-            temp = str(f"{tilt_status.temp_fahrenheit:.2f}") + ", "
+            temp = str(f"{tilt_status.temp_fahrenheit:.1f}") + ", "
         gravity = (f"{tilt_status.gravity:.4f}") + ", "
         abv = str(f"{tilt_status.alcohol_by_volume:.2f}") + ", " if tilt_status.original_gravity else ""
         attenuation = str(f"{tilt_status.apparent_attenuation:.2f}") + ", " if tilt_status.original_gravity else ""

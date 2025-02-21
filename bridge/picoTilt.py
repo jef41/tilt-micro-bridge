@@ -1,4 +1,5 @@
 ''' latest change
+                bugfix get ble working for iiBeacon
                 testing CSV log file auto sized
                 testing debug.log sized form config
     working on: 
@@ -106,7 +107,7 @@ async def main():
     set_global_exception()  # Debug aid
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
     global onboard_led # = indicator.Status() # turn on the LED status indicator
-    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons = True)# , console_log=True)
+    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=False)# , console_log=True)
 
 
 onboard_led = indicator.Status() # turn on the LED status indicator    
