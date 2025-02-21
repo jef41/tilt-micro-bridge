@@ -1,6 +1,6 @@
 ''' latest change
                 redesign simulated beacon generation
-                testing CSV log file auto sized
+                testing CSV log file auto sized seems to be overly pessimistic
                 testing debug.log sized form config
     working on: 
                 

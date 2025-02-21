@@ -150,52 +150,69 @@ async def _scan_for_ibeacons(simulate=False):
     #TILT = "0215a495"
     # Start scanning for advertisements
     while True:
-        async with aioble_central.scan(duration_ms=5000, 
-                                       interval_us=100_000,
-                                       window_us=100_000, active=True) as scanner:
+        if simulate: # and pckt_complete:
+            # generate a fake beacon signal
+            #pckt_complete = False
+            #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
+            # fake callback
+            #from random import randrange
+            #uuid = choice(list(uuid_to_colours.keys()))
             try:
-                async for result in scanner:
-                    if result.adv_data and result.adv_data[5:11] == iBeacon_prefix:
-                        #print("match")
-                        rssi = result.rssi
-                        
-                        #try:
-                        #    logger.info(f"MAC: {result.device.addr_hex()}")#, {iBeacon_data.uuid}")
-                        #except Exception as e:
-                        #    print(e)
-                        
-                        # Extract and process iBeacon data
-                        #await _beacon_callback(iBeacon_data, rssi, simulate)
-                        iBeacon_data = iBeaconStatus(result.adv_data, result.rssi, result.device.addr_hex())
-                        #print(iBeacon_data)
-                        await _beacon_callback(iBeacon_data, simulate)
-                    #else:
-                    #    if result.name():
-                    #        #print(dir(result.manufacturer()))
-                    #        print(f"{list(result.services())} name: {result.name()}")
-                    if simulate:
-                        #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
-                        # fake callback
-                        from random import randrange
-                        #uuid = choice(list(uuid_to_colours.keys()))
-                        col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1,'big')
-                        #print(col)
-                        major = (randrange(700, 750)).to_bytes(2,'big') # (500, 850) HD ->SD (50, 85)
-                        minor = (randrange(10150, 10350)).to_bytes(2,'big') # (10050, 10450) HD -> SD (1005, 1045)
-                        pre = b'\x02\x01\x04\x1a\xffL\x00\x02\x15\xa4\x95\xbb'
-                        post = b'\xc5\xb1KD\xb5\x12\x13p\xf0-t\xde'
-                        tx_pwr = b'\x00'
-                        adv_data = b''.join([pre, col, post, major, minor, tx_pwr])
-                        #print(adv_data)
-                        iBeacon_data = iBeaconStatus(adv_data, 0, "00:00:00:00:00:00")
-                        #await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
-                        #print(f'{iBeacon_data.colour} {col} {iBeacon_data.major} {iBeacon_data.minor}')
-                        await _beacon_callback(iBeacon_data, simulate)
-            except AttributeError:
-                #logger.info(f"scanner result is:{result} scanner is:{scanner}")
-                #logger.info(f"scanner result.adv_data is {result.adv_data}")
-                logger.info(f"Attribute Error in bridge scanner")
-                #raise
+                col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1,'big')
+            except NameError:
+                from random import randrange
+                col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1,'big')
+            #print(col)
+            major = (randrange(700, 750)).to_bytes(2,'big') # (500, 850) HD ->SD (50, 85)
+            minor = (randrange(10150, 10350)).to_bytes(2,'big') # (10050, 10450) HD -> SD (1005, 1045)
+            pre = b'\x02\x01\x04\x1a\xffL\x00\x02\x15\xa4\x95\xbb'
+            post = b'\xc5\xb1KD\xb5\x12\x13p\xf0-t\xde'
+            tx_pwr = b'\x00'
+            adv_data = b''.join([pre, col, post, major, minor, tx_pwr])
+            #print(adv_data)
+            iBeacon_data = iBeaconStatus(adv_data, 0, "00:00:00:00:00:00")
+            #await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
+            #print(f'{iBeacon_data.colour} {col} {iBeacon_data.major} {iBeacon_data.minor}')
+            try:
+                task = asyncio.create_task(_beacon_callback(iBeacon_data, simulate))
+                #task running
+                await asyncio.sleep_ms(randrange(80, 120)) # pause here & give way
+                await task # then wait for task to complete
+                #res = await asyncio.gather(t1,t2, return_exceptions=True)
+            except asyncio.TimeoutError:  # These only happen if return_exceptions is False
+                print('Timeout')  # With the default times, cancellation occurs first
+            except asyncio.CancelledError:
+                print('Cancelled')
+            #asyncio.sleep_ms(randrange(100, 750))
+            #pckt_complete = True
+        else:
+            async with aioble_central.scan(duration_ms=5000, 
+                                           interval_us=100_000,
+                                           window_us=100_000, active=True) as scanner:
+                # scan for real beacons
+                try:
+                    async for result in scanner:
+                        if result.adv_data and result.adv_data[5:11] == iBeacon_prefix:
+                            #print("match")
+                            rssi = result.rssi
+                            # Extract and process iBeacon data
+                            #await _beacon_callback(iBeacon_data, rssi, simulate)
+                            iBeacon_data = iBeaconStatus(result.adv_data, result.rssi, result.device.addr_hex())
+                            #print(iBeacon_data)
+                            await _beacon_callback(iBeacon_data, simulate)
+                        #else:
+                        #    if result.name():
+                        #        #print(dir(result.manufacturer()))
+                        #        print(f"{list(result.services())} name: {result.name()}")
+                     
+                except AttributeError:
+                    #logger.info(f"scanner result is:{result} scanner is:{scanner}")
+                    #logger.info(f"scanner result.adv_data is {result.adv_data}")
+                    logger.info(f"Attribute Error in bridge scanner")
+                    #raise
+            #asyncio.sleep_ms(800 if simulate else 10) # don't flood with simulated beacons
+           
+        
         asyncio.sleep_ms(100)
 
 
@@ -243,7 +260,7 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
     # job to process the queue of data
     try:
         #tilt_status = await bridge_q.get() #blocks until data available
-        await asyncio.sleep_ms(0) # testing todo: reduce from 100ms
+        await asyncio.sleep_ms(10) # testing todo: reduce from 100ms
         for provider in enabled_providers:
             #if provider.update_in_progress:
             #    logger.debug(f"{provider} update already in progress")
