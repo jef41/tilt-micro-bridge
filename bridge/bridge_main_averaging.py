@@ -10,6 +10,7 @@ import ntptime
 import time
 import asyncio
 from aioble import central as aioble_central
+from bluetooth import UUID
 from ubinascii import hexlify
 gc.collect()
 #import bluetooth
@@ -23,7 +24,6 @@ from configuration import BridgeConfig
 #from rate_limiter import RateLimitedException
 from models.provider_timer import UploadTimers
 gc.collect()
-import bluetooth
 #debug_recvd_counter = 0  #for dev purposes, need a better implementation
 #_TILT_UUID = bluetooth.UUID("a495bb60c5b14b44b5121370f02d74de")
 
@@ -40,15 +40,15 @@ else:
 # Statics
 #############################################
 uuid_to_colours = {
-        bluetooth.UUID("a495bb20c5b14b44b5121370f02d74de"): "green",
-        bluetooth.UUID("a495bb30c5b14b44b5121370f02d74de"): "black", 
-        bluetooth.UUID("a495bb10c5b14b44b5121370f02d74de"): "red",
-        bluetooth.UUID("a495bb60c5b14b44b5121370f02d74de"): "blue",
-        bluetooth.UUID("a495bb50c5b14b44b5121370f02d74de"): "orange",
-        bluetooth.UUID("a495bb70c5b14b44b5121370f02d74de"): "yellow",
-        bluetooth.UUID("a495bb40c5b14b44b5121370f02d74de"): "purple",
-        bluetooth.UUID("a495bb80c5b14b44b5121370f02d74de"): "pink",
-        bluetooth.UUID("a495bb40c5b14b44b5121370f02d74df"): "simulated"  # reserved for fake beacons during simulation mode
+        UUID("a495bb20-c5b1-4b44-b512-1370f02d74de"): "green",
+        UUID("a495bb30-c5b1-4b44-b512-1370f02d74de"): "black", 
+        UUID("a495bb10-c5b1-4b44-b512-1370f02d74de"): "red",
+        UUID("a495bb60-c5b1-4b44-b512-1370f02d74de"): "blue",
+        UUID("a495bb50-c5b1-4b44-b512-1370f02d74de"): "orange",
+        UUID("a495bb70-c5b1-4b44-b512-1370f02d74de"): "yellow",
+        UUID("a495bb40-c5b1-4b44-b512-1370f02d74de"): "purple",
+        UUID("a495bb80-c5b1-4b44-b512-1370f02d74de"): "pink",
+        UUID("a495bb40-c5b1-4b44-b512-1370f02d74df"): "simulated"  # reserved for fake beacons during simulation mode
     }
 
 colours_to_uuid = dict((v, k) for k, v in uuid_to_colours.items())
@@ -190,12 +190,13 @@ async def _scan_for_ibeacons(simulate=False):
                     #    print(result, result.name(), result.rssi, result.services())
                     # Check if the advertisement contains the iBeacon prefix
                     #if result.manufacturer and result.manufacturer.startswith(IBEACON_PREFIX):
-                    
+                    #mac = result.addr
                     if result.adv_data and result.adv_data[5:11]==iBeacon_prefix:
                         #print("match")
                         rssi = result.rssi
+                        
                         #try:
-                        #    logger.info(f"MAC: {result}")#, {iBeacon_data.uuid}")
+                        #    logger.info(f"MAC: {result.device.addr_hex()}")#, {iBeacon_data.uuid}")
                         #except Exception as e:
                         #    print(e)
                         
@@ -347,17 +348,9 @@ def get_time(rtc):
     return result
 
 
-'''def display_time():
-    year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
-    # logger.info a date - YYYY-MM-DD
-    return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))'''
-
-
 def max_av_period(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
-    # todo: maybe //5? if Tilt transmits 1/5secs
-    # called once per colour?
     col_max = {}
     max_av = 0
     try:
@@ -388,7 +381,7 @@ async def debug_memory():
 
 def build_iBeacon_packet(d):
     # 
-    uuid = bluetooth.UUID(''.join(['{:02X}'.format(b) for b in d[9:25]]))
+    uuid = UUID(''.join(['{:02X}'.format(b) for b in d[9:25]]))
     major = int.from_bytes(d[25:27], 'big')  # Major (2 bytes) Temp
     minor = int.from_bytes(d[27:29], 'big')  # Minor (2 bytes) SG
     tx_power = int.from_bytes(d[29:], 'big', True) # signed=True)  # TX Power (1 byte)
