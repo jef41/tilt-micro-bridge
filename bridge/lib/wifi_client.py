@@ -7,6 +7,7 @@ import asyncio
 gc.collect()
 import network
 import logging
+from random import randrange
 from sys import platform
 
 VERSION = (0, 1, 0)
@@ -32,14 +33,15 @@ class WifiClient():
         #self._ping_interval = 20000
         #self._in_connect = False
         #self._has_connected = False  # Define 'Clean Session' value to use.
-        self.check_interval = 600 # check every n seconds
         self._sta_if = network.WLAN(network.STA_IF)
         self._ssid = config.ssid
         self._wifi_pw = config.password
         try:
             self._country = config.country_code
+            self.check_interval = config.wifi_check_interval
         except AttributeError:
             self._country = None
+            self.check_interval = 600 # check every n seconds
 
     async def wifi_connect(self, onboard_led, quick=False):
         await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
@@ -52,17 +54,18 @@ class WifiClient():
             import rp2
             if self._country:
                 rp2.country(self._country)
+        logger.info("Attempting to connect to wifi")
         s.connect(self._ssid, self._wifi_pw)
         for _ in range(60):  # Break out on fail or success. Check once per sec.
             await asyncio.sleep(1)
             # Loop while connecting or no IP
             if s.isconnected():
-                logger.info("Wifi connected")
+                logger.info("wifi connected")
                 await onboard_led.set_status(onboard_led.WIFI_CONNECTED)
                 break
             if RP2:  # 1 is joining. 2 is No IP, ie in process of connecting
                 if not 1 <= s.status() <= 3:
-                    logger.debug(f"Wifi reports {error_codes_to_messages[s.status()]}")
+                    logger.debug(f"wifi reports {error_codes_to_messages[s.status()]}")
                     break
         else:  # Timeout: still in connecting state
             s.disconnect()
@@ -70,12 +73,12 @@ class WifiClient():
             await asyncio.sleep(1)
 
         if not s.isconnected():  # Timed out
-            logger.warning("Wifi connect timed out")
+            logger.warning("wifi connect timed out")
             raise OSError("Wi-Fi connect timed out")
         if not quick:  # Skip on first connection only if power saving
             # Ensure connection stays up for a few secs.
-            #self.dprint("Checking WiFi integrity.")
-            logger.info("Checking WiFi integrity.")
+            #self.dprint("Checking wifi integrity")
+            logger.info("Checking wifi integrity")
             for _ in range(5):
                 if not s.isconnected():
                     logger.warning("Connection Unstable")
@@ -89,18 +92,21 @@ class WifiClient():
         if not s.isconnected():
             await self.wifi_connect(onboard_led, quick)
         if s.isconnected():
-            asyncio.create_task(self._keep_connected())
-            # Runs forever unless user issues .disconnect()
+            if self.check_interval > 0:
+                asyncio.create_task(self._keep_connected())
+                # Runs forever unless user issues .disconnect()
+            else:
+                logger.info("wifi connection checks disabled")
 
     # Scheduled on 1st successful connection. Runs forever maintaining wifi and
-    # broker connection. Must handle conditions at edge of WiFi range.
+    # broker connection. Must handle conditions at edge of wifi range.
     async def _keep_connected(self):
         s = self._sta_if
         while True: # s.active():
             logger.debug("running in _keep_connected")
             if s.isconnected():  # Pause for 1 second
                 #await asyncio.sleep(1) # debug
-                await asyncio.sleep(self.check_interval)
+                await asyncio.sleep(randrange(int(self.check_interval*0.8), int(self.check_interval*1.2)))
                 gc.collect()
             else:  # Link is down
                 try:
@@ -140,7 +146,7 @@ async def wan_ok(
     self,
     packet=b"$\x1a\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x03www\x06google\x03com\x00\x00\x01\x00\x01",
 ):
-    if not self.isconnected():  # WiFi is down
+    if not self.isconnected():  # wifi is down
         return False
     length = 32  # DNS query and response packet size
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
