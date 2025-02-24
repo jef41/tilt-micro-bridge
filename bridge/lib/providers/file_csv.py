@@ -16,7 +16,11 @@ from math import ceil
 #import gc # for development only
 #from machine import Timer
 ''' TODO
-    around 97 re-assign rotatinglog file size if necessary
+    if max_bytes initially returns a v small value then we immeidately get 5 log files
+    maybe initial max_bytes should just check if 4kb x no log files available? if not return stop with error indicator
+    done around 97 re-assign rotatinglog file size if necessary
+    done change to CSV
+    log file names to dict colours enabled
 '''
 logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
@@ -29,8 +33,8 @@ class CSVFileProvider(BridgeProviderBase):
         self.bridge_config = config
         #self.temp_unit = CSVFileProvider._get_temp_unit(config)
         self.temp_unit = self._get_temp_unit(self.bridge_config)
-        self.colour_urls = self._get_colour_dict()
-        self.colours_enabled = self.colour_urls # TODO: improve on this, colour_urls as an object?
+        self.col_dest = self._get_colour_dict() # colour:filename.csv
+        self.colour_urls = self.col_dest # TODO: improve on this, col_dest as an object?
         self.str_name = f"CSV Logger"
         self.log_pvdr = logging.getLogger(self.str_name)
         self.csv_loggers = dict() # collection of loggers
@@ -47,9 +51,9 @@ class CSVFileProvider(BridgeProviderBase):
         return self.str_name
 
     def start(self):
-        #print(f"***  logger maxbytes:{logging.getLogger().handlers[0].max_file_size_in_bytes}")
-        max_bytes = self._calc_log_size(len(self.colours_enabled), self.csv_bkp_count)
-        #print(f"max_bytes {max_bytes}")
+        # initialise relevant loggers
+        max_bytes = self._calc_log_size(len(self.col_dest), self.csv_bkp_count)
+        logger.debug(f"initial  max_bytes {max_bytes}")
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         # TODO: max bytes should be calculated from free disk space - log file size from config
         # ((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
@@ -59,12 +63,12 @@ class CSVFileProvider(BridgeProviderBase):
         self.log_pvdr.handlers = [] # this is necessary
         #self.log_pvdr.setLevel(logging.WARNING)
         self.log_pvdr.setLevel(logging.DEBUG)
-        #print(self.colours_enabled)
-        #print(f"***   dict:{self.colour_urls}   ***")
+        #print(self.col_dest)
+        #print(f"***   dict:{self.col_dest}   ***")
         '''
-        for colour, f_path in self.colours_enabled.items():
+        for colour, f_path in self.col_dest.items():
             '''
-            #fileHandler = RotatingLogFileHandler(self.colours_enabled[f_path], max_bytes, 10)
+            #fileHandler = RotatingLogFileHandler(self.col_dest[f_path], max_bytes, 10)
             # use brew name, or colour for filename
             fname = f_path if f_path else colour
             logFileHandler = RotatingLogFileHandler(fname + ".log", max_bytes, 5)
@@ -76,10 +80,10 @@ class CSVFileProvider(BridgeProviderBase):
             # TODO: add a log line about OG & columns below
             '''
             if colour not in self.csv_loggers:
-                self.csv_loggers[colour] = self._get_new_logger(colour, max_bytes, f_path)
+                self.csv_loggers[colour] = self._get_new_logger(colour, f_path, max_bytes)
         # TODO now need to iterate through all the loggers, check how many of those log files already exist
         # then reallocate size accordingly
-        # TODO read debug log files names rather than harcode
+        # TODO read debug log files names rather than hardcode
         file_check_list = ["debug.log", "debug.log.1"]
         for name in self.csv_loggers:
             #logging.getLogger().handlers[0].max_file_size_in_bytes
@@ -92,14 +96,18 @@ class CSVFileProvider(BridgeProviderBase):
                 file_check_list += [f"{test}.{c+1}"]
             #if isinstance(CSVFileProvider)
         #print(file_check_list)
-        max_bytes = self._calc_log_size(len(self.colours_enabled), self.csv_bkp_count, file_check_list)
-        #print(f"max_bytes {max_bytes}")
-        #TODO reassign each logfile handler size
+        max_bytes = self._calc_log_size(len(self.col_dest), self.csv_bkp_count, file_check_list)
+        #colln = ', '.join(*self.csv_loggers)
+        # print(*self.csv_loggers)
+        #TODO reiterate & reassign each logfile handler size
+        for name in self.csv_loggers:
+            logging.getLogger(name).handlers[0].max_file_size_in_bytes = max_bytes
+        logger.debug(f"max_bytes reassigned to:{max_bytes}")
 
     def enabled(self):
-        #print(f"***   enabled?{self.colours_enabled}   ***")
-        #return (self.colours_enabled)
-        return True if self.colours_enabled else False
+        #print(f"***   enabled?{self.col_dest}   ***")
+        #return (self.col_dest)
+        return True if self.col_dest else False
     
     def attach_archive(self, data_archive: TiltHistory):
         # keep a reference to the data queue, this is added to the class after the object is initially created
@@ -111,7 +119,7 @@ class CSVFileProvider(BridgeProviderBase):
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
-            for colour in self.colours_enabled:
+            for colour in self.col_dest:
                 status, wait_for = [None, None] 
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)
                 if tempF and SG:
@@ -153,14 +161,13 @@ class CSVFileProvider(BridgeProviderBase):
         return (out_str[:-2] if out_str[-2:] == ", " else out_str)
     '''
     
-    def _get_new_logger(self, colour, max_bytes, f_name):
-        return CSVLogger(colour, max_bytes, self.temp_unit, self.csv_bkp_count, f_name) 
-    
-    
-    # takes list of colours
-    # returns dict with all colours in lowercase letters for easier matching later
-    # if set, key is set to brew name
+    def _get_new_logger(self, colour, f_name, max_bytes):
+        return CSVLogger(colour, f_name, max_bytes, self.temp_unit, self.csv_bkp_count) 
+        
     def _get_colour_dict(self):
+        # takes list of colours
+        # returns dict with all colours in lowercase & filename
+        # if set, key is set to brew name
         #normalised_colours = list()
         normalised_colours = dict()
         #try:
@@ -173,9 +180,9 @@ class CSVFileProvider(BridgeProviderBase):
                 brew_name = self.bridge_config.get_brew_name(lower_colour)
                 # if we have a beer name then add to the dict
                 if brew_name.lower() == lower_colour:
-                    normalised_colours[lower_colour] = ""
+                    normalised_colours[lower_colour] = lower_colour + ".csv"
                 else:
-                    normalised_colours[lower_colour] = brew_name
+                    normalised_colours[lower_colour] = brew_name + ".csv"
         #print(normalised_colours)
         return normalised_colours
         #except:
@@ -247,20 +254,23 @@ class CSVLogger():
         if we have > 1 Tilt storage space will be an issue - manual or auto handling
         of max file size?
     '''
-    def __init__(self, colour, size_b, temp_unit, csv_bkp_count, brew_name=None):
+    #def __init__(self, colour, size_b, temp_unit, csv_bkp_count, brew_name=None):
+    def __init__(self, colour, fname, size_b, temp_unit, csv_bkp_count):
         #super().__init__(temp_unit) # get parent methods
         #print(f"***  temp_unit{self.temp_unit}")
         self.temp_unit = temp_unit
         self.tilt_log = logging.getLogger(colour)
         # use brew name, or colour for filename
-        fname = brew_name if brew_name else colour
+        #fname = brew_name if brew_name else colour
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         logFormatter = logging.Formatter("%(asctime)s, %(message)s")
-        logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, csv_bkp_count)
+        #logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, csv_bkp_count)
+        logFileHandler = RotatingLogFileHandler(fname, size_b, csv_bkp_count)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
-        logger.info(f"{colour} Tilt: {fname  + ".log"} logger added {size_b/1024}kb per file")
-        namestr = ": " + brew_name if brew_name else ""
+        logger.info(f"{colour} Tilt: {fname} logger added {size_b/1024}kb per file")
+        #namestr = ": " + brew_name if brew_name else ""
+        namestr = ": " if fname[:-4] == colour else ": " + fname[:-4] # if present add beer name
         self.tilt_log.info(f"{colour[0].upper() + colour[1:].lower()} Tilt{namestr} logger added")
         self.initial = True
     

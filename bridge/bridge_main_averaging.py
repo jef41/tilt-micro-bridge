@@ -133,6 +133,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
         raise
     except KeyboardInterrupt:
         # todo: is this actioned here? investigate
+        print("cancelling tasks...")
         handler.cancel()
         scanner.cancel()
     except Exception as e:
