@@ -40,13 +40,14 @@ This version is a working in principle version. It is probably functional, but r
 
 ## Configuration
 
-Custom configurations can be used by creating a file `config.json` in the working directory you are running Bridge from.
+Custom configurations can be used by creating a file `config.json` in the root directory on the Pico.
 
 | Option                       | Purpose                      | Default               | Example               |
 | ---------------------------- | ---------------------------- | --------------------- | --------------------- |
-|`ssid` (str) | SSID for your Wifi newtork | None | [Example config](bridge/readme.md) |
-|`password` (str) | password for your Wifi newtork | None | [Example config](bridge/readme.md) |
-|`country_code` (str) | ISO 3166-1 alpha-2 character country code for Wifi | None | [Example config](bridge/readme.md) |
+|`ssid` (str) | SSID for your wifi newtork | None | [Example config](examples/wifi.md) |
+|`password` (str) | password for your wifi newtork | None | [Example config](examples/wifi.md) |
+|`country_code` (str) | ISO 3166-1 alpha-2 character country code for wifi | `None` | [Example config](examples/wifi.md) |
+|`check_interval` (int) | Check there is a working internet conenction every n seconds | 600 | [Example config](examples/wifi.md) |
 |`averaging_period` (int) |  Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period. This default will be used if no provider averaging period is present | `600` | &nbsp; |
 | `queue_size` (int) | Max queue size for all Tilt event broadcasts.  Events are removed from the queue once all enabled providers have handled the event.  New events are dropped when the queue is maxed.  | `3` | [Example config](examples/queue/pitch.json) |
 | `queue_empty_sleep_seconds` (int) | Time in seconds Pitch will sleep when the queue reaches 0. The higher the value the less CPU time Pitch uses.  Can be 0 or negative (this disables sleep and Pitch will always run). | `1` | [Example config](examples/queue/pitch.json) |
@@ -57,13 +58,17 @@ Custom configurations can be used by creating a file `config.json` in the workin
 | `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather.md) |
 | `grainfather_tilt_stream_urls` (dict) | Dict of color (key) and URLs (value), as above, but seen as a Tilt Device | None/empty | [Example config](examples/grainfather.md) |
 | `grainfather_averaging_period` (int) | Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period.  | `300` |  [Example config](examples/grainfather.md) |
-| `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` |  [Example config](examples/grainfather.md) |
-| `{colour}_name` (str) | Name of your brew, where {colour} is the color of the Tilt (purple, red, etc) | Color (e.g. purple, red, etc) | No example yet (PRs welcome!) |
-| `{colour}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | No example yet (PRs welcome!) |
-| `{colour}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | No example yet (PRs welcome!) |
-| `{colour}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | 0 | No example yet (PRs welcome!) |
-| `log_file_path` (str) | Path to file forCSV event logging | `bridge_log.json` | No example yet (PRs welcome!) |
-| `log_file_max_bytes` (int) | Max CSV log file size in bytes | `1024` | No example yet (PRs welcome!) |
+| `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` | [Example config](examples/grainfather.md) |
+|`csv_log_tilt_colours` (list) | List of colours of Tilt devices to log to a CSV formatted file | None | [Example config](examples/file_csv.md) |
+|`csv_log_averaging_period` (int) | Seconds of data to average over | averaging_period | [Example config](examples/file_csv.md) |
+|`csv_log_max_kb` (int) | Roll over to a new CSV file when the file reaches this size (in kb) | `60` | [Example config](examples/file_csv.md) |
+|`csv_log_temp_unit` (str) | Log temperatures in °C or °F | `C` | [Example config](examples/file_csv.md) |
+|`csv_log_rate` (int) | adjust log_period - best ignored for now | `1` | [Example config](examples/file_csv.md) |
+|`csv_log_period` (int) | log data at intervals of this many seconds | `60` | [Example config](examples/file_csv.md) |
+| `{colour}_name` (str) | Name of your brew, where {colour} is the color of the Tilt (purple, red, etc) | Color (e.g. purple, red, etc) | [Example config](examples/per_tilt.md) |
+| `{colour}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | [Example config](examples/per_tilt.md) |
+| `{colour}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | 0 | [Example config](examples/per_tilt.md) |
+| `{colour}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | None/empty | [Example config](examples/per_tilt.md) |
 <!--
 | `webhook_urls` (array) | Adds webhook URLs for Tilt status updates | None/empty | [Example config](examples/webhook/pitch.json) |
 | `webhook_limit_rate` (int) | Number of webhooks to fire for the limit period (per URL) | 1 | [Example config](examples/webhook/pitch.json) |
@@ -103,11 +108,15 @@ Refer to the above configuration and the integration list below for details on h
 -->
 ## Calibration
 
-You can calibrate gravity for each Tilt by colour.  At the moment, to do this you will need to run picoTilt.py from Thonny or other terminal and observe the data.  
+### Gravity
+
+The gravity may be adjusted by linear interpolation using the same method as the Tilt2 App.
+
+You may calibrate gravity for each Tilt by colour.  At the moment, to apply and test calibration points you will need to run the device while connected to Thonny or other serial connection to observe the data, alternatively run the deivce for a few mins in each solution then connect the device to Thonny and look in the debug.log files for data. 
 
 Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.100, leaving the device to settle in each. 
 
-The bridge will run and show uncalibrated values  as debug messages as they are received.
+The bridge will run and show uncalibrated values as debug messages printed to the debug.log file and to a serial terminal as they are received.
 
 Example output:
 
@@ -115,7 +124,7 @@ Example output:
 2025-02-06 15:39:01 [TiltHistory ] [DEBUG]  uncal values recvd, temp;72.41 SG:1.0246
 ```
 
-Once the value is stable, write down this value and repeat with the next solution. 
+Once the value is stable, write down this uncalibrated value and repeat the process with the next solution. 
 
 Add the uncalibrated values and their associated calibration points to the config file, using the correct colour code for the Tilt, e.g.:
 
@@ -123,7 +132,17 @@ Add the uncalibrated values and their associated calibration points to the confi
     "blue_gravity_offsets" : [[1.005,1.000], [1.090,1.100], [1.060,1.060]],
 ```
 
-**Note** that for each pair, the first value is the (uncalibrated) reading from the debug messages, the second value is the calibration point
+**Note** that for each pair, the first value is the (uncalibrated) reading from the debug messages, the second value is the calibration point.
+
+The example above shows the Tilt was reading 1.005 in pure water.
+
+As per the Tilt instructions it is suggested that you have at least 2 calibration points, 1.000 & 1.200. Futher points may be added as you see fit.
+
+### Temperature
+
+Temperature has a single offset value which is expressed in degrees Farenheit. This feature may be useful if you negate or average the temperature gradient between the top and the bottom of the fermenter. 
+
+The process for calculating the temperature offset is as per Gravity point calibration, i.e. maintain the device at a stable, known temperature and observe the output from the Tilt from a serial port connection or the debug.log file.
 
 <!---
 ## Running without a Tilt or on Mac/Windows
