@@ -18,7 +18,7 @@
     todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
 from machine import Timer
-from configuration import BridgeConfig
+#from configuration import BridgeConfig
 #from .json_serialize import JsonSerialize
 import time
 import asyncio
@@ -44,14 +44,21 @@ class TiltHistory():
         # for each colour in config find max averaging
         # get a list of colour:number
         self.print_raw = True
-        self.print_timer = Timer(
-            mode=Timer.ONE_SHOT, period=15_000, callback=self._timeout_callback
-        )
+        asyncio.create_task(self.timeout_raw(30)) # True
+        # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
+        #self.print_timer = Timer(
+        #    mode=Timer.ONE_SHOT, period=60_000, callback=self._timeout_callback
+        #)
         self.ringbuffer_list = dict()
         self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
         
-    def _timeout_callback(self, timer):
+    #def _timeout_callback(self, timer):
+    async def timeout_raw(self, timeout):
         # stop printing data: statements to serial
+        #self.print_raw = True
+        #print("***  self print raw started")
+        await asyncio.sleep(timeout) # show received packets for n secs
+        #print("***  self print raw finished")
         self.print_raw = False
         
     def initialise_ringbuffer(self, colour_dict): 
@@ -59,9 +66,12 @@ class TiltHistory():
         # todo: here find the largest number for averaging for this colour in config
         #logger.debug(f"initialise ringbuffer {colour_dict}")
         #try:
-        for colour, av_period in colour_dict.items(): 
+        #print(f"***  max {max(colour_dict.values())}") # max for all colours
+        for colour, av_period in colour_dict.items():
+            #for colour in colour_dict.keys()
             if colour not in self.ringbuffer_list:
                 # No limiter for this device yet
+                #max = TODO: find max for this colour
                 logger.debug(f"creating ringbuffer for {colour} Tilt with {av_period} records")
                 self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period) #todo: ensure we check store_size
             ''' elif colour in self.ringbuffer_list and self.ringbuffer_list[colour].len < av_period:
@@ -101,7 +111,7 @@ class TiltHistory():
             #pass
         else:
             # get most recent 
-            logger.debug(f"averaging not set, get most recent data, {now}-{log_period}")
+            logger.debug(f"averaging not set, get most recent data, newer than {now - log_period}")
             time_limit = now - int(log_period) # ensure an integer, float leads to rounding errors
             tempF, sg = self.ringbuffer_list[colour].get_most_recent(time_limit)
         return [tempF, sg]
@@ -126,7 +136,7 @@ class TiltRingBuffer:
     def add_data(self, tempF, sg, tstamp):
         # pack 4byte timestamp & 2 x 12 bit numbers into 7 bytes
         #self.hd = sg > 2  # Tilt Pro?
-        #todo: test handling gravity in either 3 or 4 decimal places
+        # subtract the minimum possible value from SG, to keep integer as small as possible
         if sg <9900:
             sg = sg-990
             self.hd = False
@@ -173,17 +183,16 @@ class TiltRingBuffer:
             
         #logger.debug(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
         if num_results:
-            t3 = time.ticks_ms()
+            #t3 = time.ticks_ms()
             min = 9900 if self.hd else 990
             rnd = 0 if self.hd else 1
             avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
             avg_tempf = round(sum_tempf / num_results, 1)
-            # TODO: how come we have integer values for T & SG here? shouldn't they be e.g. 1.040 by now?
             if self.hd:
                 avg_sg /= 10
-                avg_tempf /= 10
-            #todo get colour index
-            logger.debug(f"{num_results} averaged uncal values, temp;{avg_tempf} SG:{avg_sg*0.001}")
+                avg_tempf = round(avg_tempf / 10, 1) #10
+            #todo get colour index for debug statement
+            logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.1f} SG:{avg_sg*0.001:.4f}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
@@ -205,26 +214,47 @@ class TiltRingBuffer:
         end = len(mv_data)//step #todo reference via rbq?? 
         #logger.debug(f"matching looking for timestamp > {limit}:")'''
         num_results = 0
-        t2 = time.ticks_ms()
+        #t2 = time.ticks_ms()
         try:
-            latest_i = (self._ri + self.record_len) % self._size
-            q_timestmp = mv_data[0+latest_i] | mv_data[1+latest_i]<<8 | mv_data[2+latest_i]<<16 | mv_data[3+latest_i]<<24
-            logger.debug(f"timestamp:{q_timestmp} limit:{limit}")
-            if q_timestmp > int(limit): # we have a match 
-                temp_match = mv_data[4+latest_i] | ((mv_data[5+latest_i] & 0x0F)<<8)
-                sg_match = mv_data[6+latest_i]<<4 | (mv_data[5+latest_i] & 0xF0)>>4
-                #logger.debug(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
-                #logger.debug(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
-                num_results += 1
+            #latest_i = (self._ri + self.record_len) % self._size
+            # read backwards until we get below timestamp limit
+            # if _wi=0 only reads one value - shouldn't be a problem, but currently no failsafe
+            startb = self._wi - self.record_len
+            stopb =-1 * self.record_len
+            stepb = -1 * self.record_len
+            #print(f"start, stop, step {startb}, {stopb}, {stepb}")
+            for latest_i in range(startb, stopb, stepb):
+                #latest_i = self._wi - self.record_len
+                #print(f"***  testing {latest_i}")
+                q_timestmp = mv_data[0+latest_i] | mv_data[1+latest_i]<<8 | mv_data[2+latest_i]<<16 | mv_data[3+latest_i]<<24
+                logger.debug(f"timestamp:{q_timestmp} limit:{limit}")
+                if q_timestmp > int(limit): # we have a match 
+                    temp_match = mv_data[4+latest_i] | ((mv_data[5+latest_i] & 0x0F)<<8)
+                    sg_match = mv_data[6+latest_i]<<4 | (mv_data[5+latest_i] & 0xF0)>>4
+                    #logger.debug(f"{i}: {q_timestmp}, temp{ temp_match }, SG{sg_match}")
+                    #logger.debug(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
+                    num_results += 1
+                    break
         except Exception as e:
             logger.debug(f"Error in get_most_recent: {e}")
             raise e
         if num_results:
-            logger.debug(f"{num_results} most recent value, temp;{temp_match} SG:{(sg_match+990)*0.001}")
+            '''#min = 9900 if self.hd else 990
+            min = 9900 # always saved as 1.xxx(x)
+            multiplier = 0.0001 #if self.hd else 0.001
+            logger.debug(f"{num_results} most recent uncal value, temp;{temp_match*0.1} SG:{(sg_match+min)*multiplier}")
+            return [temp_match*0.1, (sg_match+min)*multiplier]
+            '''
+            
             min = 9900 if self.hd else 990
-            return [temp_match, (sg_match+min)*0.001]
+            multiplier = 0.1 if self.hd else 1
+            sg_match = ((sg_match+min) * multiplier) * 0.001
+            temp_match = temp_match * multiplier
+            logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.1f} SG:{sg_match:.4f}")
+            return [temp_match, sg_match]
+            
         else:
-            logger.debug("no matches (get_most_recent)")
+            logger.debug("no matches in get_most_recent")
             return [None, None]
         
     def _put_nowait(self, data):

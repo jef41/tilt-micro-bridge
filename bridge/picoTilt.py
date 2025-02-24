@@ -1,81 +1,56 @@
 ''' latest change
-    testing:	add a file handler
-    TODO:		what happens with multiple Tilt colours in config for GF & File handlers, does this work?
-    TODO:		data storage management for local files - calc free spzce & size appropriately
+                redesign simulated beacon generation
+                testing CSV log file auto sized seems to be overly pessimistic
+                testing debug.log sized from config
+    working on: 
+                
+    TODO:		
     
-    tested OK: 	 implement wifi countrycode properly into config - test with no country code in config
-    tested OK: 	adding a feature to use calibration values from config
-    tested OK: 	add [[-0.001,-0.001], [10**5,10**5]] to cal points
-    tested OK: 	for calibration points first 60 results printed to console only, not logged - need a better calibration process
-                config.json examples for each feature, with explanation - maybe just a .md file in /examples
-    tested OK: 	test with gravity or temp out of range
-    tested OK: 	log info/debug uncal & cal values uploaded
-    tested OK: 	separate wifi module & background checkll for wifi conenctivity
-    tested OK: 	move wifi, ntp & time defs from bridge_main to lib/wifi_client module
-    tested OK  	implement wifi status check/reconnect
-    testing & 	possibly done?: improve non-averaging e.g. filter max, log warning if data is old, don't log if waay old
-    tested OK 	modify Grainfather Tilt provider to use async update & ProviderTimer
-    tested OK 	providers with different methods (averaging & latest reading)
-    tested OK 	providers with different upload intervals
-    tested OK: 	handle & log server responses 200, 201, 429, other - esp important if device reboots because of watchdog    
-    tested OK: 	needs double check: on keyboard interrupt cancel timers & running tasks
-    tested OK: 	implemented a ProviderTimer class to centralise common code - only tested with Grainfather Custom
-    tested OK: 	code comments & linting
-    tested OK: 	implement console & file logging for debug using logging module & io.IOBase to copy to file
-    tested OK: 	de-linting
-    tested OK: 	clean up some code
-    tested OK: 	test & implement timers & averaging instead of rate limiter
-    tested OK: 	bridge_main ble scan uses duration_ms=0 & cancel - does not consume memory
-    testedOK: 	rate_limiter uses time.ticks_ms() - previously losing approx 1sec per upload, now ~400ms
-    failed test: using/testing logging module - child loggers don't seem to inherit - leave this for now
-    testedOK: 	test chnge to ms in rate limiter - does this improve keeping that same log minute losing 1 min/57 uploads - yup
-    done: 		at startup wait averaging period before sending first data, not log period
-    done: 		send a GF packet then immediately send another, how long are we asked to wait? 900 or less?
-                lots of providers could cause upload time to vary, what tolerance do we have
-                seem to be asked to wait 13mins 59 secs, (839 secs), not 15 mins
-
-    todo: log to file
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
     todo Tilt transmits at 5secs? so should no records be //5?
     todo implement watchdog (8secs max I think from memory)
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
-    todo saving OG in config & log to file
     todo add display - ABV latest cal SG & last averaged cal SG
 
     ideas:        
-    button to set into calibration mode?
+    button to set into calibration mode, use different cal_config.json ?
+    display
     
         
 '''
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-from rotating_file_handler import RotatingLogFileHandler
-import logging, sys
-logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
-logger = logging.getLogger() # using no name seems necessary to log to console & file?
-logger.handlers = [] # this is necessary
-logger.setLevel(logging.DEBUG)
-
-fileHandler = RotatingLogFileHandler("debug.log", 102_400, 1) #logging.FileHandler("duallog.txt")
-fileHandler.setFormatter(logFormatter)
-logger.addHandler(fileHandler)
-
-consoleHandler = logging.StreamHandler() #logging.StreamHandler(logging.StreamHandler(sys.stdout))
-consoleHandler.setFormatter(logFormatter)
-logger.addHandler(consoleHandler)
-
-
-#import bridge_main_asyncv5 as bridge
+#from rotating_file_handler import RotatingLogFileHandler
+import logging #, sys
+from logging import RotatingLogFileHandler, TimedRotatingLogFileHandler
 from machine import Pin
 import asyncio
 import indicator
 import bridge_main_averaging as bridge
 from wifi_client import WifiClient
-#import _thread
 import gc
 
-logger = logging.getLogger('main')
-logger.info("**************  Startup")
+# set up root logger
+logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
+# initial log files size limit 10kb, overwritten after config loaded
+#fileHandler = RotatingLogFileHandler("debug.log", (10 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
+log_max_kb = bridge.config.debug_log[0]
+log_nbr_backups = bridge.config.debug_log[1]
+#fileHandler = RotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups)
+fileHandler = TimedRotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups, write_secs=300)
+fileHandler.setFormatter(logFormatter)
+consoleHandler = logging.StreamHandler() #logging.StreamHandler(logging.StreamHandler(sys.stdout))
+consoleHandler.setFormatter(logFormatter)
+
+logger = logging.getLogger() # using no name seems necessary to log to console & file?
+logger.handlers = [] # this is necessary
+logger.setLevel(logging.DEBUG)
+logger.addHandler(fileHandler)
+logger.addHandler(consoleHandler)
+
+#logger = logging.getLogger('main')
+logger = logging.getLogger()
+logger.info("***  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
@@ -93,7 +68,8 @@ async def main():
     set_global_exception()  # Debug aid
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
     global onboard_led # = indicator.Status() # turn on the LED status indicator
-    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons = True)# , console_log=True)
+    #await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=False)# , console_log=True)
+    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=True)
 
 
 onboard_led = indicator.Status() # turn on the LED status indicator    
