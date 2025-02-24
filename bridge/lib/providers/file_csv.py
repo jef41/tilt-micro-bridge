@@ -2,8 +2,10 @@
     save data to local csv files
 '''
 import time
-from rotating_file_handler import RotatingLogFileHandler
 import logging
+from logging import RotatingLogFileHandler, TimedRotatingLogFileHandler
+#from logging import RotatingLogFileHandler
+#from rotating_file_handler import RotatingLogFileHandler
 from models import TiltStatus
 from models import TiltHistory
 from abstractions import BridgeProviderBase
@@ -246,7 +248,6 @@ class CSVFileProvider(BridgeProviderBase):
         print(f"max_bytes {max_size_bytes}")
         print(f"unallocated space will be {f_info[3]} - {allocated_blocks} = {unallocated_blocks} blocks")
         '''
-
         return max_size_bytes
 
     @staticmethod
@@ -291,7 +292,8 @@ class CSVLogger():
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         logFormatter = logging.Formatter("%(asctime)s, %(message)s")
         #logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, csv_bkp_count)
-        logFileHandler = RotatingLogFileHandler(fname, size_b, csv_bkp_count)
+        #print("about to raise an error?")
+        logFileHandler = TimedRotatingLogFileHandler(fname, size_b, csv_bkp_count, 900)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
         logger.info(f"{colour} Tilt: {fname} logger added {size_b/1024}kb per file")

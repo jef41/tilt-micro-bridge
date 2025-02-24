@@ -20,8 +20,9 @@
         
 '''
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-from rotating_file_handler import RotatingLogFileHandler
-import logging, sys
+#from rotating_file_handler import RotatingLogFileHandler
+import logging #, sys
+from logging import RotatingLogFileHandler, TimedRotatingLogFileHandler
 from machine import Pin
 import asyncio
 import indicator
@@ -35,7 +36,8 @@ logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5
 #fileHandler = RotatingLogFileHandler("debug.log", (10 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
 log_max_kb = bridge.config.debug_log[0]
 log_nbr_backups = bridge.config.debug_log[1]
-fileHandler = RotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups)
+#fileHandler = RotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups)
+fileHandler = TimedRotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups, write_secs=300)
 fileHandler.setFormatter(logFormatter)
 consoleHandler = logging.StreamHandler() #logging.StreamHandler(logging.StreamHandler(sys.stdout))
 consoleHandler.setFormatter(logFormatter)
