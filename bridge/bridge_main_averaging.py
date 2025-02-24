@@ -88,7 +88,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
                 provider__start_message = ''
             logger.info("...started: {} {}".format(provider, provider__start_message))
             # find configured colours
-            for colour in provider.colour_urls.keys():
+            for colour in provider.col_dest.keys():
                 if colour not in enabled_colours:
                     enabled_colours.append(colour)
     
@@ -332,8 +332,8 @@ def max_av_period(providers, colours):
         for provider in providers:
             #print(f"***  colours {colours}")
             for colour in colours:
-                #print(f"***  test {provider}: {colour}, {provider.colour_urls.keys()}")
-                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av -1:
+                #print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
+                if colour in provider.col_dest.keys() and provider.averaging_period >= max_av -1:
                     #print(f"***   colour match: {colour}")
                     max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
                     col_max[colour] = max_av

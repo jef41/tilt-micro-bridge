@@ -25,7 +25,7 @@ logger.info("Startup")
 class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
-        self.colour_urls = GrainfatherTiltStreamCloudProvider._normalise_colour_keys(config.grainfather_tilt_stream_urls)
+        self.col_dest = GrainfatherTiltStreamCloudProvider._normalise_colour_keys(config.grainfather_tilt_stream_urls)
         self.temp_unit = GrainfatherTiltStreamCloudProvider._get_temp_unit(config)
         self.str_name = "Grainfather Tilt URL"
         self.rate = 1
@@ -51,7 +51,7 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
-            for colour in self.colour_urls:
+            for colour in self.col_dest:
                 status, wait_for = [None, None] 
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)
                 if tempF and SG:
@@ -76,8 +76,8 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
 
     async def async_update(self, tilt_status: TiltStatus):
         #start_time = time.ticks_ms()
-        if tilt_status.colour in self.colour_urls.keys():
-            url = self.colour_urls[tilt_status.colour]
+        if tilt_status.colour in self.col_dest.keys():
+            url = self.col_dest[tilt_status.colour]
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             payload = self._get_payload(tilt_status)
             gc.collect()
@@ -103,7 +103,7 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
                 return[False, False] 
  
     def enabled(self):
-        return True if self.colour_urls else False
+        return True if self.col_dest else False
 
     async def process_response(self, response, start_bytes):
         # check result code
@@ -135,11 +135,11 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
     # takes dict of colour->urls
     # returns dict with all colours in lowercase letters for easier matching later
     @staticmethod
-    def _normalise_colour_keys(colour_urls):
+    def _normalise_colour_keys(col_dest):
         normalised_colours = dict()
-        if colour_urls is not None:
-            for colour in colour_urls:
-                normalised_colours[colour.lower()] = colour_urls[colour]
+        if col_dest is not None:
+            for colour in col_dest:
+                normalised_colours[colour.lower()] = col_dest[colour]
 
         return normalised_colours
 

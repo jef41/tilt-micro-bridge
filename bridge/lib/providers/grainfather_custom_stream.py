@@ -27,7 +27,7 @@ logger.info("Startup")
 class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
-        self.colour_urls = GrainfatherCustomStreamCloudProvider._normalize_colour_keys(config.grainfather_custom_stream_urls)
+        self.col_dest = GrainfatherCustomStreamCloudProvider._normalize_colour_keys(config.grainfather_custom_stream_urls)
         self.temp_unit = GrainfatherCustomStreamCloudProvider._get_temp_unit(config)
         self.str_name = "Grainfather Custom URL"
         #self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
@@ -66,14 +66,14 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
     
     #def update_test(self, t):
     async def update(self):
-        # for colour in self.colour_urls
+        # for colour in self.col_dest
         #averagering_period = config.averaging_period
         #logger.debug(f"update called for GF Custom self.period/self.rate {self.period}/{self.rate}")
         log_period = self.period//self.rate # older than this = stale data, ensure this is an integer of seconds
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
-            for colour in self.colour_urls:
+            for colour in self.col_dest:
                 #self.update_in_progress = True
                 status, wait_for = [None, None] 
                 #logger.debug(f"try to get {colour}, av_period={self.averaging_period}, log_period={log_period}")
@@ -108,13 +108,13 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
         start_time = time.ticks_ms()
         #logger.info("debug: async GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
         # Skip if this colour doesn't have a grainfather URL assigned
-        #logger.info(f"tilt_status.colour {tilt_status.colour} is in self.colour_urls.keys()? {self.colour_urls.keys()}")
-        #if tilt_status.colour not in self.colour_urls.keys():
+        #logger.info(f"tilt_status.colour {tilt_status.colour} is in self.col_dest.keys()? {self.col_dest.keys()}")
+        #if tilt_status.colour not in self.col_dest.keys():
         #    logger.info("not in")
         #    #return
         #else:
-        if tilt_status.colour in self.colour_urls.keys():
-            url = self.colour_urls[tilt_status.colour]
+        if tilt_status.colour in self.col_dest.keys():
+            url = self.col_dest[tilt_status.colour]
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
             payload = self._get_payload(tilt_status)
             #logger.info("send payload: {}".format(json.dumps(payload)))
@@ -163,7 +163,7 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
 
 
     def enabled(self):
-        return True if self.colour_urls else False
+        return True if self.col_dest else False
 
     async def process_response(self, response, start_bytes):
         # check result code
@@ -238,11 +238,11 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
     # takes dict of colour->urls
     # returns dict with all colours in lowercase letters for easier matching later
     @staticmethod
-    def _normalize_colour_keys(colour_urls):
+    def _normalize_colour_keys(col_dest):
         normalized_colours = dict()
-        if colour_urls is not None:
-            for colour in colour_urls:
-                normalized_colours[colour.lower()] = colour_urls[colour]
+        if col_dest is not None:
+            for colour in col_dest:
+                normalized_colours[colour.lower()] = col_dest[colour]
 
         return normalized_colours
 

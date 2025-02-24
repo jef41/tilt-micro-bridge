@@ -34,7 +34,7 @@ class CSVFileProvider(BridgeProviderBase):
         #self.temp_unit = CSVFileProvider._get_temp_unit(config)
         self.temp_unit = self._get_temp_unit(self.bridge_config)
         self.col_dest = self._get_colour_dict() # colour:filename.csv
-        self.colour_urls = self.col_dest # TODO: improve on this, col_dest as an object?
+        #self.colour_urls = self.col_dest # TODO: improve on this, col_dest as an object?
         self.str_name = f"CSV Logger"
         self.log_pvdr = logging.getLogger(self.str_name)
         self.csv_loggers = dict() # collection of loggers
@@ -46,7 +46,15 @@ class CSVFileProvider(BridgeProviderBase):
             self.averaging_period = self.bridge_config.csv_log_averaging_period
         except AttributeError:
             self.averaging_period = self.bridge_config.averaging_period
+        #self.log_pvdr.csv_timer = Timer(
+        #    mode=Timer.ONE_SHOT, period=30_000, callback=self._timeout_callback
+        #)
+        self.csv_flush = False
 
+    #def _timeout_callback(self, timer):
+    #    self.csv_flush = True
+    #    logger.debug(f"csv flsuh flag reset")
+    
     def __str__(self):
         return self.str_name
 
@@ -84,8 +92,10 @@ class CSVFileProvider(BridgeProviderBase):
         # TODO now need to iterate through all the loggers, check how many of those log files already exist
         # then reallocate size accordingly
         # TODO read debug log files names rather than hardcode
-        file_check_list = ["debug.log", "debug.log.1"]
-        for name in self.csv_loggers:
+        file_check_list = self._get_filenames() #["debug.log", "debug.log.1"]
+        for logger_col in self.csv_loggers:
+            file_check_list += self._get_filenames(logging.getLogger(logger_col))
+            '''
             #logging.getLogger().handlers[0].max_file_size_in_bytes
             test = logging.getLogger(name).handlers[0].file_full_name
             file_check_list += [test]
@@ -95,7 +105,8 @@ class CSVFileProvider(BridgeProviderBase):
             for c in range(count):
                 file_check_list += [f"{test}.{c+1}"]
             #if isinstance(CSVFileProvider)
-        #print(file_check_list)
+            '''
+        #print(*file_check_list, ', ')
         max_bytes = self._calc_log_size(len(self.col_dest), self.csv_bkp_count, file_check_list)
         #colln = ', '.join(*self.csv_loggers)
         # print(*self.csv_loggers)
@@ -246,6 +257,21 @@ class CSVFileProvider(BridgeProviderBase):
         elif temp_unit == "F":
             return "F"
         raise ValueError("temperature scale used by File provider must be F or C")
+    
+    @staticmethod
+    def _get_filenames(logger_name=logging.getLogger()):
+        # return a list of filenames, by default looks at root logger
+        # TODO should have try catch in case handler[0] is not RotatingLogFIleHandler, or loop until we get that handler
+        file_check_list = []
+        test = logger_name.handlers[0].file_full_name
+        file_check_list += [test]
+        #number of backup files
+        count = logger_name.handlers[0].number_of_backup_files
+        #print(f"***  {test} {count}")
+        for c in range(count):
+            file_check_list += [f"{test}.{c+1}"]
+        #print(*file_check_list, ', ')
+        return file_check_list
 
 
 class CSVLogger():

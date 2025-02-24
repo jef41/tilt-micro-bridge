@@ -44,15 +44,21 @@ class TiltHistory():
         # for each colour in config find max averaging
         # get a list of colour:number
         self.print_raw = True
+        asyncio.create_task(self.timeout_raw(30)) # True
         # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
-        self.print_timer = Timer(
-            mode=Timer.ONE_SHOT, period=60_000, callback=self._timeout_callback
-        )
+        #self.print_timer = Timer(
+        #    mode=Timer.ONE_SHOT, period=60_000, callback=self._timeout_callback
+        #)
         self.ringbuffer_list = dict()
         self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
         
-    def _timeout_callback(self, timer):
+    #def _timeout_callback(self, timer):
+    async def timeout_raw(self, timeout):
         # stop printing data: statements to serial
+        #self.print_raw = True
+        #print("***  self print raw started")
+        await asyncio.sleep(timeout) # show received packets for n secs
+        #print("***  self print raw finished")
         self.print_raw = False
         
     def initialise_ringbuffer(self, colour_dict): 
