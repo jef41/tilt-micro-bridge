@@ -30,7 +30,7 @@ config.json looks like:
 
     "red_gravity_offsets" : [[1.005,1.000], [1.090,1.100], [1.060,1.060]],
     "red_original_gravity": 1.067,
-    "red_name": "Festbier"
+    "red_name": "Festbier",
 
     "gravity_range_min" : 0.980,
     "gravity_range_max" : 1.210,
