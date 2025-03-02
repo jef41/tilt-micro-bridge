@@ -1,57 +1,32 @@
 ''' works in principle with async 
     could look at running wifi from core1 - doesn't seem to work
     look at running ble collection on core1
+    nearly at __version__ 1.0.0
+        requires some code tidying - remove comments & old commented out code that is not used
 '''
 import logging
 import gc
 import sys
 import ntptime
-#import network
 import time
 import asyncio
 from aioble import central as aioble_central
 from bluetooth import UUID
 from ubinascii import hexlify
 gc.collect()
-#import bluetooth
-#from threadsafe import ThreadSafeQueue, Message, Context
 from primitives import Queue
-#import _thread
 from machine import RTC
-from models import TiltStatus, TiltHistory
+from models import TiltStatus, TiltHistory, iBeaconStatus
 from providers import *
 from configuration import BridgeConfig
-#from rate_limiter import RateLimitedException
 from models.provider_timer import UploadTimers
 gc.collect()
-#debug_recvd_counter = 0  #for dev purposes, need a better implementation
-#_TILT_UUID = bluetooth.UUID("a495bb60c5b14b44b5121370f02d74de")
 
 logger = logging.getLogger('bridge')
-'''
-if "RP2040" in  sys.implementation._machine:
-    import rp2
-    RP2040 = True
-else:
-    RP2040 = False
-    #network.country(country)
-'''
-#############################################
-# Statics
-#############################################
-uuid_to_colours = {
-        UUID("a495bb20-c5b1-4b44-b512-1370f02d74de"): "green",
-        UUID("a495bb30-c5b1-4b44-b512-1370f02d74de"): "black", 
-        UUID("a495bb10-c5b1-4b44-b512-1370f02d74de"): "red",
-        UUID("a495bb60-c5b1-4b44-b512-1370f02d74de"): "blue",
-        UUID("a495bb50-c5b1-4b44-b512-1370f02d74de"): "orange",
-        UUID("a495bb70-c5b1-4b44-b512-1370f02d74de"): "yellow",
-        UUID("a495bb40-c5b1-4b44-b512-1370f02d74de"): "purple",
-        UUID("a495bb80-c5b1-4b44-b512-1370f02d74de"): "pink",
-        UUID("a495bb40-c5b1-4b44-b512-1370f02d74df"): "simulated"  # reserved for fake beacons during simulation mode
-    }
 
-colours_to_uuid = dict((v, k) for k, v in uuid_to_colours.items())
+#############################################
+# Set up large objects to reserve contiguous space
+#############################################
 
 # Load config from file, with defaults, and args
 config = BridgeConfig.load()
@@ -113,7 +88,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
                 provider__start_message = ''
             logger.info("...started: {} {}".format(provider, provider__start_message))
             # find configured colours
-            for colour in provider.colour_urls.keys():
+            for colour in provider.col_dest.keys():
                 if colour not in enabled_colours:
                     enabled_colours.append(colour)
     
@@ -137,25 +112,20 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
         logger.debug(f"Exception: {e}")
     
     # Start scanning for Tilt data
-    if simulate_beacons: 
-        #scanner = asyncio.create_task(_start_beacon_simulation(bridge_q))
+    if simulate_beacons:
         scanner = asyncio.create_task(_scan_for_ibeacons(simulate=True)) 
         logger.info("started: simulated beacons")
     else:
-        ''' start this in a thread with aioble ?
-        '''
+        # this will generate fake iBeacon data packets - for testing purposes
         logger.info("starting beacon scanner...")
         scanner = asyncio.create_task(_scan_for_ibeacons()) 
         #pass
     try:
-        #a = 12000 # for debugging
         while True:
             # this loop will process the incoming data queue
             # todo: calling handler seems unnecessary?
-            #handler = asyncio.create_task(_handle_bridge_queue(bridge_q, console_log))
-            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers)) #, console_log))
+            handler = asyncio.create_task(_handle_bridge_queue(enabled_providers))
             await handler # wait for handler to return
-            #await onboard_led.change_rate(10, 3000) # blink led at 3sec intervals to show running OK
             await onboard_led.set_status(onboard_led.STATUS_OK) # blink led at 3sec intervals to show running OK
             #asyncio.sleep_ms(100)
     except asyncio.CancelledError:
@@ -163,12 +133,12 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
         raise
     except KeyboardInterrupt:
         # todo: is this actioned here? investigate
+        print("cancelling tasks...")
         handler.cancel()
         scanner.cancel()
     except Exception as e:
         logger.info(f"Error in bridge_main: {e}")
         raise
-    #logger.info("...started: Tilt scanner")
 
 
 async def _scan_for_ibeacons(simulate=False):
@@ -181,80 +151,85 @@ async def _scan_for_ibeacons(simulate=False):
     #TILT = "0215a495"
     # Start scanning for advertisements
     while True:
-        async with aioble_central.scan(duration_ms=5000, 
-                                       interval_us=100_000,
-                                       window_us=100_000, active=True) as scanner:
+        if simulate: # and pckt_complete:
+            # generate a fake beacon signal
+            #pckt_complete = False
+            #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
+            # fake callback
+            #from random import randrange
+            #uuid = choice(list(uuid_to_colours.keys()))
             try:
-                async for result in scanner: 
-                    #if result.name():
-                    #    print(result, result.name(), result.rssi, result.services())
-                    # Check if the advertisement contains the iBeacon prefix
-                    #if result.manufacturer and result.manufacturer.startswith(IBEACON_PREFIX):
-                    #mac = result.addr
-                    if result.adv_data and result.adv_data[5:11]==iBeacon_prefix:
-                        #print("match")
-                        rssi = result.rssi
-                        
-                        #try:
-                        #    logger.info(f"MAC: {result.device.addr_hex()}")#, {iBeacon_data.uuid}")
-                        #except Exception as e:
-                        #    print(e)
-                        
-                        #adv_data = result.adv_data
-                        '''
-                        uuid = bluetooth.UUID(''.join(['{:02X}'.format(b) for b in adv_data[9:25]]))
-                        #uuid = uuid1   # UUID (16 bytes)
-                        major = int.from_bytes(adv_data[25:27], 'big')  # Major (2 bytes) Temp
-                        minor = int.from_bytes(adv_data[27:29], 'big')  # Minor (2 bytes) SG
-                        tx_power = int.from_bytes(adv_data[29:], 'big', True) # signed=True)  # TX Power (1 byte)
-                        '''
-                        # Extract and process iBeacon data
-                        iBeacon_data = build_iBeacon_packet(result.adv_data)
-                        #print(iBeacon_data)
-                        # Call the callback function with the extracted data
-                        await _beacon_callback(iBeacon_data, rssi, simulate)#, bridge_q)
-                        #_beacon_callback("a495bb40-c5b1-4b44-b512-1370f02d74df", 65, 1021, 0, 0, bridge_q)
-                    #else:
-                    #    if result.name():
-                    #        #print(dir(result.manufacturer()))
-                    #        print(f"{list(result.services())} name: {result.name()}")
-                    if simulate:
-                        #logger.info(f"MAC: {result.device.addr_hex()} Not beacon: {result.rssi}")
-                        # fake callback
-                        from random import randrange, choice
-                        uuid = choice(list(uuid_to_colours.keys()))
-                        major = randrange(700, 750) # (500, 850) HD ->SD (50, 85)
-                        minor = randrange(10150, 10350) # (10050, 10450) HD -> SD (1005, 1045)
-                        await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
-                        #pass # testing is it scanner or callback that causes issue? or maybe colours_to_uuid def?
-            except AttributeError:
-                #logger.info(f"scanner result is:{result} scanner is:{scanner}")
-                #logger.info(f"scanner result.adv_data is {result.adv_data}")
-                logger.info(f"Attribute Error in bridge scanner")
-                #raise
+                col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1,'big')
+            except NameError:
+                from random import randrange
+                col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1,'big')
+            #print(col)
+            major = (randrange(700, 750)).to_bytes(2,'big') # (500, 850) HD ->SD (50, 85)
+            minor = (randrange(10150, 10350)).to_bytes(2,'big') # (10050, 10450) HD -> SD (1005, 1045)
+            pre = b'\x02\x01\x04\x1a\xffL\x00\x02\x15\xa4\x95\xbb'
+            post = b'\xc5\xb1KD\xb5\x12\x13p\xf0-t\xde'
+            tx_pwr = b'\x00'
+            adv_data = b''.join([pre, col, post, major, minor, tx_pwr])
+            #print(adv_data)
+            iBeacon_data = iBeaconStatus(adv_data, 0, "00:00:00:00:00:00")
+            #await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
+            #print(f'{iBeacon_data.colour} {col} {iBeacon_data.major} {iBeacon_data.minor}')
+            try:
+                task = asyncio.create_task(_beacon_callback(iBeacon_data, simulate))
+                #task running
+                await asyncio.sleep_ms(randrange(80, 120)) # pause here & give way
+                await task # then wait for task to complete
+                #res = await asyncio.gather(t1,t2, return_exceptions=True)
+            except asyncio.TimeoutError:  # These only happen if return_exceptions is False
+                print('Timeout')  # With the default times, cancellation occurs first
+            except asyncio.CancelledError:
+                print('Cancelled')
+            #asyncio.sleep_ms(randrange(100, 750))
+            #pckt_complete = True
+        else:
+            async with aioble_central.scan(duration_ms=5000, 
+                                           interval_us=100_000,
+                                           window_us=100_000, active=True) as scanner:
+                # scan for real beacons
+                try:
+                    async for result in scanner:
+                        if result.adv_data and result.adv_data[5:11] == iBeacon_prefix:
+                            #print("match")
+                            rssi = result.rssi
+                            # Extract and process iBeacon data
+                            #await _beacon_callback(iBeacon_data, rssi, simulate)
+                            iBeacon_data = iBeaconStatus(result.adv_data, result.rssi, result.device.addr_hex())
+                            #print(iBeacon_data)
+                            await _beacon_callback(iBeacon_data, simulate)
+                        #else:
+                        #    if result.name():
+                        #        #print(dir(result.manufacturer()))
+                        #        print(f"{list(result.services())} name: {result.name()}")
+                     
+                except AttributeError:
+                    #logger.info(f"scanner result is:{result} scanner is:{scanner}")
+                    #logger.info(f"scanner result.adv_data is {result.adv_data}")
+                    logger.info(f"Attribute Error in bridge scanner")
+                    #raise
+            #asyncio.sleep_ms(800 if simulate else 10) # don't flood with simulated beacons
+           
+        
         asyncio.sleep_ms(100)
 
 
-#def _beacon_callback(bt_addr, rssi, packet, additional_info, bridge_q):
-async def _beacon_callback(iBeacon_packet, rssi, simulated):#, bridge_q):
+async def _beacon_callback(iBeacon_packet, simulated):
     global data_archive
     # todo: this isn't actually an async routine
     # check bluetooth data and store on a queue (TiltHistory object)
-    #    return
-    #global debug_recvd_counter
-    #print(iBeacon_packet)
-    try:
-        colour = uuid_to_colours.get(iBeacon_packet['uuid'])
-    except Exception as e:
-        print(e)
-    if colour in data_archive.ringbuffer_list:
+
+    if iBeacon_packet.colour in data_archive.ringbuffer_list:
         #logger.info("beacon_callback colour match, {}".format(colour))
         # iBeacon packets have major/minor attributes with data
         # major = degrees in F (int)
         # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
         #start = gc.mem_free()
         gc.collect() #testing
-        beacon_data = TiltStatus(colour, iBeacon_packet['major'], _get_decimal_gravity(iBeacon_packet['minor']), config, raw=True)
+        beacon_data = TiltStatus(iBeacon_packet.colour, iBeacon_packet.major, _get_decimal_gravity(iBeacon_packet.minor), config, raw=True)
         #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
         #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
         if not beacon_data.temp_valid:
@@ -264,12 +239,12 @@ async def _beacon_callback(iBeacon_packet, rssi, simulated):#, bridge_q):
         else:
             if data_archive.print_raw:
                 # check if we should print raw values as they are received (useful for calibration)
-                logger.debug(f"data: {colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")
+                logger.debug(f"data: {iBeacon_packet.colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")
             
             try:
                 #await bridge_q.put(beacon_data)
                 # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 not calibrated vals))
-                data_archive.add_data(colour, iBeacon_packet['major'], iBeacon_packet['minor'], time.time())
+                data_archive.add_data(iBeacon_packet.colour, iBeacon_packet.major, iBeacon_packet.minor, time.time())
                 #logger.info(f"added:{colour}, {major}, {minor}, {time.time()}")
             except Exception as e:
                 logger.error(f"queue put error: {e}")
@@ -282,14 +257,11 @@ async def _beacon_callback(iBeacon_packet, rssi, simulated):#, bridge_q):
         #pass
 
 
-
-#def _handle_bridge_queue(enabled_providers: list, console_log: bool):
 async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
     # job to process the queue of data
-
     try:
         #tilt_status = await bridge_q.get() #blocks until data available
-        await asyncio.sleep_ms(0) # testing todo: reduce from 100ms
+        await asyncio.sleep_ms(10) # testing todo: reduce from 100ms
         for provider in enabled_providers:
             #if provider.update_in_progress:
             #    logger.debug(f"{provider} update already in progress")
@@ -336,6 +308,7 @@ def _get_webhook_providers(config: BridgeConfig):
         webhook_providers.append(WebhookCloudProvider(url, config))
     return webhook_providers
 
+
 def get_time(rtc):
     result = False
     try:
@@ -351,14 +324,16 @@ def get_time(rtc):
 def max_av_period(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
+    # todo: maybe //5? if Tilt transmits 1/5secs
+    # called once per colour?
     col_max = {}
     max_av = 0
     try:
         for provider in providers:
             #print(f"***  colours {colours}")
             for colour in colours:
-                #print(f"***  test {provider}: {colour}, {provider.colour_urls.keys()}")
-                if colour in provider.colour_urls.keys() and provider.averaging_period >= max_av -1:
+                #print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
+                if colour in provider.col_dest.keys() and provider.averaging_period >= max_av -1:
                     #print(f"***   colour match: {colour}")
                     max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
                     col_max[colour] = max_av
@@ -377,12 +352,3 @@ async def debug_memory():
     while True:
         await asyncio.sleep(30 * 60)
         logger.debug(f"gc: {gc.mem_free()}")
-
-
-def build_iBeacon_packet(d):
-    # 
-    uuid = UUID(''.join(['{:02X}'.format(b) for b in d[9:25]]))
-    major = int.from_bytes(d[25:27], 'big')  # Major (2 bytes) Temp
-    minor = int.from_bytes(d[27:29], 'big')  # Minor (2 bytes) SG
-    tx_power = int.from_bytes(d[29:], 'big', True) # signed=True)  # TX Power (1 byte)
-    return { "uuid":uuid, "major":major, "minor":minor, "tx_power":tx_power }

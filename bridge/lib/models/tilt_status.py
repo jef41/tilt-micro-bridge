@@ -5,12 +5,14 @@ import time
 
 
 class TiltStatus(JsonSerialize):
-
-    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig):
+    
+    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig, raw=False):
+        # raw=True means store the raw uncalibrated sample, this should be done when saving data
+        #print(f"***  BridgeConfig class attribute: {config.get_brew_name("simulated")}")
         #self.timestamp = datetime.datetime.now()
-        # TODO get net connection, get correct timestamp
-        #rtc = RTC()
-        #self.timestamp = TiltStatus.get_timestamp()
+        # TODO get net connection, get correct timestamp ??
+        # is temp offset good enough, or does this need linear interp?
+        self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
         self.hd = current_gravity > 2  # Tilt Pro?
@@ -19,13 +21,17 @@ class TiltStatus(JsonSerialize):
         if self.hd:
             current_gravity /= 10
             temp_fahrenheit /= 10
-        #print(f"self.hd: {self.hd}, {current_gravity}")
-
-        self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
+        #print(f"***  raw: {raw}, {current_gravity}")
+        if raw:
+            self.temp_fahrenheit = temp_fahrenheit
+            self.gravity = current_gravity
+        else:
+            # apply calibration, if present
+            self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
+            self.gravity = TiltStatus.check_cal(current_gravity, config.get_gravity_offsets(colour))
         self.temp_celsius = TiltStatus.get_celsius(self.temp_fahrenheit)
         self.original_gravity = config.get_original_gravity(colour)
         #self.gravity = current_gravity + config.get_gravity_offset(colour)
-        self.gravity = TiltStatus.check_cal(current_gravity, config.get_gravity_offsets(colour))
         #print(f"calibrated gravity: {self.gravity}")
         self.degrees_plato = TiltStatus.get_degrees_plato(self.gravity)
         self.alcohol_by_volume = TiltStatus.get_alcohol_by_volume(self.original_gravity, self.gravity)
@@ -66,6 +72,8 @@ class TiltStatus(JsonSerialize):
     @staticmethod
     def get_gravity_points(gravity):
         """Converts gravity reading like 1.035 to just 35"""
+        #TODO: not used?
+        pass
 
     @staticmethod
     def check_cal(current_gravity, cal_vals):
