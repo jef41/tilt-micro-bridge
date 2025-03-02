@@ -41,7 +41,8 @@ class WifiClient():
             self.check_interval = config.wifi_check_interval
         except AttributeError:
             self._country = None
-            self.check_interval = 600 # check every n seconds
+            self.check_interval = 3600 # check every n seconds
+        self.has_config = all((self._ssid, self._wifi_pw))
 
     async def wifi_connect(self, onboard_led, quick=False):
         await onboard_led.set_status(onboard_led.WIFI_CONNECTING)

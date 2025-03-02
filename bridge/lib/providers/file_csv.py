@@ -20,59 +20,11 @@ from math import ceil
 ''' TODO
     if max_bytes initially returns a v small value then we immeidately get 5 log files
     maybe initial max_bytes should just check if 4kb x no log files available? if not return stop with error indicator
-    done around 97 re-assign rotatinglog file size if necessary
-    done change to CSV
     log file names to dict colours enabled
 '''
 logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
 
-'''
-class TimedRotatingLogFileHandler(RotatingLogFileHandler):
-    # add a timer based flush, triggered from emit
-    # async routine to set flush_flag
-    # override FileHandler
-    def __init__(self,
-                 file_full_name: str,
-                 max_file_size_in_bytes: int,
-                 number_of_backup_files: int,
-                 write_secs : int):
-        #RotatingLogFileHandler.__init__(self)
-        super(TimedRotatingLogFileHandler, self).__init__(file_full_name,
-                                                          max_file_size_in_bytes,
-                                                          number_of_backup_files
-                                                          ) # track down my subclasses please
-        # add a log flush timer
-        self.force_flg = False
-        asyncio.create_task(self.force_write_tmr(write_secs)) # flush the log to file (secs)
-    
-    async def force_write_tmr(self, tmout):
-        # stop printing data: statements to serial
-        # self.flush_tmr = False
-        #print("***  self print raw started")
-        while True:
-            await asyncio.sleep(tmout) 
-            #print("***  log flush timer set")
-            self.force_flg = True
-            #if hasattr(self.stream, "flush"):
-            # hacky TDO
-            #self.handlers[0].flush()
-    
-    def force_write(self):
-        # internmittenlty called to force a file write - in case of power fail
-        #if self.stream and hasattr(self.stream, "flush"):
-        #print(f"flush {self.file_full_name}")
-        #self.stream.flush()
-        self.force_flg = False
-        with self.rotating_log_file_handler_lock:
-            self.current_log_file.close()
-            self.current_log_file = open(self.file_full_name, "a")
-    
-    def emit(self, record):
-        super().emit(record)
-        if self.force_flg:
-            self.force_write()
-'''
 
 class CSVFileProvider(BridgeProviderBase):
     #class CSVFileProvider():
@@ -113,47 +65,20 @@ class CSVFileProvider(BridgeProviderBase):
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         # TODO: max bytes should be calculated from free disk space - log file size from config
         # ((( disk space - (debug log size * number) ) / number of log files ) % 4096 ) -800
-        '''
-        logFormatter = logging.Formatter("%(asctime)s, %(message)s")
-        #logger = logging.getLogger()
-        self.log_pvdr.handlers = [] # this is necessary
-        #self.log_pvdr.setLevel(logging.WARNING)
-        self.log_pvdr.setLevel(logging.DEBUG)
-        #print(self.col_dest)
-        #print(f"***   dict:{self.col_dest}   ***")
-        '''
+
         for colour, f_path in self.col_dest.items():
             '''
-            #fileHandler = RotatingLogFileHandler(self.col_dest[f_path], max_bytes, 10)
-            # use brew name, or colour for filename
-            fname = f_path if f_path else colour
-            logFileHandler = RotatingLogFileHandler(fname + ".log", max_bytes, 5)
-            logFileHandler.setFormatter(logFormatter)
-            self.log_pvdr.addHandler(logFileHandler)
-            logger.info(f"{colour} Tilt: {fname  + ".log"} logger added")
-            namestr = ": " + f_path  if f_path else ""
-            self.log_pvdr.info(f"{colour} Tilt{namestr} logger added")
             # TODO: add a log line about OG & columns below
             '''
             if colour not in self.csv_loggers:
                 self.csv_loggers[colour] = self._get_new_logger(colour, f_path, max_bytes)
-        # TODO now need to iterate through all the loggers, check how many of those log files already exist
         # then reallocate size accordingly
-        # TODO read debug log files names rather than hardcode
+        # get root logger files (debug.log)
         file_check_list = self._get_filenames() #["debug.log", "debug.log.1"]
+        # iterate through all the csv loggers, check how many of those log files already exist
         for logger_col in self.csv_loggers:
             file_check_list += self._get_filenames(logging.getLogger(logger_col))
-            '''
-            #logging.getLogger().handlers[0].max_file_size_in_bytes
-            test = logging.getLogger(name).handlers[0].file_full_name
-            file_check_list += [test]
-            #number of backup files
-            count = logging.getLogger(name).handlers[0].number_of_backup_files
-            #print(f"{test} {count}")
-            for c in range(count):
-                file_check_list += [f"{test}.{c+1}"]
-            #if isinstance(CSVFileProvider)
-            '''
+
         #print(*file_check_list, ', ')
         max_bytes = self._calc_log_size(len(self.col_dest), self.csv_bkp_count, file_check_list)
         #colln = ', '.join(*self.csv_loggers)
@@ -253,7 +178,6 @@ class CSVFileProvider(BridgeProviderBase):
     @staticmethod
     def _calc_log_size(tilt_count, csv_bkp_count, check_for=('debug.log','debug.log.1')):
         ''' from free disk space calculate log file sizes
-            the debug.log size is also declared in config, so could be passed in
             tries to allocate whole blocks 
         '''
         #logging.getLogger().handlers[0].max_file_size_in_bytes - root logger
@@ -268,22 +192,23 @@ class CSVFileProvider(BridgeProviderBase):
                     print("Log file max size:", handler.max_file_size_in_bytes)
             parent_logger = parent_logger.parent if parent_logger.parent else None
         '''
-        # TODO read filenames rather than hardcode them
-        already_allocated_dbg_blocks = check_for_existing_files(check_for)
+        # subtract any files that already exist & will be overwritten
+        already_allocated_blocks = check_for_existing_files(check_for)
+        ''' now handled by the above line???
         # TODO below is hacky - assumes we have a root logger
         debug_max_bytes = logging.getLogger().handlers[0].max_file_size_in_bytes
         debug_count = 1 + logging.getLogger().handlers[0].number_of_backup_files
         debug_blocks = ceil((debug_max_bytes * debug_count / f_info[0]))
-        
+        '''
         nbr_files = tilt_count * (csv_bkp_count + 1) # TODO retrieve count of colours * number to keep+1
         spare_blocks = 1
-        #csv_bkp_count = 4 # TODO read from config?
         
-        free_blocks = f_info[3] - debug_blocks - spare_blocks + already_allocated_dbg_blocks
+        #free_blocks = f_info[3] - debug_blocks - spare_blocks + already_allocated_blocks
+        free_blocks = f_info[3] - spare_blocks + already_allocated_blocks
         blocks_per_csv = free_blocks // nbr_files
         max_size_bytes = blocks_per_csv * f_info[0]
-        allocated_blocks = (blocks_per_csv * nbr_files) + debug_blocks + spare_blocks
-        unallocated_blocks = f_info[3] - allocated_blocks
+        #allocated_blocks = (blocks_per_csv * nbr_files) + debug_blocks + spare_blocks
+        #unallocated_blocks = f_info[3] - allocated_blocks
         
         # TODO test if log size is unfeasibly small & alert/error fail
         '''

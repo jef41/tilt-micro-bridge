@@ -6,7 +6,7 @@ import time
 
 class TiltStatus(JsonSerialize):
     
-    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig, raw=False):
+    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig, apply_calibration=True):
         # raw=True means store the raw uncalibrated sample, this should be done when saving data
         #print(f"***  BridgeConfig class attribute: {config.get_brew_name("simulated")}")
         #self.timestamp = datetime.datetime.now()
@@ -22,13 +22,13 @@ class TiltStatus(JsonSerialize):
             current_gravity /= 10
             temp_fahrenheit /= 10
         #print(f"***  raw: {raw}, {current_gravity}")
-        if raw:
-            self.temp_fahrenheit = temp_fahrenheit
-            self.gravity = current_gravity
-        else:
+        if apply_calibration:
             # apply calibration, if present
             self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
             self.gravity = TiltStatus.check_cal(current_gravity, config.get_gravity_offsets(colour))
+        else:
+            self.temp_fahrenheit = temp_fahrenheit
+            self.gravity = current_gravity
         self.temp_celsius = TiltStatus.get_celsius(self.temp_fahrenheit)
         self.original_gravity = config.get_original_gravity(colour)
         #self.gravity = current_gravity + config.get_gravity_offset(colour)

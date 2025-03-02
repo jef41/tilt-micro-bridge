@@ -23,43 +23,60 @@ from models.provider_timer import UploadTimers
 gc.collect()
 
 logger = logging.getLogger('bridge')
-
-#############################################
-# Set up large objects to reserve contiguous space
-#############################################
-
-# Load config from file, with defaults, and args
-config = BridgeConfig.load()
-
-#reserve some space for the tilt_status object
-gc.collect()
-# Queue for holding incoming data from scans
-data_archive = bytearray()
-
-
-normal_providers = [
-        #PrometheusCloudProvider(config),
-        CSVFileProvider(config),
-        #InfluxDbCloudProvider(config),
-        #InfluxDb2CloudProvider(config),
-        #BrewfatherCustomStreamCloudProvider(config),
-        #BrewersFriendCustomStreamCloudProvider(config),
-        GrainfatherCustomStreamCloudProvider(config),
-        GrainfatherTiltStreamCloudProvider(config),
-        #TaplistIOCloudProvider(config),
-        #AzureIoTHubCloudProvider(config)
-    ]
-
-
+config = None
+data_archive = bytearray()		 # Queue for holding incoming data from scans
 provider_timers = UploadTimers() # reference to all enabled provder timers
 handler = None					 # reference to data handler task
 scanner = None					 # reference to bluetooth scanner task
+rtc = None
 
-# initiate RTC object
-rtc = RTC()
+def initialise():
+    #############################################
+    # Set up large objects to reserve contiguous space
+    #############################################
+    global config, rtc
+    # Load config from file, with defaults, and args
+    result = True
+    try:
+        config = BridgeConfig.load()
+    except ValueError as e:
+        logger.critical("Error in the Config JSON file")
+        result = False
+    except Exception as e:
+        logger.critical(e)
+        result = False
+    
+    if result:
+        #reserve some space for the tilt_status object
+        gc.collect()
+        # Queue for holding incoming data from scans
+        #data_archive = bytearray()
+
+        '''
+        normal_providers = [
+                #PrometheusCloudProvider(config),
+                CSVFileProvider(config),
+                #InfluxDbCloudProvider(config),
+                #InfluxDb2CloudProvider(config),
+                #BrewfatherCustomStreamCloudProvider(config),
+                #BrewersFriendCustomStreamCloudProvider(config),
+                GrainfatherCustomStreamCloudProvider(config),
+                GrainfatherTiltStreamCloudProvider(config),
+                #TaplistIOCloudProvider(config),
+                #AzureIoTHubCloudProvider(config)
+            ]
+        '''
+
+        #provider_timers = UploadTimers() # reference to all enabled provder timers
+        #handler = None					 # reference to data handler task
+        #scanner = None					 # reference to bluetooth scanner task
+
+        # initiate RTC object
+        rtc = RTC()
 
 
-#############################################
+    #############################################
+    return result
 
 
 async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
@@ -99,8 +116,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
     # size the TiltHistory object for each colour accordingly
     # and create upload timers
     data_archive = TiltHistory(max_av_period(enabled_providers, enabled_colours))
-    
-    #logger.debug("data archive created")
+    logger.info(f"Received Tilt data packets will be printed to stdout for {data_archive.results_secs}secs")
     try:
         for provider in enabled_providers:
             provider.attach_archive(data_archive)
@@ -229,7 +245,12 @@ async def _beacon_callback(iBeacon_packet, simulated):
         # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
         #start = gc.mem_free()
         gc.collect() #testing
-        beacon_data = TiltStatus(iBeacon_packet.colour, iBeacon_packet.major, _get_decimal_gravity(iBeacon_packet.minor), config, raw=True)
+        beacon_data = TiltStatus(iBeacon_packet.colour,
+                                 iBeacon_packet.major,
+                                 _get_decimal_gravity(iBeacon_packet.minor),
+                                 config,
+                                 apply_calibration=False
+                                 )
         #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
         #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
         if not beacon_data.temp_valid:
@@ -244,8 +265,8 @@ async def _beacon_callback(iBeacon_packet, simulated):
                ):
                 logger.info(f"received from new Tilt; {beacon_data.colour[0].upper() + beacon_data.colour[1:]}, MAC:{iBeacon_packet.mac}, RSSI:{iBeacon_packet.rssi}" )
             if data_archive.print_raw:
-                # check if we should print raw values as they are received (useful for calibration)
-                logger.debug(f"data: {iBeacon_packet.colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")
+                # check if we should print raw values to std out as they are received (useful for calibration)
+                print(f"data: {iBeacon_packet.colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")
             
             try:
                 #await bridge_q.put(beacon_data)
@@ -314,6 +335,27 @@ def _get_webhook_providers(config: BridgeConfig):
         webhook_providers.append(WebhookCloudProvider(url, config))
     return webhook_providers
 
+def get_providers(network=False):
+    #
+    if network:
+        normal_providers = [
+                #PrometheusCloudProvider(config),
+                CSVFileProvider(config),
+                #InfluxDbCloudProvider(config),
+                #InfluxDb2CloudProvider(config),
+                #BrewfatherCustomStreamCloudProvider(config),
+                #BrewersFriendCustomStreamCloudProvider(config),
+                GrainfatherCustomStreamCloudProvider(config),
+                GrainfatherTiltStreamCloudProvider(config),
+                #TaplistIOCloudProvider(config),
+                #AzureIoTHubCloudProvider(config)
+            ]
+    else:
+        normal_providers = [
+                CSVFileProvider(config),
+            ]
+        logger.warning('No network credentials specified. Enabling local CSV logging only.')
+    return normal_providers
 
 def get_time(rtc):
     result = False

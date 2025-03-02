@@ -1,10 +1,12 @@
 ''' latest change
-                redesign simulated beacon generation
-                testing CSV log file auto sized seems to be overly pessimistic
-                testing debug.log sized from config
+                pause on config error
+                check for wifi credentials
+                
+                DONE testing CSV log file auto sized seems to be overly pessimistic
+                DONE testing debug.log sized from config
     working on: 
                 
-    TODO:		
+    TODO:
     
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
@@ -33,8 +35,8 @@ import gc
 logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
 # initial log files size limit 10kb, overwritten after config loaded
 #fileHandler = RotatingLogFileHandler("debug.log", (10 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
-log_max_kb = bridge.config.debug_log[0]
-log_nbr_backups = bridge.config.debug_log[1]
+log_max_kb = bridge.config.debug_log[0] if bridge.config else 10
+log_nbr_backups = bridge.config.debug_log[1] if bridge.config else 0
 #fileHandler = RotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups)
 fileHandler = TimedRotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups, write_secs=300)
 fileHandler.setFormatter(logFormatter)
@@ -43,8 +45,8 @@ consoleHandler.setFormatter(logFormatter)
 
 logger = logging.getLogger() # using no name seems necessary to log to console & file?
 logger.handlers = [] # this is necessary
-#logger.setLevel(logging.DEBUG)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.INFO)
 logger.addHandler(fileHandler)
 logger.addHandler(consoleHandler)
 
@@ -53,7 +55,6 @@ logger = logging.getLogger()
 logger.info("***  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
-
 
 def set_global_exception():
     def handle_exception(loop, context):
@@ -69,17 +70,30 @@ async def main():
     #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
     global onboard_led # = indicator.Status() # turn on the LED status indicator
     #await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=False)# , console_log=True)
-    await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=True)
+    await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
 
 
-onboard_led = indicator.Status() # turn on the LED status indicator    
-# get wifi network
-#bridge.get_wifi(bridge.config)
-wifi = WifiClient(bridge.config)
-asyncio.run(wifi.connect(onboard_led))
+async def hold_up():
+    while True:
+        await asyncio.sleep(5)
+        # TODO wdg feed
 
-# set system time - could have a UTC offset in config, but time is onyl used internally at the moment
-bridge.get_time(bridge.rtc)
+
+onboard_led = indicator.Status() # turn on the LED status indicator
+
+if bridge.initialise():
+    # re-assign max log size from config
+    log_max_kb = bridge.config.debug_log[0] if bridge.config else 10
+    log_nbr_backups = bridge.config.debug_log[1] if bridge.config else 1
+    logger.handlers[0].max_file_size_in_bytes = log_max_kb * 1024
+    logger.handlers[0].number_of_backup_files = log_nbr_backups
+    # test if wifi creds included, 
+    wifi = WifiClient(bridge.config)
+    bridge_providers = bridge.get_providers(wifi.has_config)
+
+else:
+    # hold here, cannot proceed, error with config.json
+    asyncio.run(hold_up())
 
 # enter main loop
 try:

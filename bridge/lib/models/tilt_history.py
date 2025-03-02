@@ -36,14 +36,9 @@ class TiltHistory():
     '''
     def __init__(self, colour_dict):
         # colour dict is; colour: max of averaging period
-        #if kwargs:
-        #    self.colour_idx = colour
-        #    self.temp = temp_fahrenheit
-        #    self.sg = current_gravity
-        #self.data_points = config.averaging_period # todo allow this per provider ...
-        # for each colour in config find max averaging
-        # get a list of colour:number
-        self.print_raw = asyncio.create_task(self.timeout_raw(30)) #True
+        # print values to std out for n secs (less if debugging)
+        self.results_secs = 15 if logger.level < 20 else 60 * 60
+        self.print_raw = asyncio.create_task(self.timeout_raw(self.results_secs)) #True
         #asyncio.create_task(self.timeout_raw(30)) # True
         # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
         #self.print_timer = Timer(
