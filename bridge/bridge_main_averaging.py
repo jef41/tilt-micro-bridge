@@ -237,6 +237,12 @@ async def _beacon_callback(iBeacon_packet, simulated):
         elif not beacon_data.gravity_valid:
             logger.warning(f"Ignoring broadcast due to invalid gravity: {beacon_data.gravity}" )
         else:
+            # seems to be a valid packet, if 1st packet, make a note
+            # peekq returns a memoryview - if it is all 0 then this is the first packet
+            if ( data_archive.ringbuffer_list[beacon_data.colour] and
+                 all(b == 0 for b in data_archive.ringbuffer_list[beacon_data.colour].peekq()[0:7])
+               ):
+                logger.info(f"received from new Tilt; {beacon_data.colour[0].upper() + beacon_data.colour[1:]}, MAC:{iBeacon_packet.mac}, RSSI:{iBeacon_packet.rssi}" )
             if data_archive.print_raw:
                 # check if we should print raw values as they are received (useful for calibration)
                 logger.debug(f"data: {iBeacon_packet.colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")

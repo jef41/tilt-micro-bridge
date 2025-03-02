@@ -27,6 +27,52 @@ from math import ceil
 logger = logging.getLogger('File_csv_pvdr')
 logger.info("Startup")
 
+'''
+class TimedRotatingLogFileHandler(RotatingLogFileHandler):
+    # add a timer based flush, triggered from emit
+    # async routine to set flush_flag
+    # override FileHandler
+    def __init__(self,
+                 file_full_name: str,
+                 max_file_size_in_bytes: int,
+                 number_of_backup_files: int,
+                 write_secs : int):
+        #RotatingLogFileHandler.__init__(self)
+        super(TimedRotatingLogFileHandler, self).__init__(file_full_name,
+                                                          max_file_size_in_bytes,
+                                                          number_of_backup_files
+                                                          ) # track down my subclasses please
+        # add a log flush timer
+        self.force_flg = False
+        asyncio.create_task(self.force_write_tmr(write_secs)) # flush the log to file (secs)
+    
+    async def force_write_tmr(self, tmout):
+        # stop printing data: statements to serial
+        # self.flush_tmr = False
+        #print("***  self print raw started")
+        while True:
+            await asyncio.sleep(tmout) 
+            #print("***  log flush timer set")
+            self.force_flg = True
+            #if hasattr(self.stream, "flush"):
+            # hacky TDO
+            #self.handlers[0].flush()
+    
+    def force_write(self):
+        # internmittenlty called to force a file write - in case of power fail
+        #if self.stream and hasattr(self.stream, "flush"):
+        #print(f"flush {self.file_full_name}")
+        #self.stream.flush()
+        self.force_flg = False
+        with self.rotating_log_file_handler_lock:
+            self.current_log_file.close()
+            self.current_log_file = open(self.file_full_name, "a")
+    
+    def emit(self, record):
+        super().emit(record)
+        if self.force_flg:
+            self.force_write()
+'''
 
 class CSVFileProvider(BridgeProviderBase):
     #class CSVFileProvider():
@@ -115,7 +161,7 @@ class CSVFileProvider(BridgeProviderBase):
         #TODO reiterate & reassign each logfile handler size
         for name in self.csv_loggers:
             logging.getLogger(name).handlers[0].max_file_size_in_bytes = max_bytes
-        logger.debug(f"max_bytes reassigned to:{max_bytes}")
+        logger.info(f"CSV max_bytes reassigned to:{max_bytes}")
 
     def enabled(self):
         #print(f"***   enabled?{self.col_dest}   ***")
@@ -296,7 +342,7 @@ class CSVLogger():
         logFileHandler = TimedRotatingLogFileHandler(fname, size_b, csv_bkp_count, 900)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
-        logger.info(f"{colour} Tilt: {fname} logger added {size_b/1024}kb per file")
+        logger.info(f"{colour} Tilt: {fname} logger added")# {size_b/1024}kb per file")
         #namestr = ": " + brew_name if brew_name else ""
         namestr = ": " if fname[:-4] == colour else ": " + fname[:-4] # if present add beer name
         self.tilt_log.info(f"{colour[0].upper() + colour[1:].lower()} Tilt{namestr} logger added")

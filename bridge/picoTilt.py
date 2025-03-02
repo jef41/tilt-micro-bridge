@@ -8,7 +8,6 @@
     
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
-    todo Tilt transmits at 5secs? so should no records be //5?
     todo implement watchdog (8secs max I think from memory)
     todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
     todo add display - ABV latest cal SG & last averaged cal SG
@@ -44,7 +43,8 @@ consoleHandler.setFormatter(logFormatter)
 
 logger = logging.getLogger() # using no name seems necessary to log to console & file?
 logger.handlers = [] # this is necessary
-logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 logger.addHandler(fileHandler)
 logger.addHandler(consoleHandler)
 

@@ -17,7 +17,7 @@
     todo: check all necessary defs are present - see primitives/ringbuffer_queue.py
     todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
-from machine import Timer
+#from machine import Timer
 #from configuration import BridgeConfig
 #from .json_serialize import JsonSerialize
 import time
@@ -43,8 +43,8 @@ class TiltHistory():
         #self.data_points = config.averaging_period # todo allow this per provider ...
         # for each colour in config find max averaging
         # get a list of colour:number
-        self.print_raw = True
-        asyncio.create_task(self.timeout_raw(30)) # True
+        self.print_raw = asyncio.create_task(self.timeout_raw(30)) #True
+        #asyncio.create_task(self.timeout_raw(30)) # True
         # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
         #self.print_timer = Timer(
         #    mode=Timer.ONE_SHOT, period=60_000, callback=self._timeout_callback
@@ -55,7 +55,7 @@ class TiltHistory():
     #def _timeout_callback(self, timer):
     async def timeout_raw(self, timeout):
         # stop printing data: statements to serial
-        #self.print_raw = True
+        self.print_raw = True
         #print("***  self print raw started")
         await asyncio.sleep(timeout) # show received packets for n secs
         #print("***  self print raw finished")
@@ -118,7 +118,7 @@ class TiltHistory():
 
 
 class TiltRingBuffer:
-    # 
+    # TODO should really override TiltRingbufQueue
     def __init__(self, data_points):
         # each record is 7 bytes; timestamp =4, sg & temp = 3
         #logger.debug(TiltHistory.data_points)
@@ -154,6 +154,13 @@ class TiltRingBuffer:
                     (vals >> 16) & 0xFF ])
         #logger.debug(f"data{(data)}")
         self._put_nowait(data)
+    
+    def peekq(self):  # Return memoryview of the whole queue without altering it.
+        # Return wbhole buffer if immediately available, else raise QueueEmpty.
+        #if self.empty():
+        #    raise IndexError
+        return memoryview(self._q)
+        #return self._q[0:]
     
     def get_average(self, limit):
         # limit should be either averaging period, or, for most recent, (period/rate)/2
