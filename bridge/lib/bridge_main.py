@@ -15,7 +15,8 @@ from bluetooth import UUID
 from ubinascii import hexlify
 gc.collect()
 from primitives import Queue
-from machine import RTC
+import machine
+from machine import RTC, WDT, WDT_RESET
 from models import TiltStatus, TiltHistory, iBeaconStatus
 from providers import *
 from configuration import BridgeConfig
@@ -29,6 +30,7 @@ provider_timers = UploadTimers() # reference to all enabled provder timers
 handler = None					 # reference to data handler task
 scanner = None					 # reference to bluetooth scanner task
 rtc = None
+wdt = None
 
 def initialise():
     #############################################
@@ -94,6 +96,7 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
         providers.extend(webhook_providers)
     # Start cloud providers
     logger.info("Starting...")
+    asyncio.create_task(init_watchdog())
     enabled_providers = list()
     enabled_colours = list()
     # get configured providers & associated Tilt device colours
@@ -229,7 +232,8 @@ async def _scan_for_ibeacons(simulate=False):
                     #raise
             #asyncio.sleep_ms(800 if simulate else 10) # don't flood with simulated beacons
            
-        
+        if wdt:
+            wdt.feed()
         asyncio.sleep_ms(100)
 
 
@@ -320,6 +324,22 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
     #logger.info("debug SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
     #logger.info("SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
 
+
+async def init_watchdog():
+    global wdt
+    #print('WDT routine called')
+    if machine.reset_cause() == WDT_RESET:
+        # wait 5 mins before starting wdt again
+        #print('restart after watchdog event')
+        logger.error('restart after watchdog event')
+        await asyncio.sleep(300)
+        logger.info('restart WDT')
+    if logging.getLogger().level > 10:
+        # only enable wdt if we are not debugging
+        wdt = WDT(timeout=8388)
+        logger.info('WDT started')
+    #print(f'logger level{logging.getLogger().level} WDT {'started' if logging.getLogger().level > 10 else 'not started'} {wdt}')
+    # wdt fed in _scan_for_ibeacons
 
 def _get_decimal_gravity(gravity):
     # gravity will be an int like 1035

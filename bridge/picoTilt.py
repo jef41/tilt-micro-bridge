@@ -56,6 +56,7 @@ logger.info("***  Startup")
 gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
+
 def set_global_exception():
     def handle_exception(loop, context):
         import sys
@@ -75,8 +76,10 @@ async def main():
 
 async def hold_up():
     while True:
-        await asyncio.sleep(5)
-        # TODO wdg feed
+        await asyncio.sleep(8)
+        # feed wdt
+        if bridge.wdt:
+            bridge.wdt.feed()
 
 
 onboard_led = indicator.Status() # turn on the LED status indicator
