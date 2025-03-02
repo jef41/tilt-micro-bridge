@@ -116,8 +116,8 @@ class BridgeConfig:
                 config_raw = json.load(file)
             logger.debug(f"got config {config_raw}")
         except OSError:
-            logger.error(f"config file not found ({file_path})")
-            pass
+            logger.critical(f"config file not found ({file_path})")
+            raise
 
         config = BridgeConfig(config_raw)
         if additional_config is not None:
