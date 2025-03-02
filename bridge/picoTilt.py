@@ -27,7 +27,7 @@ from logging import RotatingLogFileHandler, TimedRotatingLogFileHandler
 from machine import Pin
 import asyncio
 import indicator
-import bridge_main_averaging as bridge
+import bridge_main as bridge
 from wifi_client import WifiClient
 import gc
 
