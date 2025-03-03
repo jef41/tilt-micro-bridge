@@ -88,7 +88,7 @@ class BridgeMain():
         
         # for debug, intermittently log memory usage/leak
         if logging.getLogger().level < 20:
-            asyncio.create_task(debug_memory())
+            asyncio.create_task(debug_memory(self.logger))
         
         # size the TiltHistory object for each colour accordingly
         # and create upload timers
@@ -404,9 +404,9 @@ def max_av_period(providers, colours):
     #logger.debug(f"col_max: {col_max}")
     return col_max
     
-async def debug_memory():
+async def debug_memory(logger):
     # intermittently log memory usage, every 30 mins
     while True:
         await asyncio.sleep(30 * 60)
-        self.logger.debug(f"gc: {gc.mem_free()}")
+        logger.debug(f"gc: {gc.mem_free()}")
 

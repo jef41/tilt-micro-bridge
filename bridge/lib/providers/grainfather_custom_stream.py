@@ -140,7 +140,7 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
                 return [status, wait_for]
             except requests.ConnectionError:
                 logger.error("ConnectionError: uploading Grainfather Custom device")
-                raise Exception('requests Connection error.')
+                raise Exception('requests ConnectionError')
             except requests.TimeoutError:
                 logger.warning("TimeoutError: uploading Grainfather Custom device")
                 #logger.info(f'requests Timeout error.')
