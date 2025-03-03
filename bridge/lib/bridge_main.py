@@ -118,8 +118,7 @@ class BridgeMain():
             await self.onboard_led.set_status(self.onboard_led.STATUS_OK) # blink led at 3sec intervals to show running OK
             while True:
                 # this loop will process the incoming data queue
-                # todo: calling handler seems unnecessary?
-                self.handler = asyncio.create_task(self._handle_bridge_queue()) #self.enabled_providers))
+                self.handler = asyncio.create_task(self._handle_bridge_queue())
                 await self.handler # wait for handler to return
                 #asyncio.sleep_ms(100)
         except asyncio.CancelledError:
@@ -140,7 +139,6 @@ class BridgeMain():
         #logger.info("debug: starting scanner...")
         iBeacon_prefix = b'\x4C\x00\x02\x15\xa4\x95'  # Apple company ID + iBeacon type + 2 bytes of Tilt uuid
         # Tilt format based on iBeacon format with Tilt specific uuid preamble (a495)
-        #TILT = "0215a495"
         # Start scanning for advertisements
         while True:
             if simulate: 
@@ -186,7 +184,7 @@ class BridgeMain():
                                 #await _beacon_callback(iBeacon_data, rssi, simulate)
                                 iBeacon_data = iBeaconStatus(result.adv_data, result.rssi, result.device.addr_hex())
                                 #print(iBeacon_data)
-                                await _beacon_callback(iBeacon_data, simulate)
+                                await self._beacon_callback(iBeacon_data, simulate)
                             #else:
                             #    if result.name():
                             #        #print(dir(result.manufacturer()))
@@ -207,15 +205,12 @@ class BridgeMain():
     async def _beacon_callback(self, iBeacon_packet, simulated):
         ''' check bluetooth data and store on a queue (TiltHistory object) '''
         # todo: this isn't actually an async routine
-        # 
 
         if iBeacon_packet.colour in self.data_archive.ringbuffer_list:
             #logger.info("beacon_callback colour match, {}".format(colour))
             # iBeacon packets have major/minor attributes with data
             # major = degrees in F (int)
             # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
-            #start = gc.mem_free()
-            #gc.collect() #testing
             beacon_data = TiltStatus(iBeacon_packet.colour,
                                      iBeacon_packet.major,
                                      BridgeMain._get_decimal_gravity(iBeacon_packet.minor),
@@ -259,21 +254,15 @@ class BridgeMain():
         # job to process the queue of data
         try:
             #tilt_status = await bridge_q.get() #blocks until data available
-            await asyncio.sleep_ms(10) # testing todo: reduce from 100ms
+            await asyncio.sleep_ms(10) 
             for provider in self.enabled_providers:
                 #if provider.update_in_progress:
                 #    self.logger.debug(f"{provider} update already in progress")
                 if self.provider_timers.upload_is_due(provider): # and not provider.update_in_progress:
                     self.logger.debug(f"update due for {provider}")
-                    #upload_task = asyncio.create_task(provider.update())
                     #await upload_task
                     response_code, wait_for_secs = await provider.update()
-                    # provider.update must return a2 values, code & wait - can be None
-                    #logger.debug(f"got: response;{response_code}, wait:{wait_for_secs}")
-                    # upload_task should return the [response code, seconds to wait] if a 429 response
-                    # response code logging should be managed in provider module
-                    #if upload_task[0] == 429:
-                    #    provider_timers.adjust(provider, upload_task[1])
+                    # provider.update must return 2 values, code & wait - can be None
                     if response_code == 429 and wait_for_secs > 0:
                         #todo: if wait_for is 0 then when do we retry?
                         #logger.debug(f"adjust timer: {wait_for_secs}")
@@ -286,7 +275,6 @@ class BridgeMain():
         except Exception as e:
             self.logger.critical(f"handler err: {e}")
             raise
-        
         # Log it to console/stdout
         #logger.info("debug SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
         #logger.info("SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
@@ -295,10 +283,6 @@ class BridgeMain():
     async def _force_logging():
         # ensure the logger is flushed after initial startup
         await asyncio.sleep(12)
-        # TODO find the TimedRotating file handler rather than hardcode it
-        #self.logger.info('about to flush log')
-        # uPython logger has no parent so refer to it directly
-        #logging.getLogger().handlers[0].force_write()
         logging.getLogger().handlers[0].current_log_file.flush()
 
     async def _init_watchdog(self):
@@ -313,11 +297,7 @@ class BridgeMain():
         reset_reason = machine.reset_cause()
         self.logger.info(f'machine.reset_cause: {cause[reset_reason-1]}')
         #if reset_reason == WDT_RESET:
-        #    # wait 5 mins before starting wdt again
-        #    #print('restart after watchdog event')
-        #    logger.error('restart after watchdog event')
-        #    await asyncio.sleep(300)
-        #    logger.info('restart WDT')
+        #    TODO try upload asap
         if logging.getLogger().level > 10:
             # only enable wdt if we are not debugging
             # wait 1 hour before starting wdt - allow user time to do calibration/tests without device constantly restarting
@@ -326,8 +306,6 @@ class BridgeMain():
             self.logger.info('WDT started')
         else:
             self.logger.debug('WDT not initiated')
-        #print(f'logger level{logging.getLogger().level} WDT {'started' if logging.getLogger().level > 10 else 'not started'} {wdt}')
-        # wdt fed in _scan_for_ibeacons
 
     @staticmethod
     def _get_decimal_gravity(gravity):
@@ -381,7 +359,6 @@ class BridgeMain():
 def max_av_period(providers, colours):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
-    # todo: maybe //5? if Tilt transmits 1/5secs
     # called once per colour?
     col_max = {}
     max_av = 0
@@ -409,4 +386,3 @@ async def debug_memory(logger):
     while True:
         await asyncio.sleep(30 * 60)
         logger.debug(f"gc: {gc.mem_free()}")
-
