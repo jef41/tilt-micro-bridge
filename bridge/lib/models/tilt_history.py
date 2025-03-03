@@ -13,17 +13,11 @@
               at startup, to inititate bytearrays: test=TiltHistory(config, (2,3)), where 2,3 are configured tilt colours
               when data is received: test.add_data(colour='red', tempF=51, sg=1200, tstamp=1724432892)
               when a timer expires & upload is due: tempF, SG = test.get_data(colour='red'), from that create a TiltStatus & upload it
-    
-    todo: check all necessary defs are present - see primitives/ringbuffer_queue.py
-    todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
-#from machine import Timer
-#from configuration import BridgeConfig
-#from .json_serialize import JsonSerialize
+
 import time
 import asyncio
 import gc
-#import struct
 import logging
 
 
@@ -37,7 +31,7 @@ class TiltHistory():
     def __init__(self, colour_dict):
         # colour dict is; colour: max of averaging period
         # print values to std out for n secs (less if debugging)
-        self.results_secs = 15 if logger.level < 20 else 60 * 60
+        self.results_secs = 15 if logging.getLogger().level < 20 else 60 * 60
         self.print_raw = asyncio.create_task(self.timeout_raw(self.results_secs)) #True
         #asyncio.create_task(self.timeout_raw(30)) # True
         # Timer to keep printing received data to log/stdout - turn down for release, useful in debug

@@ -96,7 +96,8 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
         providers.extend(webhook_providers)
     # Start cloud providers
     logger.info("Starting...")
-    asyncio.create_task(init_watchdog())
+    asyncio.create_task(_init_watchdog())
+    asyncio.create_task(_force_logging())
     enabled_providers = list()
     enabled_colours = list()
     # get configured providers & associated Tilt device colours
@@ -324,20 +325,40 @@ async def _handle_bridge_queue(enabled_providers: list): #, console_log: bool):
     #logger.info("debug SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
     #logger.info("SG:{} Temp:{}".format(tilt_status.gravity, tilt_status.temp_celsius))
 
+async def _force_logging():
+    # ensure the logger is flushed after initial startup
+    await asyncio.sleep(12)
+    # TODO find the TimedRotating file handler rather than hardcode it
+    logger.info('about to flush log')
+    # uPython logger has no parent so refer to it directly
+    #logging.getLogger().handlers[0].force_write()
+    logging.getLogger().handlers[0].current_log_file.flush()
 
-async def init_watchdog():
+async def _init_watchdog():
     global wdt
+    cause = ('PWRON_RESET',
+             'HARD_RESET',
+             'WDT_RESET',
+             'DEEPSLEEP_RESET',
+             'SOFT_RESET'
+             )
     #print('WDT routine called')
-    if machine.reset_cause() == WDT_RESET:
-        # wait 5 mins before starting wdt again
-        #print('restart after watchdog event')
-        logger.error('restart after watchdog event')
-        await asyncio.sleep(300)
-        logger.info('restart WDT')
+    reset_reason = machine.reset_cause()
+    logger.info(f'machine.reset_cause: {cause[reset_reason-1]}')
+    #if reset_reason == WDT_RESET:
+    #    # wait 5 mins before starting wdt again
+    #    #print('restart after watchdog event')
+    #    logger.error('restart after watchdog event')
+    #    await asyncio.sleep(300)
+    #    logger.info('restart WDT')
     if logging.getLogger().level > 10:
         # only enable wdt if we are not debugging
+        # wait 1 hour before starting wdt - allow user time to do calibration/tests without device constantly restarting
+        await asyncio.sleep(3600)
         wdt = WDT(timeout=8388)
         logger.info('WDT started')
+    else:
+        logger.debug('WDT not initiated')
     #print(f'logger level{logging.getLogger().level} WDT {'started' if logging.getLogger().level > 10 else 'not started'} {wdt}')
     # wdt fed in _scan_for_ibeacons
 

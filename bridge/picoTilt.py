@@ -1,24 +1,22 @@
-''' latest change
-                pause on config error
-                check for wifi credentials
-                
-                DONE testing CSV log file auto sized seems to be overly pessimistic
-                DONE testing debug.log sized from config
+''' latest change:
+        WDT
     working on: 
-                
+        DONE pause on config error
+        DONE check for wifi credentials
+        DONE testing CSV log file auto sized seems to be overly pessimistic
+        DONE testing debug.log sized from config
     TODO:
-    
-    todo refactor main & bridge lib to make more logical
-    todo remove unnecessary libs & comments
-    todo implement watchdog (8secs max I think from memory)
-    todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
-    todo add display - ABV latest cal SG & last averaged cal SG
+        todo refactor main & bridge lib to make more logical
+        todo remove unnecessary libs & comments
+        todo implement watchdog (8secs max I think from memory)
+        todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
+        todo add display - ABV latest cal SG & last averaged cal SG
 
     ideas:        
     button to set into calibration mode, use different cal_config.json ?
     display
     
-        
+    __version__ = '0.1.1'    
 '''
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
 #from rotating_file_handler import RotatingLogFileHandler
@@ -36,7 +34,7 @@ logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5
 # initial log files size limit 10kb, overwritten after config loaded
 #fileHandler = RotatingLogFileHandler("debug.log", (10 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
 log_max_kb = bridge.config.debug_log[0] if bridge.config else 10
-log_nbr_backups = bridge.config.debug_log[1] if bridge.config else 0
+log_nbr_backups = bridge.config.debug_log[1] if bridge.config else 1
 #fileHandler = RotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups)
 fileHandler = TimedRotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups, write_secs=300)
 fileHandler.setFormatter(logFormatter)
