@@ -24,4 +24,3 @@ class iBeaconStatus():
         self.tx_power = int.from_bytes(adv_data[29:], 'big', True) # signed=True)  # TX Power (1 byte) 2's complement?
         self.mac = mac_rdm
         self.colour = uuid_to_colours.get(self.uuid)
-        #return { "uuid":uuid, "major":major, "minor":minor, "tx_power":tx_power }

@@ -10,8 +10,6 @@ import logging
 from random import randrange
 from sys import platform
 
-VERSION = (0, 1, 0)
-
 RP2 = platform == "rp2"
 
 #cyw43_wifi_link_status
@@ -78,14 +76,12 @@ class WifiClient():
             raise OSError("Wi-Fi connect timed out")
         if not quick:  # Skip on first connection only if power saving
             # Ensure connection stays up for a few secs.
-            #self.dprint("Checking wifi integrity")
             logger.info("Checking wifi integrity")
             for _ in range(5):
                 if not s.isconnected():
                     logger.warning("Connection Unstable")
                     raise OSError("Connection Unstable")  # in 1st 5 secs
                 await asyncio.sleep(1)
-            #self.dprint("Got reliable connection")
             logger.info("Got reliable connection")
 
     async def connect(self, onboard_led, quick=False):  # Quick initial connect option for battery apps
@@ -113,31 +109,20 @@ class WifiClient():
                 try:
                     s.disconnect()
                 except OSError:
-                    #self.dprint("Wi-Fi not started, unable to disconnect interface")
                     logger.error("Wi-Fi not started, unable to disconnect interface")
                 await asyncio.sleep(1)
                 try:
                     await self.wifi_connect()
                 except OSError:
                     continue
-                #if not s.active():  # User has issued the terminal cmd to power off
-                #    #self.dprint("Disconnected, exiting _keep_connected")
-                #    logger.warning("Disconnected, exiting _keep_connected")
-                #    break
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().
-                    #self.dprint("Reconnect OK!")
                     logger.info("Reconnect OK!")
                 except OSError as e:
-                    #self.dprint("Error in reconnect. %s", e)
                     logger.error(f"Error in reconnect. {e}")
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
                     s.disconnect()
-                    #self._close()  # Disconnect and try again.
-                    #self._in_connect = False
-                    #self._isconnected = False
-        #self.dprint("Disconnected, exited _keep_connected")
         logger.warning("Disconnected, exited _keep_connected")
 
 
@@ -166,3 +151,4 @@ async def wan_ok(
         s.close()
     return False
 
+__version__ = '0.2.0'

@@ -33,15 +33,9 @@ class TiltHistory():
         # print values to std out for n secs (less if debugging)
         self.results_secs = 15 if logging.getLogger().level < 20 else 60 * 60
         self.print_raw = asyncio.create_task(self.timeout_raw(self.results_secs)) #True
-        #asyncio.create_task(self.timeout_raw(30)) # True
-        # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
-        #self.print_timer = Timer(
-        #    mode=Timer.ONE_SHOT, period=60_000, callback=self._timeout_callback
-        #)
         self.ringbuffer_list = dict()
-        self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
+        self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s)
         
-    #def _timeout_callback(self, timer):
     async def timeout_raw(self, timeout):
         # stop printing data: statements to serial
         self.print_raw = True
@@ -63,12 +57,10 @@ class TiltHistory():
                 #max = TODO: find max for this colour
                 logger.debug(f"creating ringbuffer for {colour} Tilt with {av_period} records")
                 self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period) #todo: ensure we check store_size
-            ''' elif colour in self.ringbuffer_list and self.ringbuffer_list[colour].len < av_period:
+        ''' elif colour in self.ringbuffer_list and self.ringbuffer_list[colour].len < av_period:
                     self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period)
         '''
-        #except Exceprtion as e:
-        #    logger.error(f"Exception: {e}")
-        #    raise e
+
 
     def _get_new_ringbuffer(self, av_period):
         return TiltRingBuffer(av_period) 
@@ -274,11 +266,3 @@ class TiltRingBuffer:
         if self._wi == self._ri:  # Would indicate empty
             self._ri = (self._ri + c) % self._size  # Discard a message
             raise IndexError  # Caller can ignore if overwrites are OK
-
-    '''async def _put(self, data):  # Usage: await queue.put(item)
-        # TODO #7 is this function used, possibly left over, otherwise add attribute TiltRungBuffer.full
-        while self.full():  # Queue full
-            await self._evget.wait()  # May be >1 task waiting on ._evget
-            # Task(s) waiting to get from queue, schedule first Task
-        self._put_nowait(data)
-    '''

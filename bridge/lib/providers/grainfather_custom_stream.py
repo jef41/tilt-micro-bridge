@@ -11,39 +11,30 @@ from models import TiltStatus
 from models import TiltHistory
 from abstractions import BridgeProviderBase
 from configuration import BridgeConfig
-#from rate_limiter import DeviceRateLimiter
 import asyncio
 import async_urequests as requests
 import json
 import gc # for development only
-#from rate_limiter import RateLimitedException
 from machine import Timer
 
 
 logger = logging.getLogger('GFcstm_pvdr')
 logger.info("Startup")
 
-#class GrainfatherCustomStreamCloudProvider(implements(CloudProviderBase)):
 class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
         self.col_dest = GrainfatherCustomStreamCloudProvider._normalize_colour_keys(config.grainfather_custom_stream_urls)
         self.temp_unit = GrainfatherCustomStreamCloudProvider._get_temp_unit(config)
         self.str_name = "Grainfather Custom URL"
-        #self.rate_limiter = DeviceRateLimiter(rate=1, period=(60 * 15))  # 15 minutes
         self.rate = 1
         self.period = (60 * 15)  # 15 minutes
-        #self.update_due = False
-        #self.update_in_progress = False
         self.upload_timer = None
         try:
             self.averaging_period = config.grainfather_averaging_period
         except AttributeError:
             self.averaging_period = config.averaging_period
         self.bridge_config = config
-        #self.start()
-        #self.upload_due = asyncio.Event() # ThreadSafeFlag()
-        #logger.info("test provider")
 
     def __str__(self):
         return self.str_name
@@ -52,23 +43,10 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
         # todo: start is called from main script, but no longer does anything here
         #logger.info("start called")
         if self.enabled():
-            #self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.update_test)
-            #self.upload_timer = Timer(period=((self.period//self.rate)*1000), mode=Timer.PERIODIC, callback=self.provider_callback)
-            #self.upload_timer = Timer(period=900, mode=Timer.PERIODIC, callback=self.test)
-            #upload_timer.init(period=900, mode=Timer.PERIODIC, callback=self.test)
-            #logger.info(f"{self.str_name} provider timer started")
             pass
 
-    
-    #def provider_callback(self, timer):
-    #    # set the thread safe flag
-    #    self.upload_due.set()
-    
-    #def update_test(self, t):
     async def update(self):
-        # for colour in self.col_dest
-        #averagering_period = config.averaging_period
-        #logger.debug(f"update called for GF Custom self.period/self.rate {self.period}/{self.rate}")
+        # 
         log_period = self.period//self.rate # older than this = stale data, ensure this is an integer of seconds
         if self.averaging_period > log_period:
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
@@ -82,9 +60,7 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
                     #logger.info(f"Timer testing colour:{colour} tempF:{tempF}, SG:{SG}")
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
                     #logger.info(f"{self._get_temp_value(tilt_status)}{self.temp_unit} SG:{tilt_status.gravity}")
-                    #asyncio.run(self.async_update(tilt_status))
                     status, wait_for = await self.async_update(tilt_status)
-                    #return [status, wait_for]
                 else:
                     logger.info(f"{colour} has no data")
                 #self.update_in_progress = False
@@ -95,8 +71,6 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
         except Exception as e:
             logger.error(f"exception in provider.update: {e}")
         finally:
-            #pass
-            #self.update_in_progress = False
             return [status, wait_for] # either values or [None, None]
     
     def attach_archive(self, data_archive: TiltHistory):
@@ -105,14 +79,7 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
     
 
     async def async_update(self, tilt_status: TiltStatus):
-        start_time = time.ticks_ms()
-        #logger.info("debug: async GF Custom provider called")#, with\n{}").format(dir(tilt_status)))
-        # Skip if this colour doesn't have a grainfather URL assigned
-        #logger.info(f"tilt_status.colour {tilt_status.colour} is in self.col_dest.keys()? {self.col_dest.keys()}")
-        #if tilt_status.colour not in self.col_dest.keys():
-        #    logger.info("not in")
-        #    #return
-        #else:
+        
         if tilt_status.colour in self.col_dest.keys():
             url = self.col_dest[tilt_status.colour]
             headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
@@ -123,20 +90,11 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
             #todo handle timeout error
             try:
                 response = await requests.post(url, headers=headers, data=json.dumps(payload), timeout=7)
-                #await response
-                # todo: handle timeout here
-                #logger.info("Custom URL response:{}, reason:{}, size:{}bytes".format(response.status_code, response.reason, start - gc.mem_free()))#, response.text))
-                #retry_in = int(response.headers.get('retry-after')) if response.status_code == 429 else None
-                #logger.info("Retry in:{}".format(retry)) if retry else logger.info("no retry value, so data updated")
-                #self._adjust_timing(response.status_code, retry_in, time_spent, tilt_status)
                 # do some logging
                 status, wait_for = await self.process_response(response, start)
                 #logger.debug(f"process response returned: {status} {wait_for}")
-                #response.close()
-                #response = None # make available for gc
                 time_spent = time.ticks_diff(time.ticks_ms(), start_time)
                 # send back the status code & retry after if present
-                #return [response.status_code, int(response.headers.get('retry-after')) if response.status_code == 429 else None]
                 return [status, wait_for]
             except requests.ConnectionError:
                 logger.error("ConnectionError: uploading Grainfather Custom device")
@@ -147,20 +105,6 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
                 response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
                 #todo: handle this in the calling function
-            finally:  # Usual way to do cleanup 
-                pass
-        
-        #http_return(int(response.status_code), response.headers)
-        # todo: handle retry after (if not none),
-        # todo: adapt requests to not read content line 223 in async_urequests
-        
-        # result.raise_for_status()
-        #finally:
-        # updarte rate limiter according to response
-        # if 201 then retore to config vcalue
-        # if 429 set to 1 minute?
-        # if config round then wait for 0,15,30,45 mins of the hour?
-
 
     def enabled(self):
         return True if self.col_dest else False
@@ -185,41 +129,6 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
         await asyncio.sleep_ms(0)
         return [response.status_code, retry_in]
 
-    '''def _adjust_timing(self, status, retry_secs: int, time_spent, tilt_status):
-        # todo: implement this probperly with ProviderTimer
-        if status == 201:
-            #self.rate_limiter.device_limiters[tilt_status.colour].period = int(600)
-            time_spent = time_spent / 1000
-            logger.info("default_period:{} time_spent:{}".format( self.rate_limiter.default_period, time_spent))
-            # subtracting time spent did not work
-            self.rate_limiter.device_limiters[tilt_status.colour].period = (self.rate_limiter.default_period + time_spent)
-            # below makes 1 min fast after 19 iterations
-            #self.rate_limiter.device_limiters[tilt_status.colour].period = (self.rate_limiter.default_period - self.rate_limiter.device_limiters[tilt_status.colour].overrun)
-            logger.info("rate set to :{}".format(self.rate_limiter.device_limiters[tilt_status.colour].period))
-            #all ok, updated, try again in 15 mins - time it took to get last response
-            # % 15 here & if config.roundup then adjust to next interval
-        elif status == 429:
-            #retry = response.headers.get('retry-after')
-            #self.rate_limiter.period = retry_secs
-            #logger.info(dir(self.rate_limiter.device_limiters.items)) #device_limiters[tilt_status.colour])#.period = retry_secs
-            #for i in self.rate_limiter.device_limiters:
-            #    logger.info(f"{i}")
-            #logger.info(dir(self.rate_limiter.device_limiters[tilt_status.colour]))
-            self.rate_limiter.device_limiters[tilt_status.colour].period = int(retry_secs)
-            #if retry:
-            #    logger.info("Retry in:{}".format(retry))
-            #else:
-            #    logger.info("no retry value, so data updated")
-            last_t = time.localtime(self.rate_limiter.device_limiters[tilt_status.colour].last_check)
-            next_t = time.localtime(time.time() + retry_secs)
-            logger.info("last_check:\t{0:02d}:{1:02d}:{2:02d}, retry at {3:02d}:{4:02d}:{5:02d}".format(last_t[3],last_t[4],last_t[5], next_t[3], next_t[4], next_t[5]))
-            #str(self.rate_limiter(tilt_status.colour).last_check))
-            # todo look for retry & update rate limiter
-        else:
-            pass
-            # something else wrong, log a message
-            #return "Something's wrong with the internet"'''
-
     def _get_payload(self, tilt_status: TiltStatus):
         # GF payload data format
         return {
@@ -228,7 +137,6 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
             "unit": self.temp_unit
         } 
         
-
     def _get_temp_value(self, tilt_status: TiltStatus):
         if self.temp_unit == "fahrenheit":
             return tilt_status.temp_fahrenheit
@@ -243,7 +151,6 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
         if col_dest is not None:
             for colour in col_dest:
                 normalized_colours[colour.lower()] = col_dest[colour]
-
         return normalized_colours
 
     @staticmethod
@@ -253,6 +160,4 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
             return "celsius"
         elif temp_unit == "F":
             return "fahrenheit"
-
         raise ValueError("Grainfather temp unit must be F or C")
-
