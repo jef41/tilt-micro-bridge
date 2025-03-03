@@ -73,8 +73,8 @@ logger.handlers = [] # this is necessary
 logger.addHandler(fileHandler)
 logger.addHandler(consoleHandler)
 
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 logger.info("***  Startup")
 gc.collect()

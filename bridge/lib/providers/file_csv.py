@@ -263,7 +263,7 @@ class CSVLogger():
         #max_bytes = (self.bridge_config.csv_log_max_kb * 1024) - 800 # -800 should keep log files within 4096 block boundry
         logFormatter = logging.Formatter("%(asctime)s, %(message)s")
         #logFileHandler = RotatingLogFileHandler(fname + ".log", size_b, csv_bkp_count)
-        #print("about to raise an error?")
+        # TODO force write after x log periods? 900secs = 15 mins
         logFileHandler = TimedRotatingLogFileHandler(fname, size_b, csv_bkp_count, 900)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
