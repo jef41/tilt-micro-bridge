@@ -115,7 +115,8 @@ async def bridge_main(onboard_led, providers, simulate_beacons: bool = False):
     
     gc.collect()
     # for debug, intermittently log memory usage/leak
-    asyncio.create_task(debug_memory())
+    if logging.getLogger().level < 20:
+        asyncio.create_task(debug_memory())
     
     # size the TiltHistory object for each colour accordingly
     # and create upload timers
