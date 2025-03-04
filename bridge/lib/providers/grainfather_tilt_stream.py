@@ -21,7 +21,6 @@ from machine import Timer
 logger = logging.getLogger('GF_tilt_pvdr')
 logger.info("Startup")
 
-#class GrainfatherTiltStreamCloudProvider(implements(CloudProviderBase)):
 class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
@@ -59,14 +58,12 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
                     status, wait_for = await self.async_update(tilt_status)
                 else:
                     logger.info(f"{colour} has no data")
-                #return [status, wait_for] # either values or [None, None]
                 
         except requests.ConnectionError:
             logger.info('requests Connection error. todo: we need a task that periodically ensures WLAN connection is working')
         except Exception as e:
             logger.error(f"exception in provider.update: {e}")
         finally:
-            #pass
             return [status, wait_for] # either values or [None, None]
     
     def attach_archive(self, data_archive: TiltHistory):
@@ -88,19 +85,20 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
                 # do some logging
                 status, wait_for = await self.process_response(response, start)
                 #time_spent = time.ticks_diff(time.ticks_ms(), start_time)
-                return [status, wait_for]
+                
             except requests.ConnectionError:
+                status, wait_for = False, False
                 logger.error("ConnectionError: uploading Grainfather Tilt")
                 raise Exception('requests Connection error.')
             except requests.TimeoutError:
+                status, wait_for = False, False
                 logger.warning("TimeoutError: uploading Grainfather Tilt")
                 #response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
                 #todo: handle this in the calling function
-            finally:  # Usual way to do cleanup 
-                #pass
+            finally:
                 # return an error - TODO establish error reponse types & how to handle systematically
-                return[False, False] 
+                return [status, wait_for]
  
     def enabled(self):
         return True if self.col_dest else False

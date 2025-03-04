@@ -6,12 +6,8 @@ import time
 
 class TiltStatus(JsonSerialize):
     
-    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig, raw=False):
+    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig, apply_calibration=True):
         # raw=True means store the raw uncalibrated sample, this should be done when saving data
-        #print(f"***  BridgeConfig class attribute: {config.get_brew_name("simulated")}")
-        #self.timestamp = datetime.datetime.now()
-        # TODO get net connection, get correct timestamp ??
-        # is temp offset good enough, or does this need linear interp?
         self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
@@ -22,13 +18,13 @@ class TiltStatus(JsonSerialize):
             current_gravity /= 10
             temp_fahrenheit /= 10
         #print(f"***  raw: {raw}, {current_gravity}")
-        if raw:
-            self.temp_fahrenheit = temp_fahrenheit
-            self.gravity = current_gravity
-        else:
+        if apply_calibration:
             # apply calibration, if present
             self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
             self.gravity = TiltStatus.check_cal(current_gravity, config.get_gravity_offsets(colour))
+        else:
+            self.temp_fahrenheit = temp_fahrenheit
+            self.gravity = current_gravity
         self.temp_celsius = TiltStatus.get_celsius(self.temp_fahrenheit)
         self.original_gravity = config.get_original_gravity(colour)
         #self.gravity = current_gravity + config.get_gravity_offset(colour)
@@ -38,13 +34,6 @@ class TiltStatus(JsonSerialize):
         self.apparent_attenuation = TiltStatus.get_apparent_attenuation(self.original_gravity, self.gravity)
         self.temp_valid = (config.temp_range_min < self.temp_fahrenheit and self.temp_fahrenheit < config.temp_range_max)
         self.gravity_valid = (config.gravity_range_min < self.gravity and self.gravity < config.gravity_range_max)        #print("debug: tilt status initialised")
-
-    #@staticmethod
-    #def get_timestamp():
-    #    #year, month, day, hour, mins, secs, weekday, yearday = time.localtime()
-    #    # Print a date - YYYY-MM-DD
-    #    #return str("{:02d}:{:02d}:{:02d}".format(hour, mins, secs))
-    #    return time.time() # epoch, can be relative, but we should have ntp
 
     @staticmethod
     def get_celsius(temp_fahrenheit):
@@ -88,8 +77,11 @@ class TiltStatus(JsonSerialize):
         SG/temp passed here should be e.g. 1.035 not 1035
         '''
         #Tilt App does this:
-        cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
-        cal_vals.sort()
+        #cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
+        #cal_vals.sort()
+        if cal_vals:
+            cal_vals = [ [-0.001,-0.001], [10**5,10**5] ] + cal_vals
+            cal_vals.sort(key=lambda x: x[1]) # sort by 2nd value in list
         for x,y in cal_vals:
             if x == xin:  # <- exact match
                 return y
@@ -97,3 +89,4 @@ class TiltStatus(JsonSerialize):
                 return py + (y-py)*(xin-px)/(x-px)
             px = x
             py = y
+

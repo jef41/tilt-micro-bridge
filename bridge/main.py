@@ -1,32 +1,19 @@
 ''' latest change:
-        BridgeMain class
-        Wifi & ntptime bugfix
+        de-linting
     working on: 
-        DONE pause on config error
-        DONE check for wifi credentials
-        DONE testing CSV log file auto sized seems to be overly pessimistic
-        DONE testing debug.log sized from config
     TODO:
         todo refactor main & bridge lib to make more logical
-        todo remove unnecessary libs & comments
         todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
-        todo add display - ABV latest cal SG & last averaged cal SG
-
     ideas:        
-    button to set into calibration mode, use different cal_config.json ?
-    display
-    
-    __version__ = '0.1.1'    
+        button to set into calibration mode, use different cal_config.json ?
+        todo add display - ABV latest cal SG & last averaged cal SG
 '''
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-#from rotating_file_handler import RotatingLogFileHandler
-import logging #, sys
-#from logging import RotatingLogFileHandler, TimedRotatingLogFileHandler
+import logging
 from logging import TimedRotatingLogFileHandler
 from machine import Pin
 import asyncio
 import indicator
-#import bridge_main as bridge
 from bridge_main import BridgeMain
 from wifi_client import WifiClient
 import gc
@@ -43,10 +30,9 @@ def set_global_exception():
 
 async def main():
     set_global_exception()  # Debug aid
-    #await bridge.bridge_main(providers=None, timeout_seconds=0, simulate_beacons = False, console_log=True)
     global onboard_led # = indicator.Status() # turn on the LED status indicator
-    #await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=False)# , console_log=True)
-    await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
+    #await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
+    await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=False)
 
 
 async def hold_up():
@@ -59,8 +45,7 @@ async def hold_up():
 
 # set up root logger
 logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
-# initial log files size limit 10kb, overwritten after config loaded
-#fileHandler = RotatingLogFileHandler("debug.log", (10 * 1024) - 800, 1) # kb x 1024 = bytes - 800 so we don't exceed a block boundry?
+# initial log files size limit 12kb, overwritten after config loaded
 log_max_kb = 12
 log_nbr_backups = 1
 fileHandler = TimedRotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups, write_secs=300)
@@ -73,8 +58,8 @@ logger.handlers = [] # this is necessary
 logger.addHandler(fileHandler)
 logger.addHandler(consoleHandler)
 
-logger.setLevel(logging.DEBUG)
-#logger.setLevel(logging.INFO)
+#logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 logger.info("***  Startup")
 gc.collect()
@@ -91,14 +76,11 @@ if bridge.initialised():
     logger.handlers[0].number_of_backup_files = log_nbr_backups
     # test if wifi creds included,
     wifi = WifiClient(bridge.config)
-    #wifi = asyncio.create_task(WifiClient(bridge.config))
     if wifi.has_config:
-        #print(f'get wifi')
         asyncio.run(wifi.connect(onboard_led))
     # set system time - could have a UTC offset in config, but time is onyl used internally at the moment
     bridge.get_time()
     bridge_providers = bridge.get_providers(wifi.has_config)
-    #print(f'providers {bridge_providers}')
 else:
     # hold here, cannot proceed, error with config.json
     asyncio.run(hold_up())
@@ -109,10 +91,6 @@ try:
 except KeyboardInterrupt as e:
     for provider in bridge.provider_timers.timer_list.keys():
         bridge.provider_timers.stop(provider)
-    #bridge.handler.cancel()
-    #await asyncio.sleep(0)
-    #bridge.scanner.cancel()
-    #await asyncio.sleep(0)
     print("...stopped: Tilt Scanner (keyboard interrupt)")
 except Exception as e:
     for provider in bridge.provider_timers.timer_list.keys():
@@ -121,3 +99,5 @@ except Exception as e:
 finally:
     asyncio.new_event_loop()  # Clear retained state
     Pin('LED',Pin.OUT).off()
+
+__version__ = '0.1.0'

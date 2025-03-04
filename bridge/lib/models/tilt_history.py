@@ -13,17 +13,11 @@
               at startup, to inititate bytearrays: test=TiltHistory(config, (2,3)), where 2,3 are configured tilt colours
               when data is received: test.add_data(colour='red', tempF=51, sg=1200, tstamp=1724432892)
               when a timer expires & upload is due: tempF, SG = test.get_data(colour='red'), from that create a TiltStatus & upload it
-    
-    todo: check all necessary defs are present - see primitives/ringbuffer_queue.py
-    todo: check what happens if we pass data from a TiltPro in (4 decimcal places)
 '''
-from machine import Timer
-#from configuration import BridgeConfig
-#from .json_serialize import JsonSerialize
+
 import time
 import asyncio
 import gc
-#import struct
 import logging
 
 
@@ -36,26 +30,15 @@ class TiltHistory():
     '''
     def __init__(self, colour_dict):
         # colour dict is; colour: max of averaging period
-        #if kwargs:
-        #    self.colour_idx = colour
-        #    self.temp = temp_fahrenheit
-        #    self.sg = current_gravity
-        #self.data_points = config.averaging_period # todo allow this per provider ...
-        # for each colour in config find max averaging
-        # get a list of colour:number
-        self.print_raw = True
-        asyncio.create_task(self.timeout_raw(30)) # True
-        # Timer to keep printing received data to log/stdout - turn down for release, useful in debug
-        #self.print_timer = Timer(
-        #    mode=Timer.ONE_SHOT, period=60_000, callback=self._timeout_callback
-        #)
+        # print values to std out for n secs (less if debugging)
+        self.results_secs = 15 if logging.getLogger().level < 20 else 60 * 60
+        self.print_raw = asyncio.create_task(self.timeout_raw(self.results_secs)) #True
         self.ringbuffer_list = dict()
-        self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s) #todo: colour_dict
+        self.initialise_ringbuffer(colour_dict) # create appropriately sized buffer(s)
         
-    #def _timeout_callback(self, timer):
     async def timeout_raw(self, timeout):
         # stop printing data: statements to serial
-        #self.print_raw = True
+        self.print_raw = True
         #print("***  self print raw started")
         await asyncio.sleep(timeout) # show received packets for n secs
         #print("***  self print raw finished")
@@ -74,12 +57,10 @@ class TiltHistory():
                 #max = TODO: find max for this colour
                 logger.debug(f"creating ringbuffer for {colour} Tilt with {av_period} records")
                 self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period) #todo: ensure we check store_size
-            ''' elif colour in self.ringbuffer_list and self.ringbuffer_list[colour].len < av_period:
+        ''' elif colour in self.ringbuffer_list and self.ringbuffer_list[colour].len < av_period:
                     self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period)
         '''
-        #except Exceprtion as e:
-        #    logger.error(f"Exception: {e}")
-        #    raise e
+
 
     def _get_new_ringbuffer(self, av_period):
         return TiltRingBuffer(av_period) 
@@ -118,7 +99,7 @@ class TiltHistory():
 
 
 class TiltRingBuffer:
-    # 
+    # TODO should really override TiltRingbufQueue
     def __init__(self, data_points):
         # each record is 7 bytes; timestamp =4, sg & temp = 3
         #logger.debug(TiltHistory.data_points)
@@ -154,6 +135,13 @@ class TiltRingBuffer:
                     (vals >> 16) & 0xFF ])
         #logger.debug(f"data{(data)}")
         self._put_nowait(data)
+    
+    def peekq(self):  # Return memoryview of the whole queue without altering it.
+        # Return wbhole buffer if immediately available, else raise QueueEmpty.
+        #if self.empty():
+        #    raise IndexError
+        return memoryview(self._q)
+        #return self._q[0:]
     
     def get_average(self, limit):
         # limit should be either averaging period, or, for most recent, (period/rate)/2
@@ -278,11 +266,3 @@ class TiltRingBuffer:
         if self._wi == self._ri:  # Would indicate empty
             self._ri = (self._ri + c) % self._size  # Discard a message
             raise IndexError  # Caller can ignore if overwrites are OK
-
-    '''async def _put(self, data):  # Usage: await queue.put(item)
-        # TODO #7 is this function used, possibly left over, otherwise add attribute TiltRungBuffer.full
-        while self.full():  # Queue full
-            await self._evget.wait()  # May be >1 task waiting on ._evget
-            # Task(s) waiting to get from queue, schedule first Task
-        self._put_nowait(data)
-    '''
