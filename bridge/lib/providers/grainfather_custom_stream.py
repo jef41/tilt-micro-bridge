@@ -93,18 +93,21 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
                 # do some logging
                 status, wait_for = await self.process_response(response, start)
                 #logger.debug(f"process response returned: {status} {wait_for}")
-                time_spent = time.ticks_diff(time.ticks_ms(), start_time)
                 # send back the status code & retry after if present
-                return [status, wait_for]
+                #return [status, wait_for]
             except requests.ConnectionError:
+                status, wait_for = False, False
                 logger.error("ConnectionError: uploading Grainfather Custom device")
                 raise Exception('requests ConnectionError')
             except requests.TimeoutError:
+                status, wait_for = False, False
                 logger.warning("TimeoutError: uploading Grainfather Custom device")
                 #logger.info(f'requests Timeout error.')
-                response = None
+                #response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
-                #todo: handle this in the calling function
+            finally:
+                # return an error - TODO establish error reponse types & how to handle systematically
+                return [status, wait_for]
 
     def enabled(self):
         return True if self.col_dest else False

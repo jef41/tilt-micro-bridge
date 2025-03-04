@@ -85,18 +85,20 @@ class GrainfatherTiltStreamCloudProvider(BridgeProviderBase):
                 # do some logging
                 status, wait_for = await self.process_response(response, start)
                 #time_spent = time.ticks_diff(time.ticks_ms(), start_time)
-                return [status, wait_for]
+                
             except requests.ConnectionError:
+                status, wait_for = False, False
                 logger.error("ConnectionError: uploading Grainfather Tilt")
                 raise Exception('requests Connection error.')
             except requests.TimeoutError:
+                status, wait_for = False, False
                 logger.warning("TimeoutError: uploading Grainfather Tilt")
                 #response = None
                 raise Exception("requests Timeout error.") #requests.TimeoutError
                 #todo: handle this in the calling function
             finally:
                 # return an error - TODO establish error reponse types & how to handle systematically
-                return[False, False] 
+                return [status, wait_for]
  
     def enabled(self):
         return True if self.col_dest else False
