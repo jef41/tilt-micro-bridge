@@ -23,11 +23,24 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Watchdog/restarts
 * [x] Error logging
 * [x] Calibrate Tilt readings with known good values
-* [ ] Build Instructions
-* [ ] UF2 release
+* [x] Build Instructions
+* [x] UF2 release
 
 # Installation
 
+Download the UF2 release (https://github.com/jef41/tilt-micro-bridge/releases) for your device - currently only Raspberry Pi Pico W is available (**Note**, not Pico 2 W).
+
+Hold down the button on the Pico whilst plugging it into a USB port on your computer.
+
+The device should appear as a mass storage device. Drag and drop the UF2 file onto the device. This file should take a few seconds to copy over. On completion the mass storage device will disappear.
+
+Open Thonny, Ctrl-D then Ctrl-C (to perform a soft reboot, then an interrupt). At this point you may create a file in Thonny (Ctrl-N). Add content and save this (Ctrl-S) on the root of the Pico as config.json.
+
+Perform another soft reboot (Ctrl-D) the device will restart and you should see the device output in the Thonny shell window. If this output looks OK and includes data from Tilt devices then the device is configured and may now be unplugged. 
+
+For use the device requires only USB power, it does not necessarily need to be connected to a computer.
+
+<!--
 Install an appropriate Micropython distribution onto the microcontroller, [Instructions](https://micropython.org/download/RPI_PICO/)
 
 Using Thonny, copy the contents of the 'bridge' folder from this repository to the root of the device
@@ -37,6 +50,7 @@ On the Pico create a config.json file on the root of the device. In that configu
 Using Thonny run the file picoTilt.py (alternativley rename that file to main.py so it autoruns when the deivce is powered).
 
 This version is a working in principle version. It is probably functional, but requires a lot more refinement before it could be considered a stable, working version for release. CIurrently I do not own a Tilt so it has not been tested on hardware.
+-->
 
 ## Configuration
 
