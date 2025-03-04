@@ -24,7 +24,7 @@ the colour of Tilt and the URL from Grainfather interface
 
 once configured tilt-micro-bridge will send data every 15 minutes, the device will appear under Equipment as a Tilt
 
-<img src="../misc/gf_tilt.png" alt="Tilt image form Grainfather website" height="90px">
+<img src="../misc/gf_tilt.png" alt="Tilt image from Grainfather website" height="90px">
 
 ## grainfather_custom_stream_urls
 

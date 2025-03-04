@@ -67,17 +67,36 @@ Subsequent data will be recorded at the logging interval. In the data above a 10
 
 ## Calculating data storage
 
-Bear in mind that a Pico and similar microcontrollers typically have limited flash storage. In development there is approximately 480kb free on the Pico, once I have compiled a UF2 this should be increased somewhat, but storage is still limited. 
+Bear in mind that a Pico and similar microcontrollers typically have limited flash storage. In development there is approximately 480kb free on the Pico. Using the UF2 release this increases somewhat to about 800kb, but storage is still limited. 
 
-File sizes will be calculated automatically based on available flash storage at run time. By default there are 2 debug.log files at 50kb each. Tilt-bridge will look for free space, will discount the debug.log files and any other files that will be ovewritten and calculate remaining blocks and filesize.
+File sizes will be calculated automatically based on available flash storage at run time. By default there are 2 debug.log files at 20kb each. Tilt-bridge will look for free space, will discount the debug.log files and any other files that will be ovewritten and calculate remaining blocks and filesize.
 
 Allow 200 bytes for the header of a log file. Each data point entry will consume 34 bytes in the case of the smaller (Temp & SG only) or 47 bytes for the more complete (ABV, AA, Temp & SG). 
 
-With 480kb free - 100kb of debug files = 380kb free space.
+As a guide, for 1 Tilt, logging every 5 minutes there is sufficient space for at least 30 days. After this time the oldest data will be overwritten.
 
-Thus approximately 11,300 (compact) or 8,000 (more complete) records could fill the flash. At this point, to prevent the device crashing, the oldest log file will be deleted and a new one written. 
+If there are more Tilt devices being logged or the logging is more frequent, the storage will be divided. A guide for the maximum number of records that may be stored is shown below;
 
-If logging a single Tilt at 1 minute intervals this represents 188 or 133 hours, ~7 days or ~5 days. Obviously changing the logging interval can significantly improve the data sotorage time.
+| build        | Free Space        | Minimal log        | Named beer, OG, ABV, AA        |
+| ------------ | ------------  | ------------  | ------------  |
+|UF2 release | 800kb | 22,950 records | 16,602 records |
+|manual build | 460kb | 12,643 records | 9,146 records |
+
+### Worked Example
+
+With 460kb free - 40kb of debug files = 420kb free space.
+
+420kb * 1024 = 430,080 bytes
+
+430,080 - 200 bytes for header = 429,880 bytes available
+
+429,880 / 34 bytes per smaller log interval = 12,643 log intervals maximum
+
+429,880 / 47 bytes per larger log interval = 9,146 log intervals maximum
+
+Thus approximately 12,600 (compact) or 9,100 (more complete) records could fill the flash. At this point, to prevent the device crashing, the oldest log file will be deleted and a new one written. 
+
+If logging a single Tilt at 1 minute intervals this represents 210 or 152 hours, ~8 days or ~6 days. Obviously changing the logging interval can significantly improve the data storage time.
 
 However, if there were 2 Tilts being logged every 1 minute, the time until data was overwritten would be halved. Increasing the log interval, to say 5 minutes, is one approach. ANother would be to use a RP2040 based board with more flash storage. 
 
