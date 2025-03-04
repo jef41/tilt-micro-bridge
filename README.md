@@ -20,7 +20,7 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Tilt status data saved to log file (JSON)
 * [x] Enable averaging
 * [x] More robust WiFi check/reconnect - though more can be added in here
-* [ ] Watchdog/restarts
+* [x] Watchdog/restarts
 * [x] Error logging
 * [x] Calibrate Tilt readings with known good values
 * [ ] Build Instructions
