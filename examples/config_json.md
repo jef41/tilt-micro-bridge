@@ -22,7 +22,7 @@ A minimal config.json looks like;
 }
 ```
 
-With this configuration data from a blue Tilt will be saved to the Pico device every 120 seconds, with the saved value being an average value calulated over the most recent 30 seconds.
+With this configuration SG and temperature data from a blue Tilt will be saved to the Pico device every 120 seconds, with the saved value being an average value calulated over the most recent 30 seconds. Temperature will be recorded in °C.
 
 A more practical example is show below;
 
@@ -49,6 +49,7 @@ A more practical example is show below;
     "grainfather_averaging_period": 300,
 
     "csv_log_tilt_colours": ["blue"],
+    "csv_log_temp_unit": "F",
     "csv_log_averaging_period": 0,
     "csv_log_period": 300,
 
@@ -67,7 +68,7 @@ In this example
 * 2 Tilt devices will appear in Grainfather equipment (red and blue)
 * 1 Tilt device will appear as custom equipoment in Grainfather (orange)
 * data sent to Grainfather will be averaged from the most recent 5 minutes of received data
-* data from the blue Tilt will also be logged to CSV files on the Pico, at 5 minute log interval. Averaging is disabled, so for each log period the most recent value will be stored.
+* data from the blue Tilt will also be logged to CSV files on the Pico, at 5 minute log interval. Averaging is disabled, so for each log period the most recent value will be stored. The temperature will be logged in °F.
 * the red Tilt has some calibration values that will be applied to SG and a 5°F offset applied to temperature readings
 * the blue Tilt is in a brew named Festbier and the original gravity has been noted. Consequently the CSV file will also contain data for ABV and Apparent Attenuation
 
