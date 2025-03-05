@@ -34,7 +34,9 @@ Hold down the button on the Pico whilst plugging it into a USB port on your comp
 
 The device should appear as a mass storage device. Drag and drop the UF2 file onto the device. This file should take a few seconds to copy over. On completion the mass storage device will disappear.
 
-Open Thonny, Ctrl-D then Ctrl-C (to perform a soft reboot, then an interrupt). At this point you may create a file in Thonny (Ctrl-N). Add content and save this (Ctrl-S) on the root of the Pico as config.json.
+Open Thonny, issue Ctrl-F2 (to stop and restart the connection). Thonny should now display a message about execution interrupt and the REPL prompt >>>. At this point you must create the config.json file using Thonny.
+
+Create a new file (Ctrl-N). Add content and save this (Ctrl-S) on the root of the Pico as config.json. These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
 
 Perform another soft reboot (Ctrl-D) the device will restart and you should see the device output in the Thonny shell window. If this output looks OK and includes data from Tilt devices then the device is configured and may now be unplugged. 
 
