@@ -20,14 +20,27 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Tilt status data saved to log file (JSON)
 * [x] Enable averaging
 * [x] More robust WiFi check/reconnect - though more can be added in here
-* [ ] Watchdog/restarts
+* [x] Watchdog/restarts
 * [x] Error logging
 * [x] Calibrate Tilt readings with known good values
-* [ ] Build Instructions
-* [ ] UF2 release
+* [x] Build Instructions
+* [x] UF2 release
 
 # Installation
 
+Download the UF2 release (https://github.com/jef41/tilt-micro-bridge/releases) for your device - currently only Raspberry Pi Pico W is available (**Note**, not Pico 2 W).
+
+Hold down the button on the Pico whilst plugging it into a USB port on your computer.
+
+The device should appear as a mass storage device. Drag and drop the UF2 file onto the device. This file should take a few seconds to copy over. On completion the mass storage device will disappear.
+
+Open Thonny, Ctrl-D then Ctrl-C (to perform a soft reboot, then an interrupt). At this point you may create a file in Thonny (Ctrl-N). Add content and save this (Ctrl-S) on the root of the Pico as config.json.
+
+Perform another soft reboot (Ctrl-D) the device will restart and you should see the device output in the Thonny shell window. If this output looks OK and includes data from Tilt devices then the device is configured and may now be unplugged. 
+
+For use the device requires only USB power, it does not necessarily need to be connected to a computer.
+
+<!--
 Install an appropriate Micropython distribution onto the microcontroller, [Instructions](https://micropython.org/download/RPI_PICO/)
 
 Using Thonny, copy the contents of the 'bridge' folder from this repository to the root of the device
@@ -37,6 +50,7 @@ On the Pico create a config.json file on the root of the device. In that configu
 Using Thonny run the file picoTilt.py (alternativley rename that file to main.py so it autoruns when the deivce is powered).
 
 This version is a working in principle version. It is probably functional, but requires a lot more refinement before it could be considered a stable, working version for release. CIurrently I do not own a Tilt so it has not been tested on hardware.
+-->
 
 ## Configuration
 
@@ -166,6 +180,8 @@ The Pico board has an onbaord LED. This is used to give a basic visual indicatio
 |NOT CONNECTED | 1Hz blink slow | 800, 200 | A wifi connection has not been established. If not using wifi (i.e. logging locally to file) this will not be a problem |
 |RUNNING | blink once per 3 secs | 10, 3,000 | The application is running and listenting for data from Tilt devices |
 
+If the LED remains solidly lit this indicates that the Pico has encountered an error. It is most likely that either the config.json file is not present, or this file is invalid. In this situation, use Thonny to connect to the device, inspect the debug.log file and correct the issue.
+
 # Integrations
 
 * [ ] [Prometheus](#Prometheus-Metrics)
@@ -259,7 +275,7 @@ The log file name will be `{colour}.csv`. If beer name is included in the config
 
 If original gravity for the beer is not detailed in the config file then ABV and apparent attenuation will not be present.
 
-**Note** The Pico has limited flash storage, some of which is used for the program files. RP2040 devices are available with more flash storage, but if using CSV logging it is recommended to remove old files before starting a new logging session. Old files witht he same name will be overwritten. See []
+**Note** The Pico has limited flash storage, some of which is used for the program files. RP2040 devices are available with more flash storage, but if using CSV logging it is recommended to remove old files before starting a new logging session. Old files with the same name will be overwritten. See [the CSV File examples](examples/file_csv.md) for more detail.
 
 <!--
 ## InfluxDB Metrics
@@ -319,7 +335,31 @@ Tilt data can alternatively be logged to Grainfather using their **Tilt** Fermen
 
 Note that temperatures displayed on the Grainfather website will use the preference you have configured on their website. This means whether you configure micro-bridge to upload data in Farenheit or Centigrade, the temperature will be converted by the Grainfather website and displayed in your preference configured there. i.e. the Tilt hydrometer natively uses Farenheit, if you want to see temperature data displayed in Centigrade, then change your configuration on the Grainfather website.
 
-To setup, first log in into Grainfather then go to My Equipment > Add Fermenation Device > Set the name and save > Press the "i" (info) button next to the device > Copy the URL into pitch.config. See [the CSV File examples](examples/file_csv.md) for more detail.
+To setup, first log in into Grainfather then go to the section My Equipment. Click Add Fermenation Device.
+
+<img src="./misc/gf_add_device.png" alt="Add Device options shown by Grainfather website" height="400px">
+
+Select either the **Custom** or **Tilt Wireless Hydrometer and Thermometer** option. Set the name for a Custom device, or select the colour if you used the Tilt option. Save. Now click the "i" (info) button next to the device and copy this URL into pitch.config. See [the Grainfather Provider examples](examples/grainfather.md) for more detail.
+## Program Flow
+
+In its default state, at startup the software will first look for and validate a file called config.json, this must be located in the root folder of the file system on the device.
+
+Once the configuration has loaded the Pico will look to see if wifi crenedtials have been specified. If they have been specified then the device will try to connect to the specified network. If no wifi credentials are present the device will disable all but the CSV file provider.
+
+The devices and providers detailed in config.json will be provisioned (though if no wifi is present all but CSV file provider will be ignored).
+
+The Pico will start to listen for Tilt devices using bluetooth. As data is received it will be stored on a queue of data points. 
+
+At the specified upload intervals data will be retrieved from the queue, averaging, calibration and conversion applied as specified from the configuration, and a value stored or uploaded to the provider.
+
+If the Pico is plugged in to a USB port on a computer you may use either Thonny or a serial terminal (e.g. Putty) to observe messages from the Pico. In its default state received Tilt data will be displayed for the first hour - this is intended to help the calibration process. 
+
+## Developing
+
+The UF2 release contains all the necessary code, pre-compiled into .mpy and frozen into the UF2. If you wish to develop/play/test things it is suggested that you use a standard UF2 release (e.g. from https://micropython.org/download/rp2-pico-w/rp2-pico-w-latest.uf2) then manually copy the whole folder and contents **/bridge/lib** and the file **main.py** to the root of the Pico filesystem. This will result in reduced filespace, but allows for easier development and testing. It should be the case that you may use the UF2 release from this repo and any files saved in the Pico filesystem override those froren into the UF2, but I have read comments that this does not work for main.py
+
+More information on drag and drop setup and links to standard releases are available on the [Raspberry Pi website](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html#drag-and-drop-micropython)
+
 <!---
 ![Configuring Brewfather Custom Stream URL](misc/grainfather_custom_stream.png)
 
