@@ -220,9 +220,9 @@ class BridgeMain():
             #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
             #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
             if not beacon_data.temp_valid:
-                self.logger.warning(f"Ignoring broadcast due to invalid temperature: {beacon_data.temp_fahrenheit}°F")
+                self.logger.warning(f"Ignoring broadcast due to invalid temperature: {beacon_data.temp_fahrenheit:.1f}°F")
             elif not beacon_data.gravity_valid:
-                self.logger.warning(f"Ignoring broadcast due to invalid gravity: {beacon_data.gravity}" )
+                self.logger.warning(f"Ignoring broadcast due to invalid gravity: {beacon_data.gravity:.4f}" )
             else:
                 # seems to be a valid packet, if 1st packet, make a note
                 # peekq returns a memoryview - if it is all 0 then this is the first packet

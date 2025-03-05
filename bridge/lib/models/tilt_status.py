@@ -3,37 +3,41 @@ from .json_serialize import JsonSerialize
 #from machine import RTC
 import time
 
-
 class TiltStatus(JsonSerialize):
     
-    def __init__(self, colour, temp_fahrenheit, current_gravity, config: BridgeConfig, apply_calibration=True):
-        # raw=True means store the raw uncalibrated sample, this should be done when saving data
+    def __init__(self, colour, temp_fahrenheit, uncal_SG, config: BridgeConfig, apply_calibration=True):
+        # class to process/format Tilt data from beacon or in/out of data store
+        # apply_calibration=False means store the uncalibrated sample, this should be done when saving data
         self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
-        self.hd = current_gravity > 2  # Tilt Pro?
-        #print(f"self.hd: {self.hd}, {current_gravity}")
+        self.hd = uncal_SG > 2  # Tilt Pro?
+        #print(f"self.hd: {self.hd}, {uncal_SG}")
         # With Tilt Pro values have more precision, which has to be adjusted
         if self.hd:
-            current_gravity /= 10
+            uncal_SG /= 10
             temp_fahrenheit /= 10
-        #print(f"***  raw: {raw}, {current_gravity}")
+        #print(f"***  uncal: {uncal_SG}")
         if apply_calibration:
             # apply calibration, if present
             self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
-            self.gravity = TiltStatus.check_cal(current_gravity, config.get_gravity_offsets(colour))
+            vals=config.get_gravity_offsets(colour)
+            #print(f"***  cal vals {colour} {vals}")
+            self.gravity = TiltStatus.apply_cal(uncal_SG, config.get_gravity_offsets(colour))
+            # self.gravity = round(self.gravity, 4) if self.hd else round(self.gravity, 3)
+            # TODO SD/HD is lost when saving to store, fix it (probably in History)
+            self.gravity = round(self.gravity, 4)
+            #print(f"***    cal: {self.gravity} from uncal: {uncal_SG}")
         else:
             self.temp_fahrenheit = temp_fahrenheit
-            self.gravity = current_gravity
+            self.gravity = uncal_SG
         self.temp_celsius = TiltStatus.get_celsius(self.temp_fahrenheit)
         self.original_gravity = config.get_original_gravity(colour)
-        #self.gravity = current_gravity + config.get_gravity_offset(colour)
-        #print(f"calibrated gravity: {self.gravity}")
         self.degrees_plato = TiltStatus.get_degrees_plato(self.gravity)
         self.alcohol_by_volume = TiltStatus.get_alcohol_by_volume(self.original_gravity, self.gravity)
         self.apparent_attenuation = TiltStatus.get_apparent_attenuation(self.original_gravity, self.gravity)
         self.temp_valid = (config.temp_range_min < self.temp_fahrenheit and self.temp_fahrenheit < config.temp_range_max)
-        self.gravity_valid = (config.gravity_range_min < self.gravity and self.gravity < config.gravity_range_max)        #print("debug: tilt status initialised")
+        self.gravity_valid = (config.gravity_range_min < self.gravity and self.gravity < config.gravity_range_max)
 
     @staticmethod
     def get_celsius(temp_fahrenheit):
@@ -65,23 +69,22 @@ class TiltStatus(JsonSerialize):
         pass
 
     @staticmethod
-    def check_cal(current_gravity, cal_vals):
+    def apply_cal(current_gravity, cal_vals):
         if cal_vals is None: # config.get_gravity_offsets(colour) is None:
             return current_gravity
         cal_gravity = TiltStatus.linear_interpolate(current_gravity, cal_vals)
-        return round(cal_gravity, 4)
+        return cal_gravity
         
     def linear_interpolate(xin,cal_vals):
         ''' takes input of an x value & list of x,y values
         returns interpolated x
         SG/temp passed here should be e.g. 1.035 not 1035
         '''
-        #Tilt App does this:
-        #cal_vals += [ [-0.001,-0.001], [10**5,10**5] ]
-        #cal_vals.sort()
+        #same approach as Tilt App, append & prepend extreme values
         if cal_vals:
             cal_vals = [ [-0.001,-0.001], [10**5,10**5] ] + cal_vals
             cal_vals.sort(key=lambda x: x[1]) # sort by 2nd value in list
+            #print(f"{cal_vals}")
         for x,y in cal_vals:
             if x == xin:  # <- exact match
                 return y

@@ -11,7 +11,7 @@ class BridgeConfig:
         self.ssid = None
         self.password = None
         self.country_code = None
-        self.wifi_check_interval = 600
+        self.wifi_check_interval = 3600
         # Debug log
         self.debug_log = [20, 1]
         # Queue
@@ -81,9 +81,6 @@ class BridgeConfig:
     def get_original_gravity(self, colour: str):
         return self.__dict__.get(colour + '_original_gravity')
 
-    #def get_gravity_offset(self, colour: str):
-    #    return self.__dict__.get(colour + '_gravity_offset', 0)
-
     def get_temp_offset(self, colour: str):
         return self.__dict__.get(colour + '_temp_offset', 0)
 
@@ -92,16 +89,10 @@ class BridgeConfig:
 
     def get_gravity_offsets(self, colour: str):
         ''' return a list of offsets
-            where in each pair 1st value = raw, 2nd value = reference point
-                [[1.000,1.000],[1.100,1.100]]
+            where in each pair 1st value = raw, 2nd value = reference point;
+                [[1.002,1.000],[1.107,1.100]]
         '''
-        #logger.debug(f"cal values: {self.__dict__.get(colour + '_gravity_offsets')}")
-        #Tilt App does this:
-        cal_vals = None
-        cfg_cal_vals = self.__dict__.get(colour + '_gravity_offsets')
-        #if cfg_cal_vals:
-        #    cal_vals = [ [-0.001,-0.001], [10**5,10**5] ] + cfg_cal_vals
-        #    cal_vals.sort(key=lambda x: x[1]) # sort by 2nd value in list
+        cal_vals = self.__dict__.get(colour + '_gravity_offsets')
         return cal_vals
 
 
