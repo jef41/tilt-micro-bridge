@@ -1,8 +1,4 @@
-''' works in principle with async 
-    could look at running wifi from core1 - doesn't seem to work
-    look at running ble collection on core1
-    nearly at __version__ 1.0.0
-        requires some code tidying - remove comments & old commented out code that is not used
+''' central handler holds most coros & passes data between
 '''
 import logging
 import gc
@@ -80,7 +76,7 @@ class BridgeMain():
                 provider__start_message = provider.start() #todo look into this
                 if not provider__start_message:
                     provider__start_message = ''
-                self.logger.info("...started: {} {}".format(provider, provider__start_message))
+                self.logger.info(f"...started: {provider} {provider__start_message}")
                 # find configured colours
                 for colour in provider.col_dest.keys():
                     if colour not in self.enabled_colours:

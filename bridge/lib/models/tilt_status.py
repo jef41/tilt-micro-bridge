@@ -1,6 +1,7 @@
+''' convert & return values from a Tilt device (or TiltHistory) 
+'''
 from configuration import BridgeConfig
 from .json_serialize import JsonSerialize
-#from machine import RTC
 import time
 
 class TiltStatus(JsonSerialize):

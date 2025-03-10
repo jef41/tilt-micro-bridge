@@ -1,3 +1,6 @@
+''' manage the Pico onboard LED
+    TODO could verify that we are on a Pico & if not try to import the pin number from pin_mapping
+'''
 from machine import Pin
 import time
 import asyncio
