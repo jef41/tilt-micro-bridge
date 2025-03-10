@@ -14,11 +14,9 @@ class BridgeConfig:
         self.wifi_check_interval = 3600
         # Debug log
         self.debug_log = [20, 1]
-        # Queue
-        self.queue_size = 15 #TODO is this still necessary?
-        self.queue_empty_sleep_seconds = 1 # TODO review - not necessary?
-        self.averaging_period = 30 # 0 21000
-        self.temp_unit = "C" # TODO implement this
+        # Defaults
+        self.default_averaging_period = 30
+        self.default_temp_unit = "C"
         # Broadcast Data ranges
         self.temp_range_min = 32
         self.temp_range_max = 212
@@ -29,8 +27,6 @@ class BridgeConfig:
         self.webhook_limit_rate = 1
         self.webhook_limit_period = 1
         # CSV File
-        #self.csv_log_max_kb = 60
-        self.csv_log_temp_unit = "C"
         self.csv_log_period = 60
         self.csv_bkp_count = 4
         #self.csv_log_averaging_period = 60
@@ -80,20 +76,23 @@ class BridgeConfig:
             #print(f"{key} : {data[key]}")
 
     def get_original_gravity(self, colour: str):
-        return self.__dict__.get(colour + '_original_gravity')
+        #return self.__dict__.get(colour + '_original_gravity')
+        return getattr(self,colour + '_original_gravity', None)
 
     #def get_temp_offset(self, colour: str):
     #    return self.__dict__.get(colour + '_temp_offset', 0)
 
     def get_brew_name(self, colour: str):
-        return self.__dict__.get(colour + '_name', colour)
+        # return self.__dict__.get(colour + '_name', colour)
+        return getattr(self, colour + '_name', colour)
 
     def get_gravity_offsets(self, colour: str):
         ''' return a list of offsets
             where in each pair 1st value = raw, 2nd value = reference point;
                 [[1.002,1.000],[1.107,1.100]]
         '''
-        cal_vals = self.__dict__.get(colour + '_gravity_offsets')
+        #cal_vals = self.__dict__.get(colour + '_gravity_offsets')
+        cal_vals = list(getattr(self, colour + '_gravity_offsets', []))
         return cal_vals
 
     def get_temp_offsets(self, colour: str):
@@ -102,7 +101,8 @@ class BridgeConfig:
             each following pair 1st value = raw, 2nd value = reference point;
                 ['C', [5.5,5.0],[25.1,25.0]]
         '''
-        cal_vals = list(self.__dict__.get(colour + '_temp_offsets'))
+        #cal_vals = list(self.__dict__.get(colour + '_temp_offsets'))
+        cal_vals = list(getattr(self, colour + '_temp_offsets', []))
         # make a new variable, not pointer to same one
         try:
             if cal_vals[0].upper() == 'C':
@@ -119,7 +119,29 @@ class BridgeConfig:
             #print(f"cal vals:{cal_vals}")
             return cal_vals
 
+    def get_temp_unit(self, lookup_key, name=False):
+        ''' Look up a provider temp_unit key in config, fall back to default config.temp_unit,
+           and return either a single char or the full name (e.g., C or celsius).
+        '''
+        #temp_unit = self.__dict__.get(lookup_key, getattr(self, "default_temp_unit", "C"))
+        temp_unit = getattr(self, lookup_key, self.default_temp_unit)
 
+        if temp_unit not in ("C", "c", "F", "f"):
+            raise ValueError(f"{lookup_key} temp unit must be specified as 'C' or 'F'")
+
+        if temp_unit in ("C", "c"):
+            return "celsius" if name else "C"
+        
+        return "fahrenheit" if name else "F"
+
+    def get_averaging_period(self, lookup_key):
+        ''' look up the provider averaging period,
+            if not present fall back to the default averaging period
+            return an integer of seconds
+        '''
+        #return self.__dict__.get(lookup_key, getattr(self, lookup_key, self.default_averaging_period))
+        return getattr(self, lookup_key, self.default_averaging_period)
+    
     @staticmethod
     def load(additional_config: dict = None):
         file_path = "/config.json"
