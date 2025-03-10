@@ -76,23 +76,23 @@ class BridgeConfig:
             #print(f"{key} : {data[key]}")
 
     def get_original_gravity(self, colour: str):
-        #return self.__dict__.get(colour + '_original_gravity')
-        return getattr(self,colour + '_original_gravity', None)
+        return self.__dict__.get(colour + '_original_gravity')
+        #return getattr(self,colour + '_original_gravity', None)
 
     #def get_temp_offset(self, colour: str):
     #    return self.__dict__.get(colour + '_temp_offset', 0)
 
     def get_brew_name(self, colour: str):
-        # return self.__dict__.get(colour + '_name', colour)
-        return getattr(self, colour + '_name', colour)
+        return self.__dict__.get(colour + '_name', colour)
+        #return getattr(self, colour + '_name', colour)
 
     def get_gravity_offsets(self, colour: str):
         ''' return a list of offsets
             where in each pair 1st value = raw, 2nd value = reference point;
                 [[1.002,1.000],[1.107,1.100]]
         '''
-        #cal_vals = self.__dict__.get(colour + '_gravity_offsets')
-        cal_vals = list(getattr(self, colour + '_gravity_offsets', []))
+        cal_vals = self.__dict__.get(colour + '_gravity_offsets')
+        #cal_vals = getattr(self, colour + '_gravity_offsets')
         return cal_vals
 
     def get_temp_offsets(self, colour: str):
