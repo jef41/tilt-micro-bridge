@@ -210,10 +210,19 @@ class TiltRingBuffer:
             startb = self._wi - self.record_len
             stopb =-1 * self.record_len
             stepb = -1 * self.record_len
+            latest_i = 0 if startb < 0 else startb
             #print(f"start, stop, step {startb}, {stopb}, {stepb}")
-            for latest_i in range(startb, stopb, stepb):
-                #latest_i = self._wi - self.record_len
-                #print(f"***  testing {latest_i}")
+            steps = self._size / self.record_len
+            #print(f"steps:{steps}, mv:{self._size}")
+            #for latest_i in range(startb, stopb, stepb):
+            for i in range(steps):
+                #print(f"get byte {latest_i}")
+                #    latest_i = (steps + 1) * startb
+                #    #latest_i = self._wi - self.record_len
+                #    #print(f"***  testing {latest_i}")
+                # Loop through it 7 bytes at a time, starting from index 0 and then moving backwards
+                # Loop: Start from index 0, then move backwards in steps of 7
+                #for i in [0] + list(range(len(byte_array) - 7, 0, -7)):
                 q_timestmp = mv_data[0+latest_i] | mv_data[1+latest_i]<<8 | mv_data[2+latest_i]<<16 | mv_data[3+latest_i]<<24
                 logger.debug(f"timestamp:{q_timestmp} limit:{limit}")
                 if q_timestmp > int(limit): # we have a match 
@@ -223,6 +232,8 @@ class TiltRingBuffer:
                     #logger.debug(f"{mv_data[4+i]} {mv_data[5+i]} {mv_data[6+i]}")
                     num_results += 1
                     break
+                # Move backwards with wrap-around
+            latest_i = (latest_i - self.record_len) % self._size
         except Exception as e:
             logger.debug(f"Error in get_most_recent: {e}")
             raise e

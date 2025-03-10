@@ -1,32 +1,26 @@
 ''' latest change:
-        BridgeMain class
-        Wifi & ntptime bugfix
+        incorporate temp calibration
+        end script on config error (with LED on) - rather than hold in loop
+        TiltHistory get_most_recent fix
     working on: 
-        DONE pause on config error
-        DONE check for wifi credentials
-        DONE testing CSV log file auto sized seems to be overly pessimistic
-        DONE testing debug.log sized from config
+        RC 0.1.2
     TODO:
         todo refactor main & bridge lib to make more logical
         todo remove unnecessary libs & comments
-        todo if reboot is because of watchdog then set upload timer to averaging period - might already be accomplished?
         todo add display - ABV latest cal SG & last averaged cal SG
 
     ideas:        
     button to set into calibration mode, use different cal_config.json ?
     display
     
-    __version__ = '0.1.1'    
+        
 '''
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-#from rotating_file_handler import RotatingLogFileHandler
 import logging #, sys
-#from logging import RotatingLogFileHandler, TimedRotatingLogFileHandler
 from logging import TimedRotatingLogFileHandler
 from machine import Pin
 import asyncio
 import indicator
-#import bridge_main as bridge
 from bridge_main import BridgeMain
 from wifi_client import WifiClient
 import gc
@@ -81,6 +75,9 @@ gc.collect()
 gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 onboard_led = indicator.Status() # turn on the LED status indicator
+onboard_led.on()
+#onboard_led.set_status(indicator.STATUS_ERROR)
+#asyncio.sleep(2)
 bridge = BridgeMain()
 
 if bridge.initialised():
@@ -95,29 +92,41 @@ if bridge.initialised():
     if wifi.has_config:
         #print(f'get wifi')
         asyncio.run(wifi.connect(onboard_led))
-    # set system time - could have a UTC offset in config, but time is onyl used internally at the moment
+    # set system time - could have a UTC offset in config, but time is only used internally at the moment
     bridge.get_time()
     bridge_providers = bridge.get_providers(wifi.has_config)
     #print(f'providers {bridge_providers}')
+    
+    
+    # enter main loop
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt as e:
+        for provider in bridge.provider_timers.timer_list.keys():
+            bridge.provider_timers.stop(provider)
+        #bridge.handler.cancel()
+        #await asyncio.sleep(0)
+        #bridge.scanner.cancel()
+        #await asyncio.sleep(0)
+        print("...stopped: Tilt Scanner (keyboard interrupt)")
+    except Exception as e:
+        for provider in bridge.provider_timers.timer_list.keys():
+            bridge.provider_timers.stop(provider)
+        print("...stopped: Tilt Scanner ({})".format(e))
+    finally:
+        asyncio.new_event_loop()  # Clear retained state
+        #Pin('LED',Pin.OUT).off()
+        onboard_led.off()
 else:
     # hold here, cannot proceed, error with config.json
-    asyncio.run(hold_up())
+    #onboard_led.set_status((500,0))
+    #task1 = asyncio.run(hold_up())
+    #asyncio.sleep(1) # allow LED on
+    #task1.cancel()
+    onboard_led.on()
+    #logger.error("Error in /config.json, quitting")
+    #time.sleep(1)
+    #sys.exit("Error in /config.json!")
+    
 
-# enter main loop
-try:
-    asyncio.run(main())
-except KeyboardInterrupt as e:
-    for provider in bridge.provider_timers.timer_list.keys():
-        bridge.provider_timers.stop(provider)
-    #bridge.handler.cancel()
-    #await asyncio.sleep(0)
-    #bridge.scanner.cancel()
-    #await asyncio.sleep(0)
-    print("...stopped: Tilt Scanner (keyboard interrupt)")
-except Exception as e:
-    for provider in bridge.provider_timers.timer_list.keys():
-        bridge.provider_timers.stop(provider)
-    print("...stopped: Tilt Scanner ({})".format(e))
-finally:
-    asyncio.new_event_loop()  # Clear retained state
-    Pin('LED',Pin.OUT).off()
+__version__ = '0.1.2'

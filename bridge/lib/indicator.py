@@ -2,29 +2,34 @@ from machine import Pin
 import time
 import asyncio
 
+
 class Status():
-    ''' 
-        an indicator LED
-    '''
     STATUS_OK = (10,3000)
     WIFI_CONNECTING = (10,400)
     WIFI_CONNECTED = (200,800)
     WIFI_DISCONNECTED = (800,200)
     STARTUP = (500,0)
-    def __init__(self):
+    STATUS_ERROR = (500,0)
+    ''' 
+        an indicator LED
+    '''
+    def __init__(self, status=STARTUP):
         self.led = Pin('LED', Pin.OUT)
-        self.on_period = self.STARTUP[0] #ms
-        self.off_period = self.STARTUP[1] #ms
+        self.on_period = status[0] #ms
+        self.off_period = status[1] #ms
         self.blinky = asyncio.create_task(self._blink_led())
         #asyncio.run(self._start())
         
     async def _blink_led(self):
         #led = Pin('LED', Pin.OUT)
+        #print("called led blink")
         while True:
             if self.off_period == 0:
+                #print("led solid on")
                 self.led.on() # otherwsie acts as a sort of 'busy' indicator
-                await asyncio.sleep_ms(100)
+                await asyncio.sleep_ms(self.on_period+10)
             else:
+                #print("led blink")
                 self.led.on()
                 await asyncio.sleep_ms(self.on_period)
                 self.led.off()
@@ -46,8 +51,11 @@ class Status():
         self.blinky.cancel()
         self.led.off()
     
-    async def _start(self):
-        self.blinky = asyncio.create_task(self._blink_led())
+    #async def _start(self):
+    #    self.blinky = asyncio.create_task(self._blink_led())
+        
+    def on(self):
+        self.led.on()
         
 
 async def test():

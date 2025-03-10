@@ -125,7 +125,7 @@ class BridgeMain():
             print('Trapped cancelled error.')
             raise
         except KeyboardInterrupt:
-            # todo: is this actioned here? investigate
+            # this is not usually actioned here, calling async coro captures the KB interrupt
             print("cancelling tasks...")
             self.handler.cancel()
             self.scanner.cancel()
@@ -165,9 +165,9 @@ class BridgeMain():
                     await task # then wait for task to complete
                     #res = await asyncio.gather(t1,t2, return_exceptions=True)
                 except asyncio.TimeoutError:  # These only happen if return_exceptions is False
-                    print('Timeout')  # With the default times, cancellation occurs first
+                    logger.warning('scanner Timeout')  # With the default times, cancellation occurs first
                 except asyncio.CancelledError:
-                    print('Cancelled')
+                    logger.warning('scanner Cancelled')
                 #asyncio.sleep_ms(randrange(100, 750))
                 #pckt_complete = True
             else:
@@ -361,24 +361,28 @@ def max_av_period(providers, colours):
     # this is how many records from each tilt that will be saved
     # called once per colour?
     col_max = {}
-    max_av = 0
+    max_av = 30
     try:
         for provider in providers:
             #print(f"***  colours {colours}")
             for colour in colours:
-                #print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
-                if colour in provider.col_dest.keys() and provider.averaging_period >= max_av -1:
-                    #print(f"***   colour match: {colour}")
-                    max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
-                    col_max[colour] = max_av
+                print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
+                if colour in provider.col_dest.keys() and provider.averaging_period > max_av:
+                    print(f"***   colour match: {colour}")
+                    #max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
+                    # keep a minimum of 30 secs worth or readings
+                    #max_av = provider.averaging_period + 1 if max_av < 30 else max_av
+                    #col_max[colour] = max_av
+                    max_av = provider.averaging_period
                     #print(f"***   {col_max}")
                 else:
                     #print(f"***   no match {colour} av_period {provider.averaging_period}")
                     pass
+            col_max.update({colour: max_av})
     except Exception as e:
         self.logger.error(f"max_av_period error: {e}")
         raise
-    #logger.debug(f"col_max: {col_max}")
+    #print(f"col_max: {col_max}")
     return col_max
     
 async def debug_memory(logger):

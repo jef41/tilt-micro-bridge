@@ -15,9 +15,10 @@ class BridgeConfig:
         # Debug log
         self.debug_log = [20, 1]
         # Queue
-        self.queue_size = 15
-        self.queue_empty_sleep_seconds = 1
+        self.queue_size = 15 #TODO is this still necessary?
+        self.queue_empty_sleep_seconds = 1 # TODO review - not necessary?
         self.averaging_period = 30 # 0 21000
+        self.temp_unit = "C" # TODO implement this
         # Broadcast Data ranges
         self.temp_range_min = 32
         self.temp_range_max = 212
@@ -81,8 +82,8 @@ class BridgeConfig:
     def get_original_gravity(self, colour: str):
         return self.__dict__.get(colour + '_original_gravity')
 
-    def get_temp_offset(self, colour: str):
-        return self.__dict__.get(colour + '_temp_offset', 0)
+    #def get_temp_offset(self, colour: str):
+    #    return self.__dict__.get(colour + '_temp_offset', 0)
 
     def get_brew_name(self, colour: str):
         return self.__dict__.get(colour + '_name', colour)
@@ -94,6 +95,29 @@ class BridgeConfig:
         '''
         cal_vals = self.__dict__.get(colour + '_gravity_offsets')
         return cal_vals
+
+    def get_temp_offsets(self, colour: str):
+        ''' return a list of offsets
+            index 0 is 'F' or 'C'
+            each following pair 1st value = raw, 2nd value = reference point;
+                ['C', [5.5,5.0],[25.1,25.0]]
+        '''
+        cal_vals = list(self.__dict__.get(colour + '_temp_offsets'))
+        # make a new variable, not pointer to same one
+        try:
+            if cal_vals[0].upper() == 'C':
+                #convert to F
+                cal_vals.pop(0)
+                cal_vals =[[(temp * 9/5) + 32 for temp in pair] for pair in cal_vals]
+            else:
+                cal_vals.pop(0)
+        except Exception as e:
+            cal_vals = None
+            # print(e)
+            raise type(e)(f"Error in bridge config: {e}") from e
+        finally:
+            #print(f"cal vals:{cal_vals}")
+            return cal_vals
 
 
     @staticmethod

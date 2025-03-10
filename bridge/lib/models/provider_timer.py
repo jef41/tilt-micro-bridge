@@ -16,6 +16,7 @@ class UploadTimers():
     
     def add(self, provider, period, adjust=None):
         #adjust = None if adjust == 0 else adjust # ensure we don't set invalid adjustment period
+        # the initial call sends the averagin_period to adjust
         adjust = 10 if adjust == 0 else adjust # ensure we don't set invalid adjustment period, set to small value to force initial upload
         self.timer_list[provider] = self._get_new_timer(period, adjust)
     
@@ -55,14 +56,15 @@ class ProviderTimer():
         # in which case call with default_period=900, adjust=300
         self.upload_due = asyncio.Event()
         #self.upload_due.clear()
-        self.default_period = default_period*1000 if default_period else 1000 # default to 1 second if averaging set to 0
+        #self.default_period = default_period*1000 if default_period else 10000 # default to 10s secs if averaging set to 0
+        self.default_period = default_period*1000 # change to ms
         self.adjusted = False
         if adjust is not None:
             adjust = adjust*1000
             self.adjusted = True
         self.reinit(self.default_period if adjust is None else adjust)
         #self.upload_timer = Timer(period=self.default_period, mode=Timer.PERIODIC, callback=self.provider_callback)
-        logger.debug(f"timer created with period {self.default_period if adjust is None else adjust}")
+        logger.debug(f"timer created with {"adjusted" if adjust else "default"} period {self.default_period//1000 if adjust is None else adjust//1000}secs")
 
     def provider_callback(self, timer):
         # set the thread safe flag
