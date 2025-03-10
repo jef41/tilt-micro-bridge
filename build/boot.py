@@ -1,28 +1,20 @@
-''' latest change:
-        use boot.py to write main.py at the root of the fs
-    working on: 
-        RC 0.1.2
-    TODO:
-        todo refactor main & bridge lib to make more logical
-        todo remove unnecessary libs & comments
-        todo add display - ABV latest cal SG & last averaged cal SG
+import os
+# create a local /main.py if it does not exist
+try:
+    os.stat('/main.py')
+except OSError:
+    with open("/main.py", "w") as f:
+        f.write("""\
 
-    ideas:        
-    button to set into calibration mode, use different cal_config.json ?
-    display
-    
-        
-'''
-# TODO import stdlib time from mpy repo directly
-from machine import Pin
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-import asyncio
 import logging
-import gc
 from logging import TimedRotatingLogFileHandler
+from machine import Pin
+import asyncio
 import indicator
 from bridge_main import BridgeMain
 from wifi_client import WifiClient
+import gc
 
 #DEBUG_LEVEL = logging.DEBUG
 DEBUG_LEVEL = logging.INFO
@@ -41,6 +33,15 @@ async def main():
     set_global_exception()  # Debug aid
     global onboard_led # = indicator.Status() # turn on the LED status indicator
     await bridge.bridge_main(onboard_led, simulate_beacons=SIMULATE_BEACONS)
+    #await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
+
+
+async def hold_up():
+    while True:
+        await asyncio.sleep(8)
+        # feed wdt
+        if bridge.wdt:
+            bridge.wdt.feed()
 
 
 # set up root logger
@@ -102,3 +103,16 @@ else:
     
 
 __version__ = '0.1.2'
+
+""")
+
+# todo we could create a basic config.json here?
+try:
+    os.stat('/config.json')
+except OSError:
+    with open("/config.json", "w") as f:
+        f.write("""\
+{
+    enter your config here
+}
+""")
