@@ -1,7 +1,7 @@
 ''' latest change:
         use boot.py to write main.py at the root of the fs
     working on: 
-        RC 0.1.2
+        1.0.0
     TODO:
         todo refactor main & bridge lib to make more logical
         todo remove unnecessary libs & comments
@@ -99,6 +99,6 @@ if bridge.initialised():
 else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
-    
 
-__version__ = '0.1.2'
+
+__version__ = '1.0.0'

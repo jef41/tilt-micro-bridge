@@ -67,7 +67,7 @@ Subsequent data will be recorded at the logging interval. In the data above a 10
 
 ## Calculating data storage
 
-Bear in mind that a Pico and similar microcontrollers typically have limited flash storage. In development there is approximately 480kb free on the Pico. Using the UF2 release this increases somewhat to about 800kb, but storage is still limited. 
+Bear in mind that a Pico and similar microcontrollers typically have limited flash storage. In development, on a RP2040 there is approximately 480kb free on the Pico. Using the UF2 release this increases somewhat to about 800kb, the RP2350 should have about 2,500kb free, but storage is still limited. 
 
 File sizes will be calculated automatically based on available flash storage at run time. By default there are 2 debug.log files at 20kb each. Tilt-bridge will look for free space, will discount the debug.log files and any other files that will be ovewritten and calculate remaining blocks and filesize.
 

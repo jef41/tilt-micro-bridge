@@ -10,3 +10,5 @@ from providers.grainfather_custom_stream import GrainfatherCustomStreamCloudProv
 from providers.grainfather_tilt_stream import GrainfatherTiltStreamCloudProvider
 #from providers.taplistio_custom_stream import TaplistIOCloudProvider
 #from providers.azure_iothub import AzureIoTHubCloudProvider
+
+__version__ = '1.0.0'

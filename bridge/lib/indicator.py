@@ -70,3 +70,6 @@ async def test():
     await ob_led.change_rate(800,200)
     await asyncio.sleep_ms(4_500)
     await ob_led.off()
+
+
+__version__ = '1.0.0'

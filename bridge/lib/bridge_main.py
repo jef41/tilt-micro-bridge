@@ -386,3 +386,5 @@ async def debug_memory(logger):
     while True:
         await asyncio.sleep(30 * 60)
         logger.debug(f"gc: {gc.mem_free()}")
+
+__version__ = '1.0.0'

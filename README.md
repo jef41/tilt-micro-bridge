@@ -25,22 +25,24 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Calibrate Tilt readings with known good values
 * [x] Build Instructions
 * [x] UF2 release
+* [ ] LCD display
+* [ ] visual warning about low storage space
 
 # Installation
 
-Download the UF2 release (https://github.com/jef41/tilt-micro-bridge/releases) for your device - currently only Raspberry Pi Pico W is available (**Note**, not Pico 2 W).
+Download the UF2 release (https://github.com/jef41/tilt-micro-bridge/releases) for your device - either Raspberry Pi Pico W or Raspberry Pi Pico2 W.
 
 Hold down the button on the Pico whilst plugging it into a USB port on your computer.
 
-The device should appear as a mass storage device. Drag and drop the UF2 file onto the device. This file should take a few seconds to copy over. On completion the mass storage device will disappear.
+The device should appear as a mass storage device. Drag and drop the downloaded UF2 file onto the device. This file should take a few seconds to copy over. On completion the mass storage device will disappear. The green LED on the Pico should then light up.
 
 Open Thonny, issue Ctrl-F2 (to stop and restart the connection). Thonny should now display a message about execution interrupt and the REPL prompt >>>. At this point you must create the config.json file using Thonny.
 
-Create a new file (Ctrl-N). Add content and save this (Ctrl-S) on the root of the Pico as config.json. These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
+The Thonny window should show some files on the device, at the bottom left. Double click the config.json file, add content according to the documentation below and save this (Ctrl-S) on the root of the Pico as config.json. These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
 
-Perform another soft reboot (Ctrl-D) the device will restart and you should see the device output in the Thonny shell window. If this output looks OK and includes data from Tilt devices then the device is configured and may now be unplugged. 
+Perform aa soft reboot (Ctrl-D), the device will restart and you should see the device output in the Thonny shell window. If this output looks OK and includes data from Tilt devices then the device is configured and may now be unplugged. 
 
-For use the device requires only USB power, it does not necessarily need to be connected to a computer.
+Once configured and in use, the device requires only USB power, it does not necessarily need to be connected to a computer.
 
 <!--
 Install an appropriate Micropython distribution onto the microcontroller, [Instructions](https://micropython.org/download/RPI_PICO/)
@@ -63,27 +65,26 @@ Custom configurations can be used by creating a file `config.json` in the root d
 |`ssid` (str) | SSID for your wifi newtork | None | [Example config](examples/wifi.md) |
 |`password` (str) | password for your wifi newtork | None | [Example config](examples/wifi.md) |
 |`country_code` (str) | ISO 3166-1 alpha-2 character country code for wifi | `None` | [Example config](examples/wifi.md) |
-|`wifi_check_interval` (int) | Check there is a working internet conenction every n seconds | `600` | [Example config](examples/wifi.md) |
-|`debug_log` (list) | How many kb and how many debug backup files to keep | `[20, 1]` |  |
-|`averaging_period` (int) |  Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period. This default will be used if no provider averaging period is present | `600` | &nbsp; |
-| `queue_size` (int) | Max queue size for all Tilt event broadcasts.  Events are removed from the queue once all enabled providers have handled the event.  New events are dropped when the queue is maxed.  | `3` | [Example config](examples/queue/pitch.json) |
-| `queue_empty_sleep_seconds` (int) | Time in seconds Pitch will sleep when the queue reaches 0. The higher the value the less CPU time Pitch uses.  Can be 0 or negative (this disables sleep and Pitch will always run). | `1` | [Example config](examples/queue/pitch.json) |
+|`wifi_check_interval` (int) | Check there is a working internet conenction every n seconds | `3600` | [Example config](examples/wifi.md) |
+|`debug_log` (list) | How many kb in each and how many debug backup files to keep | `[20, 1]` |  |
+|`default_averaging_period` (int) |  Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period. This default will be used if no provider averaging period is present | `30` | No example yet |
+|`default_temp_unit` (char) |  The deault temperature unit to display, valid values are either `C` or `F`. This default will be used if no provider averaging period is present | `C` | No example yet |
 | `temp_range_min` (int) | Minimum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `32` | [Example config](examples/min_max.md) |
 | `temp_range_max` (int) | Maximum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `212` | [Example config](examples/min_max.md)  |
-| `gravity_range_min` (int) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | No example yet (PRs welcome!) |
-| `gravity_range_max` (int) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | No example yet (PRs welcome!) |
+| `gravity_range_min` (int) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | [Example config](examples/min_max.md) |
+| `gravity_range_max` (int) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | [Example config](examples/min_max.md) |
+| `csv_log_period` (int) | log data at intervals of this many seconds | `60` | [Example config](examples/file_csv.md) |
+| `csv_bkp_count` (int) | Keep this number of older files | `4` | [Example config](examples/file_csv.md) |
+| `csv_log_tilt_colours` (list) | List of colours of Tilt devices to log to a CSV formatted file | None | [Example config](examples/file_csv.md) |
+| `csv_log_averaging_period` (int) | Seconds of data to average over | default_averaging_period | [Example config](examples/file_csv.md) |
+| `csv_log_temp_unit` (str) | Log temperatures in °C or °F | default_temp_unit | [Example config](examples/file_csv.md) |
+| `grainfather_temp_unit` (str) | Temperature unit sent to Grainfather `F` or `C` | `C` | [Example config](examples/grainfather.md) |
 | `grainfather_custom_stream_urls` (dict) | Dict of color (key) and URLs (value), seen as a Custom device on Grainfather site | None/empty | [Example config](examples/grainfather.md) |
 | `grainfather_tilt_stream_urls` (dict) | Dict of color (key) and URLs (value), as above, but seen as a Tilt Device | None/empty | [Example config](examples/grainfather.md) |
-| `grainfather_averaging_period` (int) | Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period.  | `300` |  [Example config](examples/grainfather.md) |
-| `grainfather_temp_unit` (str) | Temperature unit `F` or `C` for Grainfather | `F` | [Example config](examples/grainfather.md) |
-|`csv_log_tilt_colours` (list) | List of colours of Tilt devices to log to a CSV formatted file | None | [Example config](examples/file_csv.md) |
-|`csv_log_averaging_period` (int) | Seconds of data to average over | averaging_period | [Example config](examples/file_csv.md) |
-|`csv_bkp_count` (int) | Keep this number of older files | `4` | [Example config](examples/file_csv.md) |
-|`csv_log_temp_unit` (str) | Log temperatures in °C or °F | `C` | [Example config](examples/file_csv.md) |
-|`csv_log_period` (int) | log data at intervals of this many seconds | `60` | [Example config](examples/file_csv.md) |
+| `grainfather_averaging_period` (int) | Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period.  | default_averaging_period |  [Example config](examples/grainfather.md) |
 | `{colour}_name` (str) | Name of your brew, where {colour} is the color of the Tilt (purple, red, etc) | colour (e.g. purple, red, etc) | [Example config](examples/per_tilt.md) |
 | `{colour}_original_gravity` (float) | Original gravity of the beer, where {color} is the color of the Tilt (purple, red, etc) | None/empty | [Example config](examples/per_tilt.md) |
-| `{colour}_temp_offset` (int) | Temperature offset to calibrate Tilt temperatures with a secondary reading [See Calibration](#Calibration) | `0` | [Example config](examples/per_tilt.md) |
+| `{colour}_temp_offsets` (list) | Temperature calibration points [See Calibration](#Calibration) | None/empty | [Example config](examples/per_tilt.md) |
 | `{colour}_gravity_offsets` (list) | Gravity calibration points [See Calibration](#Calibration)  | None/empty | [Example config](examples/per_tilt.md) |
 <!--
 | `webhook_urls` (array) | Adds webhook URLs for Tilt status updates | None/empty | [Example config](examples/webhook/pitch.json) |
@@ -124,28 +125,38 @@ Refer to the above configuration and the integration list below for details on h
 -->
 ## Calibration
 
-### Gravity
+The broadcast temperature and gravity readings from the Tilt device may be adjusted by linear interpolation, using the same method as the Tilt2 App.
 
-The gravity may be adjusted by linear interpolation using the same method as the Tilt2 App.
+You may calibrate gravity for each Tilt by colour.  At the moment, to apply and test calibration points you will need to run the device while connected to Thonny or other serial connection to observe the data. Alternatively set the config.json to use File CSV logging and run the device for a few minutes in each solution, then connect the device to Thonny and look in the CSV files for data. It is suggested to calibrate for temperature first - allowing 15 minutes for the temperature to stabilise. Then place the Tilt in known gravity solutions that are at a stable, room temperature, i.e. about 20°C. Gather all the temperature calibration points, then apply them to teh config.json, then repeat a similar process for the gravity calibration.
 
-You may calibrate gravity for each Tilt by colour.  At the moment, to apply and test calibration points you will need to run the device while connected to Thonny or other serial connection to observe the data, alternatively set the config.json to use File CSV logging and run the device for a few minutes in each solution, then connect the device to Thonny and look in the CSV files for data. 
-
-Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.100, leaving the device to settle in each. 
-
-The bridge will run and show uncalibrated values as debug messages printed to the debug.log file and to a serial terminal as they are received.
+With the bridge running it will show uncalibrated values for the first hour, printed to the debug.log file and to a serial terminal as they are received.
 
 Example output:
 
 ```
-2025-02-06 15:39:01 [TiltHistory ] [DEBUG]  uncal values recvd, temp;72.41 SG:1.0246
+    data: blue SG:1.0246 72.41°F
 ```
 
 Once the value is stable, write down this uncalibrated value and repeat the process with the next solution. 
 
+### Temperature
+
+The Tilt takes about 15 minutes to equilibrate with the temperature of a solution. You will need locations where you can maintain a solution at a stable temperature for at elast this amount of time. Insert the Tilt into a liquid at a stable temperature, wait for it to equilibrate then make a note of the Tilt reading and the solution temperature. Repeat as required at different temperature points. Once you have the required readings, enter the values into the config.json, using the colour of the Tilt, e.g.:
+
+```
+    "blue_temp_offsets" : [ "C", [4.8,5.0], [49.3,50.0] ],
+```
+
+Note the first list entry identifies the units used for calibration - in this case celsius. In subsequent pairs, the first reading is that received from the Tilt, the second is the known temperature of the liquid.
+
+### Gravity
+
+Insert the Tilt into solutions of known gravity, e.g. 1.000, 1.060, 1.100, leaving the device to settle in each. 
+
 Add the uncalibrated values and their associated calibration points to the config file, using the correct colour code for the Tilt, e.g.:
 
 ```
-    "blue_gravity_offsets" : [[1.005,1.000], [1.090,1.100], [1.060,1.060]],
+    "blue_gravity_offsets" : [ [1.005,1.000], [1.090,1.100], [1.060,1.060] ],
 ```
 
 **Note** that for each pair, the first value is the (uncalibrated) reading from the debug messages, the second value is the calibration point.
@@ -156,18 +167,15 @@ As per the Tilt instructions it is suggested that you have at least 2 calibratio
 
 These calibration points are not stored on the Tilt, but in the Pico. This is also true of the Tilt2 App and the TiltPi setup. You can therefore alternatively use, say the Tilt2 App to view the uncalibrated readings.
 
-### Temperature
-
-Temperature has a single offset value which is expressed in degrees Farenheit. This feature may be useful if you wish to negate or average the temperature gradient between the top and the bottom of the fermenter. 
-
-The process for calculating the temperature offset is as per Gravity point calibration, i.e. maintain the device at a stable, known temperature and observe the output from the Tilt from a serial port connection or the debug.log file.
 
 ## Running without a Tilt
 
-If you want to run tilt-bridge for development, or without a Tilt you can use the `simulate_beacons` flag to create fake
-beacon events instead of scanning for Tilt events via Bluetooth.  Edit tiltPitch.py to set simulate_beacons to `True` or `False`. The default is False (i.e. listen for iBeacon bluetooth transmissions)
+If you want to run tilt-mico-bridge for development, or without a Tilt you can use the `SIMULATE_BEACONS` flag to create fake beacon events instead of scanning for Tilt events via Bluetooth.  Edit main.py to set simulate_beacons to `True` or `False`. The default is False (i.e. listen for iBeacon Bluetooth transmissions). There is also a debug level that may be set. These are declared in the first few lines of main.py
 
-`await bridge.bridge_main(onboard_led, providers=None, simulate_beacons=True)`
+```
+DEBUG_LEVEL = logging.INFO
+SIMULATE_BEACONS = False
+```
 
 # Status LED
 
@@ -277,7 +285,17 @@ The log file name will be `{colour}.csv`. If beer name is included in the config
 
 If original gravity for the beer is not detailed in the config file then ABV and apparent attenuation will not be present.
 
-**Note** The Pico has limited flash storage, some of which is used for the program files. RP2040 devices are available with more flash storage, but if using CSV logging it is recommended to remove old files before starting a new logging session. Old files with the same name will be overwritten. See [the CSV File examples](examples/file_csv.md) for more detail.
+When ABV is calculated, the calculation is the longer formula. This is more accurate at higher ABV values than the shorter formula (which is used by the Tilt2 App).
+
+#### 'Quick' ABV Formula:
+
+ABV = (OG – FG) * 131.25
+
+#### More accurate ABV Formula:
+
+ABV = (76.08 * (OG - FG) / (1.775 - OG)) * (FG / 0.794)
+
+**Note** The Pico has limited flash storage, some of which is used for the program files. RP2350 &amp; RP2040 devices are available with more flash storage, but if using CSV logging it is recommended to remove old files before starting a new logging session. Old files with the same name will be overwritten. See [the CSV File examples](examples/file_csv.md) for more detail.
 
 <!--
 ## InfluxDB Metrics
@@ -342,23 +360,32 @@ To setup, first log in into Grainfather then go to the section My Equipment. Cli
 <img src="./misc/gf_add_device.png" alt="Add Device options shown by Grainfather website" height="400px">
 
 Select either the **Custom** or **Tilt Wireless Hydrometer and Thermometer** option. Set the name for a Custom device, or select the colour if you used the Tilt option. Save. Now click the "i" (info) button next to the device and copy this URL into pitch.config. See [the Grainfather Provider examples](examples/grainfather.md) for more detail.
+
 ## Program Flow
 
-In its default state, at startup the software will first look for and validate a file called config.json, this must be located in the root folder of the file system on the device.
+At startup the device will look for a file named main.py on the root of the device. If not found, it will be created and populated. It will then look for config.json, if not found a generic (but invalid) config.json will be created.
 
-Once the configuration has loaded the Pico will look to see if wifi crenedtials have been specified. If they have been specified then the device will try to connect to the specified network. If no wifi credentials are present the device will disable all but the CSV file provider.
+The software will then start from main.py and will look for and validate /config.json, this must be located in the root folder of the file system on the device. If the configuration file is invalid the device will halt.
+
+Once the configuration has loaded the Pico will look to see if wifi credentials have been specified. If they have been specified then the device will try to connect to the network. If no wifi credentials are present the device will disable all but the CSV file provider, then continue.
 
 The devices and providers detailed in config.json will be provisioned (though if no wifi is present all but CSV file provider will be ignored).
 
-The Pico will start to listen for Tilt devices using bluetooth. As data is received it will be stored on a queue of data points. 
+The Pico will start to listen for Tilt devices using Bluetooth. As data is received it will be stored on a queue of data points. 
 
-At the specified upload intervals data will be retrieved from the queue, averaging, calibration and conversion applied as specified from the configuration, and a value stored or uploaded to the provider.
+At the specified upload intervals data will be retrieved from the queue. Averaging, calibration and conversion will then be applied as specified from the configuration, and a value stored or uploaded to the provider(s).
 
 If the Pico is plugged in to a USB port on a computer you may use either Thonny or a serial terminal (e.g. Putty) to observe messages from the Pico. In its default state received Tilt data will be displayed for the first hour - this is intended to help the calibration process. 
 
 ## Developing
 
-The UF2 release contains all the necessary code, pre-compiled into .mpy and frozen into the UF2. If you wish to develop/play/test things it is suggested that you use a standard UF2 release (e.g. from https://micropython.org/download/rp2-pico-w/rp2-pico-w-latest.uf2) then manually copy the whole folder and contents **/bridge/lib** and the file **main.py** to the root of the Pico filesystem. This will result in reduced filespace, but allows for easier development and testing. It should be the case that you may use the UF2 release from this repo and any files saved in the Pico filesystem override those froren into the UF2, but I have read comments that this does not work for main.py
+The UF2 release contains all the necessary code, pre-compiled into .mpy and frozen into the UF2 (hidden). If you wish to develop/play/test things it is suggested that you manually copy the whole folder and contents **/bridge/lib** to the root of the Pico filesystem. This will result in reduced filespace for CSV files, but allows for development and testing. 
+
+It is worth noting that the UF2 release will automatically (re)create main.py if it is not present. To disable this autorun file, rename `main.py` to, for example `tilt-micro-bridge.py` then create a new `main.py` that contains:
+
+```
+print("new main, done.")
+```
 
 More information on drag and drop setup and links to standard releases are available on the [Raspberry Pi website](https://www.raspberrypi.com/documentation/microcontrollers/micropython.html#drag-and-drop-micropython)
 
