@@ -101,6 +101,7 @@ class CSVFileProvider(BridgeProviderBase):
                 status, wait_for = [None, None] 
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)
                 if tempF and SG:
+                    hd = True if SG > 2 else False
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
                     # data offsets/calibration is applied here in TiltStatus
                     
@@ -117,7 +118,9 @@ class CSVFileProvider(BridgeProviderBase):
             return [status, wait_for]
 
     def _get_new_logger(self, colour, f_name, max_bytes):
-        return CSVLogger(colour, f_name, max_bytes, self.temp_unit, self.csv_bkp_count) 
+        og_val = self.bridge_config.get_original_gravity(colour)
+        # print(f"***  OG val {og_val}")
+        return CSVLogger(colour, f_name, max_bytes, self.temp_unit, self.csv_bkp_count, og_val) 
         
     def _get_colour_dict(self):
         # takes list of colours
@@ -133,7 +136,7 @@ class CSVFileProvider(BridgeProviderBase):
                 #print(lower_colour)
                 brew_name = self.bridge_config.get_brew_name(lower_colour)
                 # if we have a beer name then add to the dict
-                if brew_name.lower() == lower_colour:
+                if all ([brew_name, brew_name.lower() == lower_colour]):
                     normalised_colours[lower_colour] = lower_colour + ".csv"
                 else:
                     normalised_colours[lower_colour] = brew_name + ".csv"
@@ -197,7 +200,7 @@ class CSVLogger():
         if we have > 1 Tilt storage space will be an issue - manual or auto handling
         of max file size?
     '''
-    def __init__(self, colour, fname, size_b, temp_unit, csv_bkp_count):
+    def __init__(self, colour, fname, size_b, temp_unit, csv_bkp_count, og_val):
         self.temp_unit = temp_unit
         self.tilt_log = logging.getLogger(colour)
         logFormatter = logging.Formatter("%(asctime)s, %(message)s")
@@ -205,9 +208,11 @@ class CSVLogger():
         logFileHandler = TimedRotatingLogFileHandler(fname, size_b, csv_bkp_count, 900)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
-        logger.info(f"{colour} Tilt: {fname} logger added")# {size_b/1024}kb per file")
-        namestr = ": " if fname[:-4] == colour else ": " + fname[:-4] # if present add beer name
-        self.tilt_log.info(f"{colour[0].upper() + colour[1:].lower()} Tilt{namestr} logger added")
+        logger.info(f"logger added: {colour} Tilt: {fname}")# {size_b/1024}kb per file")
+        namestr = ":" if fname[:-4] == colour else ": " + fname[:-4] # if present add beer name
+        og_str = f" OG{og_val}" if og_val else ""
+        
+        self.tilt_log.info(f"logger added: {colour[0].upper() + colour[1:].lower()} Tilt{namestr}{og_str}")
         self.initial = True
     
     def log_data(self, tilt_status):
@@ -231,12 +236,12 @@ class CSVLogger():
             self.tilt_log.info(f"Header: {tilt_status.colour[0].upper() + tilt_status.colour[1:].lower()} Tilt{namestr}\n{units}")
             # log field names/units
             self.initial = False
-        
+        n = 4 if tilt_status.hd else 3
         if self.temp_unit == "C":
             temp = str(f"{tilt_status.temp_celsius:.1f}") + ", "
         else:
             temp = str(f"{tilt_status.temp_fahrenheit:.1f}") + ", "
-        gravity = (f"{tilt_status.gravity:.4f}") + ", "
+        gravity = (f"{tilt_status.gravity:.{n}f}") + ", "
         abv = str(f"{tilt_status.alcohol_by_volume:.2f}") + ", " if tilt_status.original_gravity else ""
         attenuation = str(f"{tilt_status.apparent_attenuation:.2f}") + ", " if tilt_status.original_gravity else ""
         out_str = f"{abv}{attenuation}{temp}{gravity}"

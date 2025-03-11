@@ -5,19 +5,18 @@ from .json_serialize import JsonSerialize
 import time
 
 class TiltStatus(JsonSerialize):
-    
+    # class to process/format Tilt data from beacon or in/out of data store
+    # apply_calibration=False means store the uncalibrated sample, this should be done when saving data
     def __init__(self, colour, uncal_temp_fahrenheit, uncal_SG, config: BridgeConfig, apply_calibration=True):
-        # class to process/format Tilt data from beacon or in/out of data store
-        # apply_calibration=False means store the uncalibrated sample, this should be done when saving data
         self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
         self.hd = uncal_SG > 2  # Tilt Pro?
-        #print(f"self.hd: {self.hd}, {uncal_SG}")
+        # print(f"***  self.hd: {self.hd}, {uncal_SG:.3f}")
         # With Tilt Pro values have more precision, which has to be adjusted
         if self.hd:
             uncal_SG /= 10
-            uncal_temp_fahrenheit /= 10
+        uncal_temp_fahrenheit /= 10
         #print(f"***  uncal: {uncal_SG}")
         if apply_calibration:
             # apply calibration, if present
@@ -32,9 +31,9 @@ class TiltStatus(JsonSerialize):
             #vals=config.get_gravity_offsets(colour)
             #print(f"***  cal vals {colour} {vals}")
             self.gravity = TiltStatus.apply_cal(uncal_SG, config.get_gravity_offsets(colour))
-            # self.gravity = round(self.gravity, 4) if self.hd else round(self.gravity, 3)
-            # TODO SD/HD is lost when saving to store, fix it (probably in History)
-            self.gravity = round(self.gravity, 4)
+            self.gravity = round(self.gravity, 4) if self.hd else round(self.gravity, 3)
+            # TODO DONE ? SD/HD is lost when saving to store, fix it (probably in History)
+            # self.gravity = round(self.gravity, 4)
             #print(f"***    cal: {self.gravity} from uncal: {uncal_SG}")
         else:
             self.temp_fahrenheit = uncal_temp_fahrenheit

@@ -5,7 +5,6 @@ try:
 except OSError:
     with open("/main.py", "w") as f:
         f.write("""\
-
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
 import logging
 from logging import TimedRotatingLogFileHandler
@@ -17,6 +16,7 @@ from wifi_client import WifiClient
 import gc
 
 #DEBUG_LEVEL = logging.DEBUG
+#SIMULATE_BEACONS = True
 DEBUG_LEVEL = logging.INFO
 SIMULATE_BEACONS = False
 
@@ -93,7 +93,8 @@ if bridge.initialised():
     except Exception as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
-        print("...stopped: Tilt Scanner ({})".format(e))
+        print(f"...stopped: Tilt Scanner ({e})")
+        raise e
     finally:
         asyncio.new_event_loop()  # Clear retained state
         onboard_led.off()
@@ -102,7 +103,7 @@ else:
     onboard_led.on()
     
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
 """)
 

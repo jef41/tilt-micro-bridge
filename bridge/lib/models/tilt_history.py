@@ -173,19 +173,21 @@ class TiltRingBuffer:
         if num_results:
             #t3 = time.ticks_ms()
             min = 9900 if self.hd else 990
-            rnd = 0 if self.hd else 1
-            avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
+            #rnd = 0 if self.hd else 1
+            #avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
+            avg_sg = round((sum_sg / num_results ) , 0) + min
             avg_tempf = round(sum_tempf / num_results, 1)
-            if self.hd:
-                avg_sg /= 10
-                avg_tempf = round(avg_tempf / 10, 1) #10
+            #if self.hd: TEST don't need this here, TiltStatus does this
+            #    avg_sg /= 10
+            #    avg_tempf = round(avg_tempf / 10, 1) #10
             #todo get colour index for debug statement
-            logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.1f} SG:{avg_sg*0.001:.4f}")
+            n = 4 if self.hd else 3
+            logger.debug(f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.1f} SG:{avg_sg*0.001:.{n}f}")
             #averaged_data = TiltStatus(colour, avg_tempf, avg_sg, config)
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
             #logger.debug(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
-            return [avg_tempf, avg_sg*0.001]
+            return [avg_tempf, avg_sg*0.01]
         else:
             logger.debug("no matches (get_average)")
             return [None, None]
@@ -238,17 +240,13 @@ class TiltRingBuffer:
             logger.debug(f"Error in get_most_recent: {e}")
             raise e
         if num_results:
-            '''#min = 9900 if self.hd else 990
-            min = 9900 # always saved as 1.xxx(x)
-            multiplier = 0.0001 #if self.hd else 0.001
-            logger.debug(f"{num_results} most recent uncal value, temp;{temp_match*0.1} SG:{(sg_match+min)*multiplier}")
-            return [temp_match*0.1, (sg_match+min)*multiplier]
-            '''
-            
             min = 9900 if self.hd else 990
-            multiplier = 0.1 if self.hd else 1
-            sg_match = ((sg_match+min) * multiplier) * 0.001
-            temp_match = temp_match * multiplier
+            #multiplier = 0.1 if self.hd else 1
+            #sg_match = ((sg_match+min) * multiplier) * 0.001
+            #temp_match = temp_match * multiplier
+            temp_match = temp_match * 0.1
+            sg_match = (sg_match+min) * 0.001
+            
             logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.1f} SG:{sg_match:.4f}")
             return [temp_match, sg_match]
             

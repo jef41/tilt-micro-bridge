@@ -1,4 +1,6 @@
 ''' central handler holds most coros & passes data between
+    1.0.1 use enabled_tilts instead of colours_enabled - needs test
+    TODO track how to store HD or SD
 '''
 import logging
 import gc
@@ -19,6 +21,13 @@ from configuration import BridgeConfig
 from models.provider_timer import UploadTimers
 gc.collect()
 
+class TiltDevice:
+    def __init__(self, colour):
+        self.colour = colour
+        self.rssi = None
+        self.hd = None
+        self.extended = None
+
 class BridgeMain():
     logger = logging.getLogger('bridge')
 
@@ -30,7 +39,7 @@ class BridgeMain():
         self.handler = None					 # reference to data handler task
         self.scanner = None					 # reference to bluetooth scanner task
         self.enabled_providers = list()
-        self.enabled_colours = list()
+        self.enabled_tilts = list()
         self.rtc = None
         self.wdt = None
         self.onboard_led = None
@@ -52,7 +61,7 @@ class BridgeMain():
     def initialised(self):
         return self.rtc
 
-    async def bridge_main(self, onboard_led, simulate_beacons: bool = False):
+    async def bridge_main(self, onboard_led, simulate_beacons:bool=False):
         gc.collect()
         self.onboard_led = onboard_led
         #if providers is None:
@@ -68,6 +77,7 @@ class BridgeMain():
         # Start cloud providers
         self.logger.info("Starting...")
         asyncio.create_task(self._init_watchdog())
+        # set log flush timer
         asyncio.create_task(BridgeMain._force_logging())
         # get configured providers & associated Tilt device colours
         for provider in self.providers:
@@ -77,19 +87,23 @@ class BridgeMain():
                 if not provider__start_message:
                     provider__start_message = ''
                 self.logger.info(f"...started: {provider} {provider__start_message}")
-                # find configured colours
+                # find configured colours, or add to list
+                #if colour not in self.enabled_tilts:
+                #	if colour not in self.enabled_tilts.get('colour'):
+                #    self.enabled_tilts.append(colour)
                 for colour in provider.col_dest.keys():
-                    if colour not in self.enabled_colours:
-                        self.enabled_colours.append(colour)
+                    #if not next((device for device in self.enabled_tilts if device.colour == colour), None):
+                    if not any(device.colour == colour for device in self.enabled_tilts):
+                        self.enabled_tilts.append(TiltDevice(colour))
         
         # for debug, intermittently log memory usage/leak
-        if logging.getLogger().level < 20:
+        if logging.getLogger().level < logging.INFO:
             asyncio.create_task(debug_memory(self.logger))
         
         # size the TiltHistory object for each colour accordingly
         # and create upload timers
         gc.collect()
-        self.data_archive = TiltHistory(max_av_period(self.enabled_providers, self.enabled_colours))
+        self.data_archive = TiltHistory(max_av_period(self.enabled_providers, self.enabled_tilts))
         self.logger.info(f"Received Tilt data packets will be printed to stdout for {self.data_archive.results_secs}secs")
         try:
             for provider in self.enabled_providers:
@@ -144,7 +158,7 @@ class BridgeMain():
                 except NameError:
                     from random import randrange
                     col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1,'big')
-                major = (randrange(700, 750)).to_bytes(2,'big') # (500, 850) HD ->SD (50, 85)
+                major = (randrange(700, 750)).to_bytes(2,'big') # (500, 850) HD/SD (500, 850)
                 minor = (randrange(10150, 10350)).to_bytes(2,'big') # (10050, 10450) HD -> SD (1005, 1045)
                 pre = b'\x02\x01\x04\x1a\xffL\x00\x02\x15\xa4\x95\xbb'
                 post = b'\xc5\xb1KD\xb5\x12\x13p\xf0-t\xde'
@@ -174,18 +188,10 @@ class BridgeMain():
                     try:
                         async for result in scanner:
                             if result.adv_data and result.adv_data[5:11] == iBeacon_prefix:
-                                #print("match")
-                                #rssi = result.rssi
                                 # Extract and process iBeacon data
-                                #await _beacon_callback(iBeacon_data, rssi, simulate)
-                                #print(f"RSSI:{result.rssi}")
                                 iBeacon_data = iBeaconStatus(result.adv_data, result.rssi, result.device.addr_hex())
                                 #print(iBeacon_data)
                                 await self._beacon_callback(iBeacon_data, simulate)
-                            #else:
-                            #    if result.name():
-                            #        #print(dir(result.manufacturer()))
-                            #        print(f"{list(result.services())} name: {result.name()}")
                          
                     except AttributeError:
                         #logger.info(f"scanner result is:{result} scanner is:{scanner}")
@@ -208,6 +214,7 @@ class BridgeMain():
             # iBeacon packets have major/minor attributes with data
             # major = degrees in F (int)
             # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
+            #hd = True if sg_float > 2 else False
             beacon_data = TiltStatus(iBeacon_packet.colour,
                                      iBeacon_packet.major,
                                      BridgeMain._get_decimal_gravity(iBeacon_packet.minor),
@@ -217,49 +224,60 @@ class BridgeMain():
             #logger.info("cb_tilt_status is:{} bytes".format(start - gc.mem_free()))
             #logger.info("debug: tilt_status:\n{}".format(dir(tilt_status)))
             if not beacon_data.temp_valid:
-                self.logger.warning(f"Ignoring broadcast due to invalid temperature: {beacon_data.temp_fahrenheit:.1f}°F")
+                self.logger.warning(f"Ignoring broadcast due to invalid temperature: {beacon_data.temp_fahrenheit:.2g}°F")
             elif not beacon_data.gravity_valid:
-                self.logger.warning(f"Ignoring broadcast due to invalid gravity: {beacon_data.gravity:.4f}" )
+                self.logger.warning(f"Ignoring broadcast due to invalid gravity: {beacon_data.gravity:.5g}" )
             else:
-                # seems to be a valid packet, if 1st packet, make a note
+                # seems to be a valid packet
+                # update tilt_enabled dict with RSSI
+                try:
+                    match_device = next(device for device in self.enabled_tilts if device.colour == iBeacon_packet.colour)
+                    match_device.rssi = iBeacon_packet.rssi
+                    match_device.hd = beacon_data.hd
+                    match_device.extended = True if beacon_data.original_gravity else False
+                except StopIteration:
+                    match_device = None
                 # peekq returns a memoryview - if it is all 0 then this is the first packet
+                # if 1st packet, make a note
                 if ( self.data_archive.ringbuffer_list[beacon_data.colour] and
                      all(b == 0 for b in self.data_archive.ringbuffer_list[beacon_data.colour].peekq()[0:7])
                    ):
                     self.logger.info(f"received from new Tilt; {beacon_data.colour[0].upper() + beacon_data.colour[1:]}, MAC:{iBeacon_packet.mac}, RSSI:{iBeacon_packet.rssi}" )
                 if self.data_archive.print_raw:
                     # check if we should print raw values to std out as they are received (useful for calibration)
-                    print(f"data: {iBeacon_packet.colour} SG:{beacon_data.gravity:.4f} {beacon_data.temp_fahrenheit:.1f}°F")
+                    n = 4 if beacon_data.hd else 3
+                    print(f"data: {iBeacon_packet.colour} SG:{beacon_data.gravity:.{n}f} {beacon_data.temp_fahrenheit:.1f}°F")
                 
                 try:
                     #await bridge_q.put(beacon_data)
                     # add raw to data archive (for size, storing integer values for Temp & Gravity 1040, not 1.040 not calibrated vals))
                     self.data_archive.add_data(iBeacon_packet.colour, iBeacon_packet.major, iBeacon_packet.minor, time.time())
                     #logger.info(f"added:{colour}, {major}, {minor}, {time.time()}")
+                        
                 except Exception as e:
                     self.logger.error(f"queue put error: {e}")
                     raise
                 #logger.info("{}\t beacon packet received".format(beacon_data.timestamp))
         else:
-            # if simulated !+ true then warn about unconfigured Tilt
+            # if simulated != true then warn about unconfigured Tilt
             if simulated == False:
                 self.logger.warning(f"data received for an unconfigured Tilt: {colour}")
             #pass
 
 
-    async def _handle_bridge_queue(self): #enabled_providers: list): #, console_log: bool):
+    async def _handle_bridge_queue(self): 
         # job to process the queue of data
         try:
-            #tilt_status = await bridge_q.get() #blocks until data available
             await asyncio.sleep_ms(10) 
             for provider in self.enabled_providers:
                 #if provider.update_in_progress:
                 #    self.logger.debug(f"{provider} update already in progress")
                 if self.provider_timers.upload_is_due(provider): # and not provider.update_in_progress:
                     self.logger.debug(f"update due for {provider}")
-                    #await upload_task
+                    #await upload_task TODO call with a timeout?
                     response_code, wait_for_secs = await provider.update()
                     # provider.update must return 2 values, code & wait - can be None
+                    # TODO more generic handling of response codes, or handle them per provider - pass provider_timer to provider
                     if response_code == 429 and wait_for_secs > 0:
                         #todo: if wait_for is 0 then when do we retry?
                         #logger.debug(f"adjust timer: {wait_for_secs}")
@@ -352,31 +370,25 @@ class BridgeMain():
         return result
 
 
-def max_av_period(providers, colours):
+def max_av_period(providers, tilt_devices):
     #return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
-    # called once per colour?
     col_max = {}
-    max_av = 30
+    max_av = 30 # set a minimum store size of 30 readings
     try:
         for provider in providers:
             #print(f"***  colours {colours}")
-            for colour in colours:
+            for device in tilt_devices:
                 # print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
-                if colour in provider.col_dest.keys() and provider.averaging_period > max_av:
-                    # print(f"***   colour match: {colour}")
-                    #max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
-                    # keep a minimum of 30 secs worth or readings
-                    #max_av = provider.averaging_period + 1 if max_av < 30 else max_av
-                    #col_max[colour] = max_av
+                if device.colour in provider.col_dest.keys() and provider.averaging_period > max_av:
                     max_av = provider.averaging_period
                     #print(f"***   {col_max}")
                 else:
                     #print(f"***   no match {colour} av_period {provider.averaging_period}")
                     pass
-            col_max.update({colour: max_av})
+            col_max.update({device.colour: max_av})
     except Exception as e:
-        self.logger.error(f"max_av_period error: {e}")
+        #logger.error(f"max_av_period error: {e}")
         raise
     #print(f"col_max: {col_max}")
     return col_max
@@ -387,4 +399,4 @@ async def debug_memory(logger):
         await asyncio.sleep(30 * 60)
         logger.debug(f"gc: {gc.mem_free()}")
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'

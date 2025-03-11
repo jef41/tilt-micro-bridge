@@ -1,5 +1,8 @@
 ''' latest change:
-        use boot.py to write main.py at the root of the fs
+        cols_enabled to tilt_devices .colour .rssi .hd .extended
+        TiltStatusincludes HD
+        CSV header includes OG if present
+        CSV format correct number of places HD/SD
     working on: 
         1.0.0
     TODO:
@@ -13,18 +16,18 @@
     
         
 '''
-# TODO import stdlib time from mpy repo directly
-from machine import Pin
 import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
-import asyncio
 import logging
-import gc
 from logging import TimedRotatingLogFileHandler
+from machine import Pin
+import asyncio
 import indicator
 from bridge_main import BridgeMain
 from wifi_client import WifiClient
+import gc
 
 #DEBUG_LEVEL = logging.DEBUG
+#SIMULATE_BEACONS = True
 DEBUG_LEVEL = logging.INFO
 SIMULATE_BEACONS = False
 
@@ -41,6 +44,15 @@ async def main():
     set_global_exception()  # Debug aid
     global onboard_led # = indicator.Status() # turn on the LED status indicator
     await bridge.bridge_main(onboard_led, simulate_beacons=SIMULATE_BEACONS)
+    #await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
+
+
+async def hold_up():
+    while True:
+        await asyncio.sleep(8)
+        # feed wdt
+        if bridge.wdt:
+            bridge.wdt.feed()
 
 
 # set up root logger
@@ -92,13 +104,14 @@ if bridge.initialised():
     except Exception as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
-        print("...stopped: Tilt Scanner ({})".format(e))
+        print(f"...stopped: Tilt Scanner ({e})")
+        raise e
     finally:
         asyncio.new_event_loop()  # Clear retained state
         onboard_led.off()
 else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
+    
 
-
-__version__ = '1.0.0'
+__version__ = '1.0.1'
