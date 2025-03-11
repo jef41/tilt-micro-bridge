@@ -32,19 +32,22 @@ class CSVFileProvider(BridgeProviderBase):
     def __init__(self, config: BridgeConfig):
         self.bridge_config = config
         #self.temp_unit = CSVFileProvider._get_temp_unit(config)
-        self.temp_unit = self._get_temp_unit(self.bridge_config)
+        #self.temp_unit = self._get_temp_unit(self.bridge_config)
+        self.temp_unit = config.get_temp_unit("csv_log_temp_unit")
         self.col_dest = self._get_colour_dict() # colour:filename.csv
         self.str_name = f"CSV Logger"
         self.log_pvdr = logging.getLogger(self.str_name)
         self.csv_loggers = dict() # collection of loggers
         self.rate = 1 # self.bridge_config.csv_log_rate
         self.csv_bkp_count = config.csv_bkp_count
-        self.period = self.bridge_config.csv_log_period  # seconds
         self.upload_timer = None
-        try:
-            self.averaging_period = self.bridge_config.csv_log_averaging_period
-        except AttributeError:
-            self.averaging_period = self.bridge_config.averaging_period
+        self.period = self.bridge_config.csv_log_period  # seconds
+        #self.averaging_period = self.bridge_config.averaging_period
+        self.averaging_period = self.bridge_config.get_averaging_period("csv_log_averaging_period")
+        #try:
+        #    self.averaging_period = self.bridge_config.csv_log_averaging_period
+        #except AttributeError:
+        #    self.averaging_period = self.bridge_config.averaging_period
         #self.log_pvdr.csv_timer = Timer(
         #    mode=Timer.ONE_SHOT, period=30_000, callback=self._timeout_callback
         #)
@@ -162,7 +165,7 @@ class CSVFileProvider(BridgeProviderBase):
         # TODO test if log size is unfeasibly small & alert/error fail
         return max_size_bytes
 
-    @staticmethod
+    '''@staticmethod
     def _get_temp_unit(config: BridgeConfig):
         temp_unit = config.csv_log_temp_unit.upper()
         if temp_unit == "C":
@@ -170,6 +173,7 @@ class CSVFileProvider(BridgeProviderBase):
         elif temp_unit == "F":
             return "F"
         raise ValueError("temperature scale used by File provider must be F or C")
+    '''
     
     @staticmethod
     def _get_filenames(logger_name=logging.getLogger()):

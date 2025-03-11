@@ -1,0 +1,104 @@
+''' latest change:
+        use boot.py to write main.py at the root of the fs
+    working on: 
+        RC 0.1.2
+    TODO:
+        todo refactor main & bridge lib to make more logical
+        todo remove unnecessary libs & comments
+        todo add display - ABV latest cal SG & last averaged cal SG
+
+    ideas:        
+    button to set into calibration mode, use different cal_config.json ?
+    display
+    
+        
+'''
+# TODO import stdlib time from mpy repo directly
+from machine import Pin
+import time # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
+import asyncio
+import logging
+import gc
+from logging import TimedRotatingLogFileHandler
+import indicator
+from bridge_main import BridgeMain
+from wifi_client import WifiClient
+
+#DEBUG_LEVEL = logging.DEBUG
+DEBUG_LEVEL = logging.INFO
+SIMULATE_BEACONS = False
+
+def set_global_exception():
+    def handle_exception(loop, context):
+        import sys
+        sys.print_exception(context["exception"])
+        sys.exit()
+    loop = asyncio.get_event_loop()
+    loop.set_exception_handler(handle_exception)
+
+
+async def main():
+    set_global_exception()  # Debug aid
+    global onboard_led # = indicator.Status() # turn on the LED status indicator
+    await bridge.bridge_main(onboard_led, simulate_beacons=SIMULATE_BEACONS)
+
+
+# set up root logger
+logFormatter = logging.Formatter("%(asctime)s [%(name)-12.12s] [%(levelname)-5.5s]  %(message)s")
+# initial log files size limit 10kb, overwritten after config loaded
+log_max_kb = 12
+log_nbr_backups = 1
+fileHandler = TimedRotatingLogFileHandler("debug.log", (log_max_kb * 1024), log_nbr_backups, write_secs=300)
+fileHandler.setFormatter(logFormatter)
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+
+logger = logging.getLogger() # root logger
+logger.handlers = [] # this is necessary
+logger.addHandler(fileHandler)
+logger.addHandler(consoleHandler)
+logger.setLevel(DEBUG_LEVEL)
+
+logger.info("***  Startup")
+gc.collect()
+gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
+
+onboard_led = indicator.Status() # turn on the LED status indicator
+onboard_led.on()
+bridge = BridgeMain()
+
+if bridge.initialised():
+    # re-assign max log size from config
+    log_max_kb = bridge.config.debug_log[0] if bridge.config else 10
+    log_nbr_backups = bridge.config.debug_log[1] if bridge.config else 1
+    logger.handlers[0].max_file_size_in_bytes = log_max_kb * 1024
+    logger.handlers[0].number_of_backup_files = log_nbr_backups
+    # test if wifi creds included,
+    wifi = WifiClient(bridge.config)
+    if wifi.has_config:
+        asyncio.run(wifi.connect(onboard_led))
+    # set system time - could have a UTC offset in config, but time is only used internally at the moment
+    bridge.get_time()
+    # provision the providers referenced in config.json, called here so the wifi referrnce doesn't have to be passed around
+    bridge.set_providers(wifi.has_config)
+    
+    # enter main loop
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt as e:
+        for provider in bridge.provider_timers.timer_list.keys():
+            bridge.provider_timers.stop(provider)
+        print("...stopped: Tilt Scanner (keyboard interrupt)")
+    except Exception as e:
+        for provider in bridge.provider_timers.timer_list.keys():
+            bridge.provider_timers.stop(provider)
+        print("...stopped: Tilt Scanner ({})".format(e))
+    finally:
+        asyncio.new_event_loop()  # Clear retained state
+        onboard_led.off()
+else:
+    # hold here, cannot proceed, error with config.json
+    onboard_led.on()
+    
+
+__version__ = '0.1.2'

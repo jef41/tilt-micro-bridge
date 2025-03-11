@@ -1,8 +1,4 @@
-''' works in principle with async 
-    could look at running wifi from core1 - doesn't seem to work
-    look at running ble collection on core1
-    nearly at __version__ 1.0.0
-        requires some code tidying - remove comments & old commented out code that is not used
+''' central handler holds most coros & passes data between
 '''
 import logging
 import gc
@@ -56,13 +52,13 @@ class BridgeMain():
     def initialised(self):
         return self.rtc
 
-    async def bridge_main(self, onboard_led, providers, simulate_beacons: bool = False):
+    async def bridge_main(self, onboard_led, simulate_beacons: bool = False):
         gc.collect()
         self.onboard_led = onboard_led
-        if providers is None:
-            self.providers = self.get_providers()
-        else:
-            self.providers = providers
+        #if providers is None:
+        #    self.providers = self.set_providers()
+        #else:
+        #    self.providers = providers
         # add any webhooks defined in config
         # todo !! not currently implemented/tested
         self.webhook_providers = self._get_webhook_providers()
@@ -80,7 +76,7 @@ class BridgeMain():
                 provider__start_message = provider.start() #todo look into this
                 if not provider__start_message:
                     provider__start_message = ''
-                self.logger.info("...started: {} {}".format(provider, provider__start_message))
+                self.logger.info(f"...started: {provider} {provider__start_message}")
                 # find configured colours
                 for colour in provider.col_dest.keys():
                     if colour not in self.enabled_colours:
@@ -125,7 +121,7 @@ class BridgeMain():
             print('Trapped cancelled error.')
             raise
         except KeyboardInterrupt:
-            # todo: is this actioned here? investigate
+            # this is not usually actioned here, calling async coro captures the KB interrupt
             print("cancelling tasks...")
             self.handler.cancel()
             self.scanner.cancel()
@@ -165,9 +161,9 @@ class BridgeMain():
                     await task # then wait for task to complete
                     #res = await asyncio.gather(t1,t2, return_exceptions=True)
                 except asyncio.TimeoutError:  # These only happen if return_exceptions is False
-                    print('Timeout')  # With the default times, cancellation occurs first
+                    logger.warning('scanner Timeout')  # With the default times, cancellation occurs first
                 except asyncio.CancelledError:
-                    print('Cancelled')
+                    logger.warning('scanner Cancelled')
                 #asyncio.sleep_ms(randrange(100, 750))
                 #pckt_complete = True
             else:
@@ -179,9 +175,10 @@ class BridgeMain():
                         async for result in scanner:
                             if result.adv_data and result.adv_data[5:11] == iBeacon_prefix:
                                 #print("match")
-                                rssi = result.rssi
+                                #rssi = result.rssi
                                 # Extract and process iBeacon data
                                 #await _beacon_callback(iBeacon_data, rssi, simulate)
+                                #print(f"RSSI:{result.rssi}")
                                 iBeacon_data = iBeaconStatus(result.adv_data, result.rssi, result.device.addr_hex())
                                 #print(iBeacon_data)
                                 await self._beacon_callback(iBeacon_data, simulate)
@@ -322,8 +319,7 @@ class BridgeMain():
             webhook_providers.append(WebhookCloudProvider(url, self.config))
         return webhook_providers
 
-    def get_providers(self, network=False):
-        #
+    def set_providers(self, network=False):
         if network:
             normal_providers = [
                     #PrometheusCloudProvider(self.config),
@@ -342,7 +338,7 @@ class BridgeMain():
                     CSVFileProvider(self.config),
                 ]
             self.logger.warning('No network credentials specified. Enabling local CSV logging only.')
-        return normal_providers
+        self.providers = normal_providers
 
     def get_time(self):
         result = False
@@ -361,24 +357,28 @@ def max_av_period(providers, colours):
     # this is how many records from each tilt that will be saved
     # called once per colour?
     col_max = {}
-    max_av = 0
+    max_av = 30
     try:
         for provider in providers:
             #print(f"***  colours {colours}")
             for colour in colours:
-                #print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
-                if colour in provider.col_dest.keys() and provider.averaging_period >= max_av -1:
-                    #print(f"***   colour match: {colour}")
-                    max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
-                    col_max[colour] = max_av
+                # print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
+                if colour in provider.col_dest.keys() and provider.averaging_period > max_av:
+                    # print(f"***   colour match: {colour}")
+                    #max_av = provider.averaging_period + 1 # so if passed 0 then this will still work
+                    # keep a minimum of 30 secs worth or readings
+                    #max_av = provider.averaging_period + 1 if max_av < 30 else max_av
+                    #col_max[colour] = max_av
+                    max_av = provider.averaging_period
                     #print(f"***   {col_max}")
                 else:
                     #print(f"***   no match {colour} av_period {provider.averaging_period}")
                     pass
+            col_max.update({colour: max_av})
     except Exception as e:
         self.logger.error(f"max_av_period error: {e}")
         raise
-    #logger.debug(f"col_max: {col_max}")
+    #print(f"col_max: {col_max}")
     return col_max
     
 async def debug_memory(logger):

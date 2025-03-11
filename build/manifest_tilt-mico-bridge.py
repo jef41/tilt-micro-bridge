@@ -1,0 +1,16 @@
+# Add packages
+package("abstractions", base_path="../bridge/lib")
+package("configuration", base_path="../bridge/lib")
+package("logging", base_path="../bridge/lib")
+package("models", base_path="../bridge/lib")
+package("primitives", base_path="../bridge/lib")
+package("providers", base_path="../bridge/lib")
+package("threadsafe", base_path="../bridge/lib")
+# add modules
+module("async_urequests.py", base_path="../bridge/lib")
+module("indicator.py", base_path="../bridge/lib")
+module("time.py", base_path="../bridge/lib")
+module("wifi_client.py", base_path="../bridge/lib")
+module("bridge_main.py", base_path="../bridge/lib")
+module("tilt_micro_bridge.py", base_path="../bridge")
+module("boot.py", base_path="../build")

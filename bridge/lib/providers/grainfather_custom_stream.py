@@ -14,7 +14,7 @@ from configuration import BridgeConfig
 import asyncio
 import async_urequests as requests
 import json
-import gc # for development only
+import gc
 from machine import Timer
 
 
@@ -25,15 +25,17 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
 
     def __init__(self, config: BridgeConfig):
         self.col_dest = GrainfatherCustomStreamCloudProvider._normalize_colour_keys(config.grainfather_custom_stream_urls)
-        self.temp_unit = GrainfatherCustomStreamCloudProvider._get_temp_unit(config)
+        #self.temp_unit = GrainfatherCustomStreamCloudProvider._get_temp_unit(config)
+        self.temp_unit = config.get_temp_unit("grainfather_temp_unit", name=True)
         self.str_name = "Grainfather Custom URL"
         self.rate = 1
         self.period = (60 * 15)  # 15 minutes
         self.upload_timer = None
-        try:
+        self.averaging_period = config.get_averaging_period("grainfather_averaging_period")
+        '''try:
             self.averaging_period = config.grainfather_averaging_period
         except AttributeError:
-            self.averaging_period = config.averaging_period
+            self.averaging_period = config.averaging_period'''
         self.bridge_config = config
 
     def __str__(self):
@@ -156,7 +158,7 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
                 normalized_colours[colour.lower()] = col_dest[colour]
         return normalized_colours
 
-    @staticmethod
+    '''@staticmethod
     def _get_temp_unit(config: BridgeConfig):
         temp_unit = config.grainfather_temp_unit.upper()
         if temp_unit == "C":
@@ -164,3 +166,4 @@ class GrainfatherCustomStreamCloudProvider(BridgeProviderBase):
         elif temp_unit == "F":
             return "fahrenheit"
         raise ValueError("Grainfather temp unit must be F or C")
+    '''
