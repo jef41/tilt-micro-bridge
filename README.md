@@ -58,7 +58,7 @@ This version is a working in principle version. It is probably functional, but r
 
 ## Configuration
 
-Custom configurations can be used by creating a file `config.json` in the root directory on the Pico. Values in config.json will override any that already in place, are shown below.
+Custom configurations can be used by creating a file `config.json` in the root directory on the Pico. Values in config.json will override any that are already in place, as shown below.
 
 | Option                       | Purpose                      | Default               | Example               |
 | ---------------------------- | ---------------------------- | --------------------- | --------------------- |
