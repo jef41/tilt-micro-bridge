@@ -34,10 +34,10 @@ class BridgeMain():
     def __init__(self):
         self.config = None
         self.providers = None
-        self.data_archive = bytearray()		 # Queue for holding incoming data from scans
+        self.data_archive = bytearray()       # Queue for holding incoming data from scans
         self.provider_timers = UploadTimers() # reference to all enabled provder timers
-        self.handler = None					 # reference to data handler task
-        self.scanner = None					 # reference to bluetooth scanner task
+        self.handler = None                   # reference to data handler task
+        self.scanner = None                   # reference to bluetooth scanner task
         self.enabled_providers = list()
         self.enabled_tilts = list()
         self.rtc = None
@@ -89,7 +89,7 @@ class BridgeMain():
                 self.logger.info(f"...started: {provider} {provider__start_message}")
                 # find configured colours, or add to list
                 #if colour not in self.enabled_tilts:
-                #	if colour not in self.enabled_tilts.get('colour'):
+                #    if colour not in self.enabled_tilts.get('colour'):
                 #    self.enabled_tilts.append(colour)
                 for colour in provider.col_dest.keys():
                     #if not next((device for device in self.enabled_tilts if device.colour == colour), None):

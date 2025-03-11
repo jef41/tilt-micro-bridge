@@ -244,10 +244,10 @@ class TiltRingBuffer:
             #multiplier = 0.1 if self.hd else 1
             #sg_match = ((sg_match+min) * multiplier) * 0.001
             #temp_match = temp_match * multiplier
-            temp_match = temp_match * 0.1
+            #temp_match = temp_match * 0.1
             sg_match = (sg_match+min) * 0.001
             
-            logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.1f} SG:{sg_match:.4f}")
+            logger.debug(f"{num_results} most recent raw (uncal) value, temp;{temp_match:.g} SG:{sg_match:.3f}")
             return [temp_match, sg_match]
             
         else:

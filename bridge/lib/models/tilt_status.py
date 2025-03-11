@@ -100,4 +100,3 @@ class TiltStatus(JsonSerialize):
                 return py + (y-py)*(xin-px)/(x-px)
             px = x
             py = y
-
