@@ -11,7 +11,9 @@ _TS_WDAY = const(6)
 _TS_YDAY = const(7)
 _TS_ISDST = const(8)
 
-_WDAY = const(("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"))
+_WDAY = const(
+    ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+)
 _MDAY = const(
     (
         "January",
@@ -79,4 +81,4 @@ def strftime(datefmt, ts):
     return val
 
 
-__version__ = '0.1.0'
+__version__ = "0.1.0"
