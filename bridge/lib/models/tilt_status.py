@@ -2,7 +2,7 @@
 '''
 from configuration import BridgeConfig
 from .json_serialize import JsonSerialize
-import time
+#import time
 
 class TiltStatus(JsonSerialize):
     # class to process/format Tilt data from beacon or in/out of data store
@@ -20,7 +20,6 @@ class TiltStatus(JsonSerialize):
         #print(f"***  uncal: {uncal_SG}")
         if apply_calibration:
             # apply calibration, if present
-            #vals=config.get_temp_offsets(colour)
             try:
                 self.temp_fahrenheit = round(
                     TiltStatus.apply_cal(
@@ -31,15 +30,11 @@ class TiltStatus(JsonSerialize):
                 )
             except Exception as e:
                 raise type(e)(f"TiltStatus: Temperature calibration is invalid, ignoring: {e}: ") from e
-                #todo create logger here?
+                #TODO create logger here?
                 self.temp_fahrenheit = uncal_temp_fahrenheit
-            #self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
-            #vals=config.get_gravity_offsets(colour)
             #print(f"***  cal vals {colour} {vals}")
             self.gravity = TiltStatus.apply_cal(uncal_SG, config.get_gravity_offsets(self.colour))
             self.gravity = round(self.gravity, 4) if self.hd else round(self.gravity, 3)
-            # TODO DONE ? SD/HD is lost when saving to store, fix it (probably in History)
-            # self.gravity = round(self.gravity, 4)
             #print(f"***    cal: {self.gravity} from uncal: {uncal_SG}")
         else:
             self.temp_fahrenheit = uncal_temp_fahrenheit
@@ -103,6 +98,6 @@ class TiltStatus(JsonSerialize):
             if x == xin:  # <- exact match
                 return y
             if x > xin:   # px<xin<x <- assuming there was already a px
-                return py + (y-py)*(xin-px)/(x-px)
+                return py + (y - py) * (xin - px) / (x - px)  # noqa: F821
             px = x
             py = y

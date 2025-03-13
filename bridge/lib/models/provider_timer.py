@@ -28,10 +28,9 @@ class UploadTimers():
         result = False
         if self.timer_list[provider].upload_due.is_set():
             result = True
-            #self.timer_list[provider].upload_due.clear()
             self.timer_list[provider].upload_due.clear()
             # immediately clear this flag once read, it may take a while for update method to return
-            # todo implement a timeout here, so if it fiales after 10 secs, then retries rather than wait log interval?
+            # TODO implement a timeout here, so if it fiales after 10 secs, then retries rather than wait log interval?
         return result
     
     def clear(self, provider):
@@ -55,15 +54,12 @@ class ProviderTimer():
         # the first upload may be a different interval ie after averaging period (5mins) not logging period (15mins)
         # in which case call with default_period=900, adjust=300
         self.upload_due = asyncio.Event()
-        #self.upload_due.clear()
-        #self.default_period = default_period*1000 if default_period else 10000 # default to 10s secs if averaging set to 0
         self.default_period = default_period*1000 # change to ms
         self.adjusted = False
         if adjust is not None:
             adjust = adjust*1000
             self.adjusted = True
         self.reinit(self.default_period if adjust is None else adjust)
-        #self.upload_timer = Timer(period=self.default_period, mode=Timer.PERIODIC, callback=self.provider_callback)
         logger.debug(f"timer created with {"adjusted" if adjust else "default"} period {self.default_period//1000 if adjust is None else adjust//1000}secs")
 
     def provider_callback(self, timer):

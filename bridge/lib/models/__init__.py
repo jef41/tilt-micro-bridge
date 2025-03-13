@@ -4,4 +4,4 @@ from models.provider_timer import ProviderTimer
 from models.json_serialize import JsonSerialize
 from models.ibeacon_status import iBeaconStatus
 
-__version__ = '1.0.1'
+__version__ = "1.0.1"
