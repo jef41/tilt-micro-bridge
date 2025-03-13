@@ -175,7 +175,10 @@ class TiltRingBuffer:
             min = 9900 if self.hd else 990
             #rnd = 0 if self.hd else 1
             #avg_sg = round((sum_sg / num_results ) , rnd) + min # round((sum_sg / num_results ) * 0.01, 4) + 0.99
+            #20250313
             avg_sg = round((sum_sg / num_results ) , 0) + min
+            # avg_sg = ((round((sum_sg / num_results ) , 0)) + min) * 0.001
+            
             avg_tempf = round(sum_tempf / num_results, 1)
             #if self.hd: TEST don't need this here, TiltStatus does this
             #    avg_sg /= 10
@@ -187,7 +190,7 @@ class TiltRingBuffer:
             #logger.debug(f"averaged values:{averaged_data.colour} {averaged_data.temp_fahrenheit} {averaged_data.gravity}")
             #dump(averaged_data)
             #logger.debug(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
-            return [avg_tempf, avg_sg*0.01]
+            return [avg_tempf, avg_sg*0.001]
         else:
             logger.debug("no matches (get_average)")
             return [None, None]

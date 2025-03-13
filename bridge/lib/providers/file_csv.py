@@ -98,12 +98,14 @@ class CSVFileProvider(BridgeProviderBase):
             raise Exception(f"Error in config for {self.str_name} provider: Invalid combination of log ({log_period}) & averaging ({self.averaging_period}) periods")
         try:
             for colour in self.col_dest:
-                status, wait_for = [None, None] 
+                status, wait_for = None, None 
                 tempF, SG = self.data_archive.get_data(colour, av_period=self.averaging_period, log_period=log_period)
+                # print(f"#20250313 {tempF=} {SG=}")
                 if tempF and SG:
-                    hd = True if SG > 2 else False
+                    # hd = True if SG > 2 else False
                     tilt_status = TiltStatus(colour, tempF, SG, self.bridge_config)
                     # data offsets/calibration is applied here in TiltStatus
+                    # print(f"#20250313 {tilt_status.temp_fahrenheit=} {tilt_status.gravity=}")
                     
                     status, wait_for = self.csv_loggers[colour].log_data(tilt_status)
                     

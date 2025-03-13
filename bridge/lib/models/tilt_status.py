@@ -11,7 +11,7 @@ class TiltStatus(JsonSerialize):
         self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
-        self.hd = uncal_SG > 2  # Tilt Pro?
+        self.hd = uncal_SG > 2  # Tilt Pro
         # print(f"***  self.hd: {self.hd}, {uncal_SG:.3f}")
         # With Tilt Pro values have more precision, which has to be adjusted
         if self.hd:
@@ -22,7 +22,13 @@ class TiltStatus(JsonSerialize):
             # apply calibration, if present
             #vals=config.get_temp_offsets(colour)
             try:
-                self.temp_fahrenheit = TiltStatus.apply_cal(uncal_temp_fahrenheit, config.get_temp_offsets(colour))
+                self.temp_fahrenheit = round(
+                    TiltStatus.apply_cal(
+                        uncal_temp_fahrenheit, 
+                        config.get_temp_offsets(self.colour)
+                    ), 
+                    2
+                )
             except Exception as e:
                 raise type(e)(f"TiltStatus: Temperature calibration is invalid, ignoring: {e}: ") from e
                 #todo create logger here?
@@ -30,7 +36,7 @@ class TiltStatus(JsonSerialize):
             #self.temp_fahrenheit = temp_fahrenheit + config.get_temp_offset(colour)
             #vals=config.get_gravity_offsets(colour)
             #print(f"***  cal vals {colour} {vals}")
-            self.gravity = TiltStatus.apply_cal(uncal_SG, config.get_gravity_offsets(colour))
+            self.gravity = TiltStatus.apply_cal(uncal_SG, config.get_gravity_offsets(self.colour))
             self.gravity = round(self.gravity, 4) if self.hd else round(self.gravity, 3)
             # TODO DONE ? SD/HD is lost when saving to store, fix it (probably in History)
             # self.gravity = round(self.gravity, 4)
