@@ -470,7 +470,7 @@ def max_av_period(providers, tilt_devices):
                 else:
                     # print(f"***   no match {colour} av_period {provider.averaging_period}")
                     pass
-            col_max.update({device.colour: max_av})
+                col_max.update({device.colour: max_av})
     except Exception as e:
         # logger.error(f"max_av_period error: {e}")
         raise
