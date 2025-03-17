@@ -52,18 +52,24 @@ class TiltHistory:
         # here find the largest number for averaging for this colour in config
         # logger.debug(f"initialise ringbuffer {colour_dict}")
         # try:
-        # print(f"***  max {max(colour_dict.values())}") # max for all colours
+        # print(f"***  {colour_dict}") 
+        #20250313 TODO rename colour_dict
+        # for colour, av_period in colour_dict.items():
+        #values = [getattr(item, colour) for item in colour_dict] 
+        #for colour, av_period in values:
+        #    # for colour in colour_dict.keys()
         for colour, av_period in colour_dict.items():
-            # for colour in colour_dict.keys()
             if colour not in self.ringbuffer_list:
                 # No limiter for this device yet
                 # max = TODO: find max for this colour
                 logger.debug(
                     f"creating ringbuffer for {colour} Tilt with {av_period} records"
                 )
-                self.ringbuffer_list[colour] = self._get_new_ringbuffer(
-                    av_period
-                )  # TODO: ensure we check store_size
+                #self.ringbuffer_list[colour] = self._get_new_ringbuffer(
+                #    av_period
+                # 20250313
+                self.ringbuffer_list.update({colour: self._get_new_ringbuffer(av_period)})
+                #)  # TODO: ensure we check store_size
         """ elif colour in self.ringbuffer_list and self.ringbuffer_list[colour].len < av_period:
                     self.ringbuffer_list[colour] = self._get_new_ringbuffer(av_period)
         """

@@ -21,6 +21,8 @@ from models import TiltStatus, TiltHistory, iBeaconStatus
 from providers import *
 from configuration import BridgeConfig
 from models.provider_timer import UploadTimers
+#import display_async
+from display_driver import RGB_Driver, LCD_Display
 
 gc.collect()
 
@@ -43,15 +45,15 @@ class BridgeMain:
         self.provider_timers = UploadTimers()  # reference to all enabled provder timers
         self.handler = None  # reference to data handler task
         self.scanner = None  # reference to bluetooth scanner task
-        self.lcd_updater = None  # reference to a lcd updater task
+        #self.lcd_updater = None  # reference to a lcd updater task
+        #self.display_updater = None
         self.enabled_providers = list()
         self.enabled_tilts = list()
         self.rtc = None
         self.wdt = None
         self.onboard_led = None
-        self.rgb_led = None
-        self.display = None
-        self.check_for_display()
+        #self.rgb_led = None
+        #self.check_for_display()
         # Load config from file, with defaults, and args
         result = True
         gc.collect()
@@ -63,15 +65,16 @@ class BridgeMain:
         except Exception as e:
             self.logger.critical(e)
             result = False
+            raise
         if result:
             # gc.collect()
             self.rtc = RTC()
-
-    def check_for_display(self):
-        # try block to load pimoroni display & libs
-        # also read pin mappings for disaply (& lcd)
-        # also set rgb_led & dispaly, if present
-        pass
+        try:
+            self.rgb_led = RGB_Driver(self.config)
+            self.display = LCD_Display(self.config)
+        except Exception as e:
+            print(f"Error with LCD/LED: {e}")
+            raise
 
     def initialised(self):
         return self.rtc
@@ -106,12 +109,14 @@ class BridgeMain:
                 # if colour not in self.enabled_tilts:
                 #    if colour not in self.enabled_tilts.get('colour'):
                 #    self.enabled_tilts.append(colour)
+                print(f"{provider.col_dest.keys()=}")
                 for colour in provider.col_dest.keys():
                     # if not next((device for device in self.enabled_tilts if device.colour == colour), None):
                     if not any(
                         device.colour == colour for device in self.enabled_tilts
                     ):
                         self.enabled_tilts.append(TiltDevice(colour))
+                        print(f"added {colour} {self.enabled_tilts=}")
 
         # for debug, intermittently log memory usage/leak
         if logging.getLogger().level < logging.INFO:
@@ -149,6 +154,11 @@ class BridgeMain:
             self.logger.info("starting beacon scanner...")
             self.scanner = asyncio.create_task(self._scan_for_ibeacons())
             # pass
+        # either way create a task to update the display
+        # TODO self.display_enabled - def to test for attached display
+        #lcd_colours = {"simulated"} #, "red"}
+        if self.display:
+            self.display_updater = asyncio.create_task(self.display.card_stack(self.data_archive, self.enabled_tilts))
         try:
             await self.onboard_led.set_status(
                 self.onboard_led.STATUS_OK
@@ -187,7 +197,6 @@ class BridgeMain:
                     col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1, "big")
                 except NameError:
                     from random import randrange
-
                     col = (randrange(0x10, 0xA0, 0x10)).to_bytes(1, "big")
                 major = (randrange(700, 750)).to_bytes(
                     2, "big"
@@ -284,11 +293,17 @@ class BridgeMain:
                 )
             else:
                 # seems to be a valid packet
-                if self.rgb_led:
-                    # async routine/task to flash the led the correct colour
-                    # asyncio.create_task(lcd.rgb_led_flash(iBeacon_packet.colour))
-                    pass
+                #print(f"we wanna flash {iBeacon_packet.colour} {self.rgb_led=}")
+                # TODO should probably have a single task & if running cancel it then restart with new colour
+                #20250314
+                #task = asyncio.create_task(display_async.flash_led(iBeacon_packet.colour))
+                #if self.rgb_led:
+                #    # async routine/task to flash the led the correct colour
+                #    # asyncio.create_task(lcd.rgb_led_flash(iBeacon_packet.colour))
+                #    pass
                 # update tilt_enabled dict with RSSI
+                #if self.rgb_led:
+                self.rgb_led.flash(iBeacon_packet.colour)
                 try:
                     match_device = next(
                         device
@@ -451,15 +466,17 @@ class BridgeMain:
         return result
 
 
-def max_av_period(providers, tilt_devices):
+def max_av_period(en_providers, tilt_devices):
     # return the maximum averaging value (seconds) for enabled providers
     # this is how many records from each tilt that will be saved
-    col_max = {}
+    col_max = dict() #[] # list
     max_av = 30  # set a minimum store size of 30 readings
+    print(f"{en_providers=}")
     try:
-        for provider in providers:
+        for provider in en_providers:
             # print(f"***  colours {colours}")
             for device in tilt_devices:
+                max_av = 30  # set a minimum store size of 30 readings
                 # print(f"***  test {provider}: {colour}, {provider.col_dest.keys()}")
                 if (
                     device.colour in provider.col_dest.keys()
@@ -470,7 +487,9 @@ def max_av_period(providers, tilt_devices):
                 else:
                     # print(f"***   no match {colour} av_period {provider.averaging_period}")
                     pass
+                #20250313 col_max.update({device.colour: max_av})
                 col_max.update({device.colour: max_av})
+            print(f"{col_max=}")
     except Exception as e:
         # logger.error(f"max_av_period error: {e}")
         raise
@@ -485,4 +504,4 @@ async def debug_memory(logger):
         logger.debug(f"gc: {gc.mem_free()}")
 
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"

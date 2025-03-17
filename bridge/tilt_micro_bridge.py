@@ -1,8 +1,10 @@
 """latest change:
-    implement aiohttp timeout
-    change from to aiohttp from async_urequests
+    enable display  - this requires picographics, pimoroni_bus, pimoroni RGBLED
+    try and flash rgb led - this requires the pimoroni UF2
+    testing implement aiohttp timeout
+    testing change from to aiohttp from async_urequests
 working on:
-    1.0.2
+    1.0.3
 TODO:
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
@@ -106,11 +108,20 @@ if bridge.initialised():
     except KeyboardInterrupt as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
-        print("...stopped: Tilt Scanner (keyboard interrupt)")
+        print("...stopped: Tilt Scanner (keyboard interrupt)")   
+        if bridge.display_updater:
+            bridge.display_updater.cancel()
+            bridge.display.lcd.clear()
+            bridge.display.lcd.set_backlight(0)
+        # TODO deinit display properly
     except Exception as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
         print(f"...stopped: Tilt Scanner ({e})")
+        if bridge.display_updater:
+            bridge.display_updater.cancel()
+            bridge.display.lcd.clear()
+            bridge.display.lcd.set_backlight(0)
         raise e
     finally:
         asyncio.new_event_loop()  # Clear retained state
@@ -119,4 +130,4 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.0.2"
+__version__ = "1.0.3"
