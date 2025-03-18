@@ -137,12 +137,21 @@ class TiltRingBuffer:
     def add_data(self, tempF, sg, tstamp):
         # pack 4byte timestamp & 2 x 12 bit numbers into 7 bytes
         # subtract the minimum possible value from SG, to keep integer as small as possible
-        if sg < 9900:
-            sg = sg - 990
-            self.hd = False
-        else:
-            sg = sg - 9900  # HD
+        #0318
+        #if sg < 9900:
+        #    sg = sg - 990
+        #    self.hd = False
+        #else:
+        #    sg = sg - 9900  # HD
+        #    self.hd = True
+        if sg > 1200:
+            sg = sg - 8405
             self.hd = True
+        else:
+            self.hd = False
+        # SD reports 990 to 1120 ; that range of 130 fits into 1byte, 0-1120 is 3nibbles
+        # HD reports 9900 to 12000; that range of 0-12000 is 4 nibbles, subtract 8405 &  0-3595 = 3 nibbles
+        # can save 4 bits per record
         vals = sg << 12 | tempF
         # logger.debug(hex(vals))
         data = bytes(
@@ -193,7 +202,9 @@ class TiltRingBuffer:
 
         # logger.debug(f"filtering took {time.ticks_diff(time.ticks_ms(), t2)}")
         if num_results:
-            min = 9900 if self.hd else 990
+            #0318
+            #min = 9900 if self.hd else 990
+            min = 8405 if self.hd else 0
             avg_sg = round((sum_sg / num_results), 0) + min
 
             avg_tempf = round(sum_tempf / num_results, 1)
@@ -250,12 +261,14 @@ class TiltRingBuffer:
                     num_results += 1
                     break
                 # Move backwards with wrap-around
-            latest_i = (latest_i - self.record_len) % self._size
+                latest_i = (latest_i - self.record_len) % self._size
         except Exception as e:
             logger.debug(f"Error in get_most_recent: {e}")
             raise e
         if num_results:
-            min = 9900 if self.hd else 990
+            #0318
+            #min = 9900 if self.hd else 990
+            min = 8405 if self.hd else 0
             sg_match = (sg_match + min) * 0.001
 
             #logger.debug(
