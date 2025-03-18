@@ -4,6 +4,13 @@ from configuration import BridgeConfig
 from .json_serialize import JsonSerialize
 #import time
 
+class TiltDevice:
+    def __init__(self, colour):
+        self.colour = colour
+        self.rssi = None
+        self.hd = None
+        # self.extended = None
+
 class TiltStatus(JsonSerialize):
     # class to process/format Tilt data from beacon or in/out of data store
     # apply_calibration=False means store the uncalibrated sample, this should be done when saving data

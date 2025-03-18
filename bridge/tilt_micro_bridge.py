@@ -109,20 +109,24 @@ if bridge.initialised():
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
         print("...stopped: Tilt Scanner (keyboard interrupt)")   
-        if bridge.display_updater:
+        if bridge.display:
+            #if bridge.display_updater:
             bridge.display_updater.cancel()
             bridge.display.lcd.clear()
             bridge.display.lcd.set_backlight(0)
-        # TODO deinit display properly
+        if bridge.rgb_led:
+            bridge.rgb_led.off()
     except Exception as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
         print(f"...stopped: Tilt Scanner ({e})")
-        if bridge.display_updater:
+        if bridge.display:
             bridge.display_updater.cancel()
             bridge.display.lcd.clear()
             bridge.display.lcd.set_backlight(0)
-        raise e
+        if bridge.rgb_led:
+            bridge.rgb_led.off()
+        raise
     finally:
         asyncio.new_event_loop()  # Clear retained state
         onboard_led.off()

@@ -106,9 +106,9 @@ class TiltHistory:
             # pass
         else:
             # get most recent
-            logger.debug(
-                f"averaging not set, get most recent data, newer than {now - log_period}"
-            )
+            #logger.debug(
+            #    f"averaging not set, get most recent data, newer than {now - log_period}"
+            #)
             time_limit = now - int(
                 log_period
             )  # ensure an integer, float leads to rounding errors
@@ -237,7 +237,7 @@ class TiltRingBuffer:
                     | mv_data[2 + latest_i] << 16
                     | mv_data[3 + latest_i] << 24
                 )
-                logger.debug(f"timestamp:{q_timestmp} limit:{limit}")
+                #logger.debug(f"timestamp:{q_timestmp} limit:{limit}")
                 if q_timestmp > int(limit):  # we have a match
                     temp_match = mv_data[4 + latest_i] | (
                         (mv_data[5 + latest_i] & 0x0F) << 8
@@ -258,9 +258,9 @@ class TiltRingBuffer:
             min = 9900 if self.hd else 990
             sg_match = (sg_match + min) * 0.001
 
-            logger.debug(
-                f"{num_results} most recent raw (uncal) value, temp;{temp_match:.g} SG:{sg_match:.3f}"
-            )
+            #logger.debug(
+            #    f"{num_results} most recent raw (uncal) value, temp;{temp_match:.g} SG:{sg_match:.3f}"
+            #)
             return [temp_match, sg_match]
 
         else:

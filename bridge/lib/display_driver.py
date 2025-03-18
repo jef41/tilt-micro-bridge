@@ -5,10 +5,11 @@ import gc
 import time
 import asyncio
 from machine import Pin
-from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY, PEN_P4
+import picographics
+from picographics import PicoGraphics #, DISPLAY_PICO_DISPLAY, PEN_P4
 from pimoroni_bus import SPIBus
 from pimoroni import RGBLED
-from models import TiltStatus, TiltHistory
+from models import TiltDevice, TiltStatus, TiltHistory
 from configuration import BridgeConfig
 #from bridge_main import TiltDevice
 
@@ -42,6 +43,10 @@ def get_color_values(color_name, brightness=0.01):
 #    lcd.create_pen(*get_color_values(colour, 1)) for colour in palette_cols
 
 class LCD_Display:
+    def __new__(cls, config: BridgeConfig):
+        if not getattr(config, 'display_type', None):
+            return None  # Prevent instance creation
+        return super().__new__(cls)
     
     def __init__(self, config: BridgeConfig):
         self.config = config
@@ -51,13 +56,14 @@ class LCD_Display:
         #lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         #lcd.set_backlight(1.0)
         #update_frequency = 3 # seconds to cycle through each screen
-        self._check_for_display(pins) if (pins := getattr(config, 'lcd_spi_gpio', None)) else None
+        #self._check_for_display(pins) if (pins := getattr(config, 'lcd_spi_gpio', None)) else None
+        self._check_for_display(display_type) if (display_type := getattr(self.config, 'display_type', None)) else None
         
-    def _check_for_display(self, pins):
+    def _check_for_display(self, display_type):
         #try:
         # print(f"***  {pins=}")
-        spibus = SPIBus(**pins) #(cs=17, dc=16, sck=18, mosi=19, bl=20)
-        self.lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, bus=spibus, pen_type=PEN_P4, rotate=0)
+        spibus = SPIBus(**(getattr(self.config, 'lcd_spi_gpio', {"cs": 17, "dc": 16, "sck": 18, "mosi": 19,"bl": 20}))) #(cs=17, dc=16, sck=18, mosi=19, bl=20)
+        self.lcd = PicoGraphics(display=getattr(picographics, display_type), bus=spibus, pen_type=picographics.PEN_P4, rotate=0)
         #self.lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         self.lcd.set_backlight(getattr(self.config, 'lcd_backlight', 0.5))
         self.lcd.clear()
@@ -77,7 +83,7 @@ class LCD_Display:
         #    #
         #    pass
     
-    async def card_stack(self, tilt_data_store: TiltHistory, cards): #: TiltDevice
+    async def card_stack(self, tilt_data_store: TiltHistory, cards: TiltDevice): #: TiltDevice
         # TODO backlight issue - when called with custom SPI set_backlight is not available
         # 		uncal values need scaling
         #		tidy up
@@ -152,6 +158,11 @@ class LCD_Display:
                 t2 = time.ticks_ms()
                 # print(f"drawing took:{time.ticks_diff(t1, t_start)}, update took:{time.ticks_diff(t2, t1)}")
                 await asyncio.sleep(getattr(self.config, 'display_update_secs', 3))
+                og = self.config.get_original_gravity(tilt.colour)
+                #f tilt.extended:
+                #    # if og:
+                #    # draw a page of extended attributes, OG, ABV, attenuation
+                #    pass
                 index = (index + 1) % len(cards)
 
     def read_latest_vals(self, tilt_data_store, tilt_colour):
@@ -194,6 +205,10 @@ class LCD_Display:
 
 
 class RGB_Driver():
+    def __new__(cls, config: BridgeConfig):
+        if not getattr(config, 'rgb_led_gpio', None):
+            return None  # Prevent instance creation
+        return super().__new__(cls)
     
     def __init__(self, config: BridgeConfig):
         self.config = config
@@ -219,11 +234,13 @@ class RGB_Driver():
         #    rgb_led = None
         #return rgb_led
 
-    def _init_rgb_task(self):
-        # create an infinite task
-        self.rgb_led.set_rgb(0,0,0)
-    #while True:
-    #    asyncio sleep(8)
+    def off(self):
+        # turn off
+        self._led.set_rgb(0,0,0)
+        
+    #def _init_rgb_task(self):
+    #    # ensure off at start
+    #    self.rgb_led.set_rgb(0,0,0)
 
     async def _flash_rgb_task(self, rgb_colours):
         #print("Hi we are here now")
@@ -248,7 +265,7 @@ class RGB_Driver():
             #print(f"{bns=}")
             #colval = get_color_values(colour, getattr(self.config, 'rgb_brightness', 0.5))
             #print(f"{colval=}")
-            self.led_task = asyncio.create_task(self._flash_rgb_task(get_color_values(colour, getattr(self.config, 'rgb_brightness', 0.1))))
+            self._led_task = asyncio.create_task(self._flash_rgb_task(get_color_values(colour, getattr(self.config, 'rgb_brightness', 0.1))))
             #asyncio.sleep_ms(500)
             #self._led.set_rgb(0,0,0)
 

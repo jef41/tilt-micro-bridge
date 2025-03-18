@@ -17,7 +17,7 @@ gc.collect()
 from primitives import Queue
 import machine
 from machine import RTC, WDT, WDT_RESET
-from models import TiltStatus, TiltHistory, iBeaconStatus
+from models import TiltDevice, TiltStatus, TiltHistory, iBeaconStatus
 from providers import *
 from configuration import BridgeConfig
 from models.provider_timer import UploadTimers
@@ -27,12 +27,6 @@ from display_driver import RGB_Driver, LCD_Display
 gc.collect()
 
 
-class TiltDevice:
-    def __init__(self, colour):
-        self.colour = colour
-        self.rssi = None
-        self.hd = None
-        self.extended = None
 
 
 class BridgeMain:
@@ -45,15 +39,11 @@ class BridgeMain:
         self.provider_timers = UploadTimers()  # reference to all enabled provder timers
         self.handler = None  # reference to data handler task
         self.scanner = None  # reference to bluetooth scanner task
-        #self.lcd_updater = None  # reference to a lcd updater task
-        #self.display_updater = None
         self.enabled_providers = list()
         self.enabled_tilts = list()
         self.rtc = None
         self.wdt = None
         self.onboard_led = None
-        #self.rgb_led = None
-        #self.check_for_display()
         # Load config from file, with defaults, and args
         result = True
         gc.collect()
@@ -109,14 +99,14 @@ class BridgeMain:
                 # if colour not in self.enabled_tilts:
                 #    if colour not in self.enabled_tilts.get('colour'):
                 #    self.enabled_tilts.append(colour)
-                print(f"{provider.col_dest.keys()=}")
+                #print(f"{provider.col_dest.keys()=}")
                 for colour in provider.col_dest.keys():
                     # if not next((device for device in self.enabled_tilts if device.colour == colour), None):
                     if not any(
                         device.colour == colour for device in self.enabled_tilts
                     ):
                         self.enabled_tilts.append(TiltDevice(colour))
-                        print(f"added {colour} {self.enabled_tilts=}")
+                        #print(f"added {colour} {self.enabled_tilts=}")
 
         # for debug, intermittently log memory usage/leak
         if logging.getLogger().level < logging.INFO:
@@ -157,16 +147,13 @@ class BridgeMain:
         # either way create a task to update the display
         # TODO self.display_enabled - def to test for attached display
         #lcd_colours = {"simulated"} #, "red"}
+        #time.sleep(5)
         if self.display:
             self.display_updater = asyncio.create_task(self.display.card_stack(self.data_archive, self.enabled_tilts))
         try:
             await self.onboard_led.set_status(
                 self.onboard_led.STATUS_OK
             )  # blink led at 3sec intervals to show running OK
-            if self.display:
-                # start a background task to update the lcd screen
-                # self.lcd_updater = asyncio.create_task(lcd_updater(enabled_tilts)) #colour, rssi, extended, hd
-                pass
             while True:
                 # this loop will process the incoming data queue
                 self.handler = asyncio.create_task(self._handle_bridge_queue())
@@ -206,9 +193,9 @@ class BridgeMain:
                 )  # (10050, 10450) HD -> SD (1005, 1045)
                 pre = b"\x02\x01\x04\x1a\xffL\x00\x02\x15\xa4\x95\xbb"
                 post = b"\xc5\xb1KD\xb5\x12\x13p\xf0-t\xde"
-                tx_pwr = b"\x00"
+                tx_pwr = b"\xC5"
                 adv_data = b"".join([pre, col, post, major, minor, tx_pwr])
-                # print(adv_data)
+                #print(adv_data)
                 iBeacon_data = iBeaconStatus(adv_data, 0, "00:00:00:00:00:00")
                 # await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
                 # print(f'{iBeacon_data.colour} {col} {iBeacon_data.major} {iBeacon_data.minor}')
@@ -302,8 +289,8 @@ class BridgeMain:
                 #    # asyncio.create_task(lcd.rgb_led_flash(iBeacon_packet.colour))
                 #    pass
                 # update tilt_enabled dict with RSSI
-                #if self.rgb_led:
-                self.rgb_led.flash(iBeacon_packet.colour)
+                if (led := self.rgb_led):
+                    led.flash(iBeacon_packet.colour)
                 try:
                     match_device = next(
                         device
@@ -471,7 +458,7 @@ def max_av_period(en_providers, tilt_devices):
     # this is how many records from each tilt that will be saved
     col_max = dict() #[] # list
     max_av = 30  # set a minimum store size of 30 readings
-    print(f"{en_providers=}")
+    #print(f"{en_providers=}")
     try:
         for provider in en_providers:
             # print(f"***  colours {colours}")
@@ -489,7 +476,7 @@ def max_av_period(en_providers, tilt_devices):
                     pass
                 #20250313 col_max.update({device.colour: max_av})
                 col_max.update({device.colour: max_av})
-            print(f"{col_max=}")
+            #print(f"{col_max=}")
     except Exception as e:
         # logger.error(f"max_av_period error: {e}")
         raise
