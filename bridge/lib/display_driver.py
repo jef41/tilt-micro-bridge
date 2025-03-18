@@ -116,17 +116,18 @@ class LCD_Display:
                 # TODO trap KeyError, log error & use white
                 # TODO build TiltDevice object - colour, rssi
                 #rssi = str(random.randint(10, 100)*-1)
-                sg, temp, uncal_sg, uncal_temp = self.read_latest_vals(tilt_data_store, tilt.colour)
+                uncal_temp, uncal_sg, tilt_values = self.read_latest_vals(tilt_data_store, tilt.colour)
+                n = 4 if tilt.hd else 3
                 self.lcd.set_pen(self.colour_to_palette["BG"])
                 self.lcd.clear()
                 self.lcd.set_thickness(3)
                 #lcd.text(text, x, y, wordwrap, scale, angle, spacing)
                 self.lcd.set_pen(self.colour_to_palette[tilt.colour.upper()])
-                if all([sg, temp, uncal_sg, uncal_temp]):
-                    msg=f"SG:{sg:.4f}"
+                if all([uncal_sg, uncal_temp, tilt_values]):
+                    msg=f"SG:{tilt_values.gravity:.{n}f}"
                     self.lcd.text(msg, 0, 20, scale=1.5)
                     offset=46
-                    temp = f"{temp:.1f}"
+                    temp = f"{tilt_values.temp_celsius:.1f}" if getattr(self.config, 'default_temp_unit') == "C" else f"{tilt_values.temp_fahrenheit:.1f}"
                     self.lcd.text(temp, offset, 65, scale=1.5)
                     spacing = self.lcd.measure_text(temp, 1.5) #, spacing, fixed_width)
                     #print(spacing)
@@ -135,7 +136,7 @@ class LCD_Display:
                     #lcd.character(176, spacing, 43, scale=1)
                     spacing += self.lcd.measure_text(msg, 0.75)
                     #print(spacing)
-                    msg="C"
+                    msg = getattr(self.config, 'default_temp_unit')
                     self.lcd.text(msg, offset+spacing, 65, scale=1.5)
                     spacing += self.lcd.measure_text(msg, 1.5)
                     #print(spacing)
@@ -146,11 +147,11 @@ class LCD_Display:
                     spacing = WIDTH - self.lcd.measure_text(msg, 0.8)
                     msg=f"{tilt.colour}"
                     self.lcd.text(msg, spacing, 100, scale=0.8)
-                    msg=f"{uncal_sg}  {uncal_temp}"
+                    msg=f"{uncal_temp:.1f}  {uncal_sg:.{n}f}"
                     self.lcd.text(msg, 0, 120, scale=0.8)
                 else:
                     #we are missing data
-                    msg=f"Waiting for Data"
+                    msg=f"Waiting for\nData"
                     self.lcd.text(msg, 0, 65, scale=1)
                 gc.collect()
                 t1 = time.ticks_ms()
@@ -170,14 +171,18 @@ class LCD_Display:
         # TODO include C or F for display in config - also Plato?
         uncal_tempF, uncal_SG = tilt_data_store.get_data(tilt_colour, av_period=0, log_period=(3*getattr(self.config, 'display_update_secs', 3)))
         if uncal_tempF and uncal_SG:
-            tilt_status = TiltStatus(tilt_colour, uncal_tempF, uncal_SG, self.config)
+            tilt_status = TiltStatus(tilt_colour, uncal_tempF, uncal_SG, self.config, apply_calibration=False)
+            uncal_temp = tilt_status.temp_celsius if (getattr(self.config, 'default_temp_unit') == "C") else tilt_status.temp_fahrenheit
+            uncal_gravity = tilt_status.gravity
+            tilt_status = TiltStatus(tilt_colour, uncal_tempF, uncal_SG, self.config, apply_calibration=True)
             # data offsets/calibration is applied here in TiltStatus
-            tempC = tilt_status.temp_celsius
-            SG = tilt_status.gravity
+            #tempC = tilt_status.temp_celsius
+            #SG = tilt_status.gravity
+            #uncal_SG *= 0.0001 if uncal_SG > 1200 else 0.001
         else:
             #logger.info(f"{colour} has no data")
-            SG, tempC, uncal_tempF, uncal_SG = None, None, None, None
-        return (SG, tempC, uncal_tempF, uncal_SG)
+            uncal_temp, uncal_gravity, tilt_status = None, None, None
+        return (uncal_temp, uncal_gravity, tilt_status)
 
     async def update_clock(self):
         # show a clock or a MOTD or something
