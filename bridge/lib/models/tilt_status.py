@@ -11,6 +11,8 @@ class TiltDevice:
         self.colour = colour
         self.rssi = None
         self.hd = None
+        self.tx_power = None
+        self.batt_weeks = None
         # self.extended = None
 
 
@@ -106,19 +108,23 @@ class TiltStatus(JsonSerialize):
         if original_gravity is None:
             return 0
         # wrong?! aa = ((original_gravity - current_gravity) / original_gravity) * 2 * 1000
-        aa = (
+        '''aa = (
             (
                 TiltStatus.get_gravity_points(original_gravity)
                 - TiltStatus.get_gravity_points(current_gravity)
             )
             / TiltStatus.get_gravity_points(original_gravity)
+        ) * 100'''
+        aa = (
+            ( original_gravity - current_gravity)
+            / (original_gravity - 1)
         ) * 100
         return round(aa, 0)
 
-    @staticmethod
-    def get_gravity_points(gravity):
-        """Converts gravity reading like 1.035 to just 35"""
-        return gravity - 1
+    #staticmethod
+    #def get_gravity_points(gravity):
+    #    """Converts gravity reading like 1.035 to just 35"""
+    #    return gravity - 1
 
     @staticmethod
     def apply_cal(current_raw, cal_vals):

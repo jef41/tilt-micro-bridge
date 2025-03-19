@@ -219,7 +219,7 @@ class LCD_Display:
             # line4 uncal values & tx_power?
             msg = f"{uncal_temp:.1f}"  # {uncal_sg:.{n}f}"
             msg2 = f"{uncal_sg:.{n}f}"
-            msg3 = f"{tilt.tx_power}"  # tilt.tx_power
+            msg3 = f"{tilt.batt_weeks}"  # tilt.tx_power
             self.lcd.text(msg, 0, line4_v, scale=1)  # 0.8)
             # line4 tx_power field?
             self.lcd.text(

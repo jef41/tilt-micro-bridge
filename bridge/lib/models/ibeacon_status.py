@@ -24,7 +24,10 @@ class iBeaconStatus:
         self.uuid = UUID("".join(["{:02X}".format(b) for b in adv_data[9:25]]))
         self.major = int.from_bytes(adv_data[25:27], "big")  # Major (2 bytes) Temp
         self.minor = int.from_bytes(adv_data[27:29], "big")  # Minor (2 bytes) SG
-        self.tx_power = int.from_bytes(adv_data[29:30], "big") # (255 - adv_data[29] +1 ) * -1 # TX Power (1 byte) 2's complement?
+        if int.from_bytes(adv_data[29:30], "big") > 152:
+            self.tx_power = (255 - adv_data[29] +1 ) * -1 # TX Power (1 byte) 2's complement?
+        else:
+            self.batt_weeks = int.from_bytes(adv_data[29:30], "big") # (255 - adv_data[29] +1 ) * -1 # TX Power (1 byte) 2's complement?
         #print(f"{adv_data[29:]=} {self.tx_power=}")
         # think this is tx_power from which rssi can be calculated, one source suggests weeks since battery change + other info codes >152
         self.mac = mac_rdm
