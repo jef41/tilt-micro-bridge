@@ -306,9 +306,10 @@ class BridgeMain:
                     )
                     match_device.rssi = iBeacon_packet.rssi
                     match_device.hd = beacon_data.hd
-                    match_device.extended = (
-                        True if beacon_data.original_gravity else False
-                    )
+                    match_device.tx_power = iBeacon_packet.tx_power
+                    #match_device.extended = (
+                    #    True if beacon_data.original_gravity else False
+                    #)
                 except StopIteration:
                     match_device = None
                 # peekq returns a memoryview - if it is all 0 then this is the first packet

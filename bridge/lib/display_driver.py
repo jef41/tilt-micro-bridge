@@ -219,16 +219,21 @@ class LCD_Display:
             # line4 uncal values & tx_power?
             msg = f"{uncal_temp:.1f}"  # {uncal_sg:.{n}f}"
             msg2 = f"{uncal_sg:.{n}f}"
-            msg3 = "52"  # tilt.tx_power
+            msg3 = f"{tilt.tx_power}"  # tilt.tx_power
             self.lcd.text(msg, 0, line4_v, scale=1)  # 0.8)
             # line4 tx_power field?
             self.lcd.text(
-                msg3, r_align(self.lcd, msg3, 1, width), line4_v, scale=1
+                msg3, r_align(self.lcd, msg3, 0.75, width), line4_v, scale=0.75
             )  # 0.8)
             # line 4 uncal sg centred beween temp & tx_power
+            #spacing = (
+            #    width - self.lcd.measure_text(f"{msg}{msg2}{msg3}", scale=1)
+            #) // 2
             spacing = (
-                width - self.lcd.measure_text(f"{msg}{msg2}{msg3}", scale=1)
-            ) // 2
+                width - self.lcd.measure_text(f"{msg}{msg2}", scale=1)
+            )
+            spacing -= self.lcd.measure_text(f"{msg3}", scale=0.75)
+            spacing = spacing // 2
             spacing += self.lcd.measure_text(f"{msg}", scale=1)
             self.lcd.text(f"{uncal_sg:.{n}f}", spacing, line4_v, scale=1)
         else:
