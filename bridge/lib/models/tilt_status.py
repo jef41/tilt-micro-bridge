@@ -14,15 +14,19 @@ class TiltDevice:
 class TiltStatus(JsonSerialize):
     # class to process/format Tilt data from beacon or in/out of data store
     # apply_calibration=False means store the uncalibrated sample, this should be done when saving data
+    # Tilt transmits e.g. HD;705 10500 = 70.5F 1.0500SG, SD; 705 1050
     def __init__(self, colour, uncal_temp_fahrenheit, uncal_SG, config: BridgeConfig, apply_calibration=True):
         self.config = config
         self.colour = colour
         self.name = config.get_brew_name(colour)
-        self.hd = uncal_SG > 2  # Tilt Pro
+        self.hd = uncal_SG > 1200  # Tilt Pro
         # print(f"***  self.hd: {self.hd}, {uncal_SG:.3f}")
         # With Tilt Pro values have more precision, which has to be adjusted
+        # 
         if self.hd:
-            uncal_SG /= 10
+            uncal_SG /= 10000
+        else:
+            uncal_SG /= 1000
         uncal_temp_fahrenheit /= 10
         #print(f"***  uncal: {uncal_SG}")
         if apply_calibration:

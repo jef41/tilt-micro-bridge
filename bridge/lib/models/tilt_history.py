@@ -214,7 +214,7 @@ class TiltRingBuffer:
                 f"{num_results} averaged raw (uncal) values, temp;{avg_tempf:.1f} SG:{avg_sg * 0.001:.{n}f}"
             )
             # logger.debug(f"averaging took {time.ticks_diff(time.ticks_ms(), t3)}")
-            return [avg_tempf, avg_sg * 0.001]
+            return [avg_tempf, avg_sg]
         else:
             logger.debug("no matches (get_average)")
             return [None, None]
@@ -269,7 +269,7 @@ class TiltRingBuffer:
             #0318
             #min = 9900 if self.hd else 990
             min = 8405 if self.hd else 0
-            sg_match = (sg_match + min) * 0.001
+            sg_match = sg_match + min
 
             #logger.debug(
             #    f"{num_results} most recent raw (uncal) value, temp;{temp_match:.g} SG:{sg_match:.3f}"

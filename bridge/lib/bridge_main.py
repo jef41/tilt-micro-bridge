@@ -261,10 +261,17 @@ class BridgeMain:
             # major = degrees in F (int)
             # minor = gravity (int) - needs to be converted to float (e.g. 1035 -> 1.035)
             # hd = True if sg_float > 2 else False
-            beacon_data = TiltStatus(
+            '''beacon_data = TiltStatus(
                 iBeacon_packet.colour,
                 iBeacon_packet.major,
                 BridgeMain._get_decimal_gravity(iBeacon_packet.minor),
+                self.config,
+                apply_calibration=False,
+            )'''
+            beacon_data = TiltStatus(
+                iBeacon_packet.colour,
+                iBeacon_packet.major,
+                iBeacon_packet.minor,
                 self.config,
                 apply_calibration=False,
             )
@@ -395,7 +402,7 @@ class BridgeMain:
         self.logger.info(f"machine.reset_cause: {cause[reset_reason - 1]}")
         # if reset_reason == WDT_RESET:
         #    TODO try upload asap
-        if logging.getLogger().level > 10:
+        if logging.getLogger().level > logging.DEBUG:
             # only enable wdt if we are not debugging
             # wait 1 hour before starting wdt - allow user time to do calibration/tests without device constantly restarting
             await asyncio.sleep(3600)
