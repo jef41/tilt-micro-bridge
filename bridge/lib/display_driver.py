@@ -23,7 +23,7 @@ palette_cols = {
     "RED": [0xD3, 0x00, 0x00],
     "ORANGE": [0xFF, 0x4D, 0x00],
     "PURPLE": [0xA0, 0x20, 0xF0],
-    "GREEN": [0x0, 0xFF, 0x00],
+    "GREEN": [0x0, 0xEE, 0x00],
     "PINK": [0xFF, 0x14, 0x93],
     "YELLOW": [0xFF, 0xF0, 0x17],
     "SIMULATED": [0x93, 0xA3, 0x92],
@@ -107,12 +107,12 @@ class LCD_Display:
                 if index == 0:
                     # print("show clock")
                     await self.display_clock()
-            # show standard info for each configured tilt colour
-            extended_info = await self.display_sg_t(tilt, tilt_data_store)
-            # return a tilt_status object or None
-            if extended_info:
-                await self.display_extended(tilt, extended_info)
-            index = (index + 1) % len(cards)
+                # show standard info for each configured tilt colour
+                extended_info = await self.display_sg_t(tilt, tilt_data_store)
+                # return a tilt_status object or None
+                if extended_info:
+                    await self.display_extended(tilt, extended_info)
+                index = (index + 1) % len(cards)
 
     def read_latest_vals(self, tilt_data_store, tilt_colour):
         # read latest values & return a tuple
@@ -219,7 +219,7 @@ class LCD_Display:
             # line4 uncal values & tx_power?
             msg = f"{uncal_temp:.1f}"  # {uncal_sg:.{n}f}"
             msg2 = f"{uncal_sg:.{n}f}"
-            msg3 = f"{tilt.batt_weeks}"  # tilt.tx_power
+            msg3 = f"{batt_weeks}" if (batt_weeks := tilt.batt_weeks) else ""  # tilt.tx_power
             self.lcd.text(msg, 0, line4_v, scale=1)  # 0.8)
             # line4 tx_power field?
             self.lcd.text(
