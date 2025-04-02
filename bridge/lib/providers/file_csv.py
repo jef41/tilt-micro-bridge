@@ -210,11 +210,11 @@ class CSVLogger():
         logFileHandler = TimedRotatingLogFileHandler(fname, size_b, csv_bkp_count, 900)
         logFileHandler.setFormatter(logFormatter)
         self.tilt_log.addHandler(logFileHandler)
-        logger.info(f"logger added, {colour} Tilt: {fname}")# {size_b/1024}kb per file")
+        logger.info(f"logger added, {colour} Tilt, {fname}")# {size_b/1024}kb per file")
         namestr = "," if fname[:-4] == colour else ", " + fname[:-4] # if present add beer name
         og_str = f" OG{og_val}" if og_val else ""
         
-        self.tilt_log.info(f"logger added: {colour[0].upper() + colour[1:].lower()} Tilt{namestr}{og_str}")
+        self.tilt_log.info(f"logger added, {colour[0].upper() + colour[1:].lower()} Tilt{namestr}{og_str}")
         self.initial = True
     
     def log_data(self, tilt_status):
