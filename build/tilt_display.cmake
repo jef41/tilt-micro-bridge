@@ -66,7 +66,10 @@ include(modules_py/modules_py)
 # Most board specific ports wont need all of these
 #copy_module(gfx_pack.py)
 copy_module(pimoroni.py)
-copy_module(boot.py)
+# if building the Pimoroni image (not the custom boot.py release image) then uncomment the line below
+# if this is left in on release builds, then when building we get an error: redefinition of 'frozen_module_boot'
+# but it is probably required for Pimoroni builds?!
+#copy_module(boot.py)
 # copy_module(interstate75.py)
 # if(PICO_BOARD STREQUAL "pico_w")
 #     copy_module(automation.py)

@@ -1,3 +1,7 @@
+import cppmem
+# Switch C++ memory allocations to use MicroPython's heap
+cppmem.set_mode(cppmem.MICROPYTHON)
+
 import os
 # create a local /main.py if it does not exist
 try:
@@ -5,7 +9,6 @@ try:
 except OSError:
     with open("/main.py", "w") as f:
         f.write("""\
-
 import time  # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
 import logging
 from logging import TimedRotatingLogFileHandler
@@ -16,10 +19,10 @@ from bridge_main import BridgeMain
 from wifi_client import WifiClient
 import gc
 
-DEBUG_LEVEL = logging.DEBUG
-SIMULATE_BEACONS = True
-# DEBUG_LEVEL = logging.INFO
-# SIMULATE_BEACONS = False
+#DEBUG_LEVEL = logging.DEBUG
+#SIMULATE_BEACONS = True
+DEBUG_LEVEL = logging.INFO
+SIMULATE_BEACONS = False
 
 
 def set_global_exception():
@@ -97,12 +100,25 @@ if bridge.initialised():
     except KeyboardInterrupt as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
-        print("...stopped: Tilt Scanner (keyboard interrupt)")
+        print("...stopped: Tilt Scanner (keyboard interrupt)")   
+        if bridge.display:
+            #if bridge.display_updater:
+            bridge.display_updater.cancel()
+            bridge.display.lcd.clear()
+            bridge.display.lcd.set_backlight(0)
+        if bridge.rgb_led:
+            bridge.rgb_led.off()
     except Exception as e:
         for provider in bridge.provider_timers.timer_list.keys():
             bridge.provider_timers.stop(provider)
         print(f"...stopped: Tilt Scanner ({e})")
-        raise e
+        if bridge.display:
+            bridge.display_updater.cancel()
+            bridge.display.lcd.clear()
+            bridge.display.lcd.set_backlight(0)
+        if bridge.rgb_led:
+            bridge.rgb_led.off()
+        raise
     finally:
         asyncio.new_event_loop()  # Clear retained state
         onboard_led.off()
@@ -110,7 +126,7 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"
 
 """)
 
