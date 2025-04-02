@@ -13,6 +13,11 @@ Since adding the option to use a display this project has had limited testing on
 
 My personal interest is in getting this to work with the Grainfather system and website, then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
 
+Below are 2 GIFs, the first showing the Pico W running with no display. The second image shows the Raspberry Pi Pico 2 W and Pico Display, enclosed in a 3d Printed case.
+
+<img src="./misc/PicoW_bareboard.gif" alt="Pico W running with no display" height="250px">
+<img src="./misc/Pico2W_display.gif" alt="Pico 2 W running with a display" height="250px">
+
 # Features
 
 The following features are implemented, planned, or will be investigated in the future:
@@ -275,8 +280,8 @@ Webhooks are sent as HTTP POST with the following json payload:
 Tilt status broadcast events can be logged to a .csv file using the config option `csv_log_tilt_colours`.  Enter a list of Tilt colours to listen for, e.g. `["red']` to log only Red Tilt data to CSV. Example file:
 
 ```
-2025-02-19 16:40:24, Simulated Tilt: Festbier logger added
-2025-02-19 16:40:34, Header: Simulated Tilt for Festbier
+2025-02-19 16:40:24, Simulated Tilt, Festbier logger added
+2025-02-19 16:40:34, header, Simulated Tilt for Festbier:
 timestamp, ABV (%), Apparent Attenuation (%), Temperature (°C), Specific Gravity
 2025-02-19 16:40:34, 5.71, 77.04, 21.9, 1.0259
 2025-02-19 16:41:04, 6.28, 85.10, 22.5, 1.0216
