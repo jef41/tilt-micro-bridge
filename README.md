@@ -424,13 +424,13 @@ See the examples directory for:
 * pitch.json configuration file
 
 # Other
-
+-->
 ## Buy me a coffee (beer)
 
 ![Buy me a coffee (beer)](misc/buy-me-a-coffee.png)
 
-If you like Pitch, feel free to coffee (or a beer) here: https://www.buymeacoffee.com/linjmeyer
-
+If you like TiltMicroBridge, feel free to buy me a coffee (or a beer) here: https://www.buymeacoffee.com/jef41
+<!--
 ## Name
 
 It's an unofficial tradition to name tech projects using nautical terms.  Pitch is a term used to describe the tilting/movement of a ship at sea.  Given pitching is also a brewing term, it seemed like a good fit.
