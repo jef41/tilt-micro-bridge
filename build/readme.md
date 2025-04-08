@@ -13,15 +13,24 @@ However, the following does work to freeze the modules into the latest micropyth
 from shell:
 
 ```
-F_MANIFEST='/mnt/d/Users/jef41/Documents/GitHub/tilt-micro-bridge/build'
+BASE_DIR="/mnt/d/Users/jef41/Documents/GitHub/tilt-micro-bridge/build" && \
+MODULES_PATH="/mnt/d/Users/jef41/Documents/GitHub/tilt-micro-bridge/build/tilt_display.cmake" && \
+PORT_PATH="/mnt/d/Users/jef41/Documents/GitHub/micropython/ports/rp2" && \
 
-cd /mnt/d/Users/jef41/Documents/GitHub/micropython/ports/rp2/build-RPI_PICO_W && \
-cmake -DMICROPY_BOARD=RPI_PICO_W -DMICROPY_FROZEN_MANIFEST=$F_MANIFEST/manifest_RPI_PICO_W.py .. && \
-make -j $(nproc) && picotool info -a firmware.uf2
+cd "$BASE_DIR/build-RPI_PICO2_W" && \
+cmake -DMICROPY_BOARD=RPI_PICO2_W \
+      -DMICROPY_FROZEN_MANIFEST=$BASE_DIR/manifest_RPI_PICO2_W.py \
+      -DUSER_C_MODULES=$MODULES_PATH  && \
+	  -S $PORT_PATH && \
+make -j$(nproc) && picotool info -a firmware.uf2
 
-cd ../build-RPI_PICO2_W && \
-cmake -DMICROPY_BOARD=RPI_PICO2_W -DMICROPY_FROZEN_MANIFEST=$F_MANIFEST/manifest_RPI_PICO2_W.py .. && \
-make -j $(nproc) && picotool info -a firmware.uf2
+cd "$BASE_DIR/build-RPI_PICO_W" && \
+cmake -DMICROPY_BOARD=RPI_PICO2_W \
+      -DMICROPY_FROZEN_MANIFEST=$BASE_DIR/manifest_RPI_PICO_W.py \
+      -DUSER_C_MODULES=$MODULES_PATH  && \
+	  -S $PORT_PATH && \
+make -j$(nproc) && picotool info -a firmware.uf2
+
 ```
 
 on errors the first step is either `make clean` or just delete the contents of the current build dir

@@ -10,10 +10,10 @@ set(CMAKE_CXX_STANDARD 17)
 #include(micropython-common)
 
 # C++ Magic Memory
-include(cppmem/micropython)
+#include(cppmem/micropython)
 
 # Disable build-busting C++ exceptions
-include(micropython-disable-exceptions)
+#include(micropython-disable-exceptions)
 
 
 
@@ -31,7 +31,7 @@ include(picographics/micropython)
 # Pico Graphics Extra
 #include(pngdec/micropython)
 #include(jpegdec/micropython)
-#include(picovector/micropython)
+include(picovector/micropython)
 #include(qrcode/micropython/micropython)
 
 # Sensors & Breakouts
@@ -76,5 +76,16 @@ copy_module(pimoroni.py)
 #     copy_module(inventor.py)
 # endif()
 
+
 # Must call `enable_ulab()` to enable
+#include(micropython-common-ulab)
+#enable_ulab()
+#include(micropython-common)
 include(micropython-common-ulab)
+enable_ulab()
+
+# C++ Magic Memory
+include(cppmem/micropython)
+
+# Disable build-busting C++ exceptions
+include(micropython-disable-exceptions)

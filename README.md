@@ -13,10 +13,11 @@ Since adding the option to use a display this project has had limited testing on
 
 My personal interest is in getting this to work with the Grainfather system and website, then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
 
-Below are 2 GIFs, the first showing the Pico W running with no display. The second image shows the Raspberry Pi Pico 2 W and Pico Display, enclosed in a 3d Printed case.
+Below are some graphics, the first GIF shows the Pico W running with no display - the LED blinks every 3 seconds. The second image shows the addition of a Pico Display, and finally a demo showing the display enclosed in a 3d Printed case.
 
 <img src="./misc/PicoW_bareboard.gif" alt="Pico W running with no display" height="250px">
-<img src="./misc/Pico2W_display.gif" alt="Pico 2 W running with a display" height="250px">
+<img src="./misc/Pico2W_display.png" alt="Pico 2 W running with a display" height="250px">
+<img src="./misc/Pico2W_display.gif" alt="Pico 2 W running with a display and enclosed in a case" height="250px">
 
 # Features
 
@@ -33,7 +34,7 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Build Instructions
 * [x] UF2 release
 * [x] LCD display
-* [&nbsp; ] visual warning about low storage space
+* [&nbsp;&nbsp;] visual warning about low storage space
 
 # Installation
 
