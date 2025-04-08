@@ -16,7 +16,7 @@ My personal interest is in getting this to work with the Grainfather system and 
 Below are some graphics, the first GIF shows the Pico W running with no display - the LED blinks every 3 seconds. The second image shows the addition of a Pico Display, and finally a demo showing the display enclosed in a 3d Printed case.
 
 <img src="./misc/PicoW_bareboard.gif" alt="Pico W running with no display" height="250px">
-<img src="./misc/Pico2W_display.png" alt="Pico 2 W running with a display" height="250px">
+<img src="./misc/Pico2W_display.jpg" alt="Pico 2 W running with a display" height="250px">
 <img src="./misc/Pico2W_display.gif" alt="Pico 2 W running with a display and enclosed in a case" height="250px">
 
 # Features
@@ -34,11 +34,11 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Build Instructions
 * [x] UF2 release
 * [x] LCD display
-* [&nbsp;&nbsp;] visual warning about low storage space
+* [ ] visual warning about low storage space
 
 # Installation
 
-More detailed, step by step instructions will beprovided...
+More detailed, step by step instructions will be provided...
 
 ## Quick Start
 
@@ -444,13 +444,13 @@ See the examples directory for:
 * pitch.json configuration file
 
 # Other
-
+-->
 ## Buy me a coffee (beer)
 
 ![Buy me a coffee (beer)](misc/buy-me-a-coffee.png)
 
-If you like Pitch, feel free to coffee (or a beer) here: https://www.buymeacoffee.com/linjmeyer
-
+If you like TiltMicroBridge, feel free to buy me a coffee (or a beer) here: https://www.buymeacoffee.com/jef41
+<!--
 ## Name
 
 It's an unofficial tradition to name tech projects using nautical terms.  Pitch is a term used to describe the tilting/movement of a ship at sea.  Given pitching is also a brewing term, it seemed like a good fit.
