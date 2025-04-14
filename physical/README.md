@@ -12,4 +12,8 @@ Slide the assembled Pico and display into the case. Internally, the right hand e
 
 Since I usually place this device on a metal surface, the base contains two recesses into which I dropped a couple of magnets - approximately 10mm diameter and 1mm thick.
 
-When printing you may wish to place the case on one end. In this orientation the only support required is around the window. Placing support blockers around the magnet recesses will significantly reduce the effort required in removing supports after printing.
+By way of light pipes, I used a couple of short sections of a translucent 2.85mm 3D printing filament
+
+When printing you may wish to place the case on one end. In this orientation the only support required is around the window. I use Cura as a slicing engine and with this model used a Tree support structure, only where touching the buildplacte. I also placed a support blocker around the magnet recesses which significantly reduces the effort required in removing supports after printing.
+
+<img src="../misc/case_working_v2.jpg" alt="graphic of case assembly, showing main body of case, wedge and door" height="250px">

@@ -1,13 +1,13 @@
 # Tilt Micro Bridge Display
 Version 1.1 of this project introduces a limited option of adding a display to the device. At present this is implemented only for a [Pimoroni Pico Display](https://shop.pimoroni.com/products/pico-display-pack?variant=32368664215635). 
 
-This is a 1.14" 240×135 IPS display, using a st7789 driver chip. 
+This is a 1.14" 240×135 IPS display, using a st7789 driver chip. The PCB will plug directly into the Pico headers and includes an RGB LED and 4 buttons. The buttons are currently not used in this project, though I like the idea of using a button to log a reading as a starting gravity (O.G.), or maybe to temporarily turn the display off/on.
 I suggest purchasing their display, though if it is not available any 240×135 st7789 LCD should work. The font sizes and spacing are currently all calculated for a dispaly of this specific size.
 The Pico Display has an integrated RGB LED and 4 (currently unused) buttons.
 
 The RGB LED will flash an appropriate colour when data is received from a Tilt.
 
-The display will show the most recent (calibrated) values from each configured Tilt. The RSSI (signal strength) is also displayed along with raw (uncalibrated) values and battery age in weeks. 
+The display will show the most recent (calibrated) values from each configured Tilt. If present, the beer name will be shown. The RSSI (signal strength) is also displayed along with raw (uncalibrated) values and battery age in weeks. 
 
 If an original gravity value is configured in the config.json an additional screen will show current ABV and Apparent Attenuation.
 
