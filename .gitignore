@@ -13,7 +13,7 @@ bridge/debug.lo*
 .micropico
 *.csv
 *.log
-
+build/*RPI_PICO*
 # Keep pitch.json files in example dir
 !examples/**/pitch.json
 

@@ -2,14 +2,22 @@
 
 This project was originally a fork of [Tilt-Pitch](https://github.com/linjmeyer/tilt-pitch/). It is a remodelling of the work already done in that project. Tilt-Pitch is written in Python. This project aims to convert functionality to MicroPython.
 
-The intention is to create a minimal hardware Bluetooth -> wifi bridge, this project has been developed using a Raspberry Pi Pico W. Should require;
+The intention is to create a minimal hardware Bluetooth -> wifi bridge, this project has been developed using a Raspberry Pi Pico W. Requirements;
 
-* Raspberry Pi Pico W (wifi and bluetooth)
+* Raspberry Pi Pico 2 W (RP2350, wifi and bluetooth)
 * micro USB cable
 * Thonny software
-* UF2 
+* UF2 release from this project
 
-Not all of the features of Tilt-Pitch will port across, my personal interest is in getting this to work with the Grainfather system and website, then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
+Since adding the option to use a display this project has had limited testing on the slightly older Pi Pico W (RP2040, wifi and bluetooth). Although it will run, the RP2040 microcontroller version of the Pico has less SRAM (264KB of SRAM vs 520KB) and flash storage (2MB of on-board flash memory vs. 4MB) than the newer RP2350. The price difference is minimal. UF2 files are available for both versions, using a Raspberry Pi Pico 2 W is recommended.
+
+My personal interest is in getting this to work with the Grainfather system and website, then to get some averaging of values: the Tilt seems to transmit very regularly (as in every second), Grainfather allows logging every 15 minutes (which seems reasonable). Rather than log one potentially noisy value every 15 minutes, store the latest n minutes of data in a circular buffer, when a timer has elapsed do some normalisation and/or averaging on that data and log a single, averaged data point. 
+
+Below are some graphics, the first GIF shows the Pico W running with no display - the LED blinks every 3 seconds. The second image shows the addition of a Pico Display, and finally a demo showing the display enclosed in a 3d Printed case.
+
+<img src="./misc/PicoW_bareboard.gif" alt="Pico W running with no display" height="250px">
+<img src="./misc/Pico2W_display.jpg" alt="Pico 2 W running with a display" height="250px">
+<img src="./misc/Pico2W_display.gif" alt="Pico 2 W running with a display and enclosed in a case" height="250px">
 
 # Features
 
@@ -25,22 +33,26 @@ The following features are implemented, planned, or will be investigated in the 
 * [x] Calibrate Tilt readings with known good values
 * [x] Build Instructions
 * [x] UF2 release
-* [ ] LCD display
+* [x] LCD display
 * [ ] visual warning about low storage space
 
 # Installation
 
-Download the UF2 release (https://github.com/jef41/tilt-micro-bridge/releases) for your device - either Raspberry Pi Pico W or Raspberry Pi Pico2 W.
+More detailed, step by step instructions will be provided...
+
+## Quick Start
+
+Download the UF2 release (https://github.com/jef41/tilt-micro-bridge/releases) for your device - either Raspberry Pi Pico W or Raspberry Pi Pico 2 W.
 
 Hold down the button on the Pico whilst plugging it into a USB port on your computer.
 
 The device should appear as a mass storage device. Drag and drop the downloaded UF2 file onto the device. This file should take a few seconds to copy over. On completion the mass storage device will disappear. The green LED on the Pico should then light up.
 
-Open Thonny, issue Ctrl-F2 (to stop and restart the connection). Thonny should now display a message about execution interrupt and the REPL prompt >>>. At this point you must create the config.json file using Thonny.
+Open Thonny, issue Ctrl-F2 (to stop and restart the connection). Thonny should now display a message about execution interrupt and the REPL prompt >>>. At this point you must edit the config.json file using Thonny.
 
-The Thonny window should show some files on the device, at the bottom left. Double click the config.json file, add content according to the documentation below and save this (Ctrl-S) on the root of the Pico as config.json. These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
+The Thonny window should show some files on the device, at the bottom left of your screen. Double click the config.json file, add content according to the documentation below. Save this (Ctrl-S) file on the root of the Pico as config.json. These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
 
-Perform aa soft reboot (Ctrl-D), the device will restart and you should see the device output in the Thonny shell window. If this output looks OK and includes data from Tilt devices then the device is configured and may now be unplugged. 
+Perform aa soft reboot (Ctrl-D), the device will restart and you should see some text output from the deivce in the Thonny shell window. If this output looks OK and includes data from configured Tilt devices then the device is configured and may now be unplugged. 
 
 Once configured and in use, the device requires only USB power, it does not necessarily need to be connected to a computer.
 
@@ -67,12 +79,18 @@ Custom configurations can be used by creating a file `config.json` in the root d
 |`country_code` (str) | ISO 3166-1 alpha-2 character country code for wifi | `None` | [Example config](examples/wifi.md) |
 |`wifi_check_interval` (int) | Check there is a working internet conenction every n seconds | `3600` | [Example config](examples/wifi.md) |
 |`debug_log` (list) | How many kb in each and how many debug backup files to keep | `[20, 1]` |  |
+|`display_type` (str) | currently only option is "DISPLAY_PICO_DISPLAY" | None | [Example config](examples/display.md) |
+|`display_update_secs` (float) | how frequently to cycle content of display screen | `5` | [Example config](examples/display.md) |
+|`lcd_spi_gpio` (dictionary) | GPIO numbered pins for SPI | `{"cs": 17, "dc": 16, "sck": 18, "mosi": 19,"bl": 20}` | [Example config](examples/display.md) |
+|`lcd_backlight` (float) | brightness of LCD display | `0.7`| [Example config](examples/display.md) |
+|`rgb_led_gpio` (list) | GPIO pins for RGB LED, for PICO_DISPLAY this is [6,7,8] | None | [Example config](examples/display.md) |
+|`rgb_brightness` (float) | brightness of RGB LED | `0.05` | [Example config](examples/display.md) |
 |`default_averaging_period` (int) |  Average data over this period of seconds, 0 = no averaging, use most recent value that is within log period. Value must be less than log period. This default will be used if no provider averaging period is present | `30` | No example yet |
 |`default_temp_unit` (char) |  The deault temperature unit to display, valid values are either `C` or `F`. This default will be used if no provider averaging period is present | `C` | No example yet |
 | `temp_range_min` (int) | Minimum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `32` | [Example config](examples/min_max.md) |
 | `temp_range_max` (int) | Maximum temperature (Fahrenheit) for Pitch to consider a Tilt broadcast to be valid. | `212` | [Example config](examples/min_max.md)  |
-| `gravity_range_min` (int) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | [Example config](examples/min_max.md) |
-| `gravity_range_max` (int) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | [Example config](examples/min_max.md) |
+| `gravity_range_min` (float) | Minimum gravity for Pitch to consider a Tilt broadcast to be valid. | `0.7` | [Example config](examples/min_max.md) |
+| `gravity_range_max` (float) | Maximum gravity for Pitch to consider a Tilt broadcast to be valid. | `1.4` | [Example config](examples/min_max.md) |
 | `csv_log_period` (int) | log data at intervals of this many seconds | `60` | [Example config](examples/file_csv.md) |
 | `csv_bkp_count` (int) | Keep this number of older files | `4` | [Example config](examples/file_csv.md) |
 | `csv_log_tilt_colours` (list) | List of colours of Tilt devices to log to a CSV formatted file | None | [Example config](examples/file_csv.md) |
@@ -194,15 +212,15 @@ If the LED remains solidly lit this indicates that the Pico has encountered an e
 
 # Integrations
 
-* [ ] [Prometheus](#Prometheus-Metrics)
-* [ ] [InfluxDb](#InfluxDB-Metrics)
-* [ ] [Webhook](#Webhook)
+* [&nbsp; ] [Prometheus](#Prometheus-Metrics)
+* [&nbsp; ] [InfluxDb](#InfluxDB-Metrics)
+* [&nbsp;  ] [Webhook](#Webhook)
 * [x] [CSV Log File](#CSV-Log-File)
-* [ ] [Brewfather](#Brewfather)
-* [ ] [Brewer's Friend](#BrewersFriend)
+* [&nbsp;  ] [Brewfather](#Brewfather)
+* [&nbsp;  ] [Brewer's Friend](#BrewersFriend)
 * [x] [Grainfather](#Grainfather)
-* [ ] [Taplist.io](#taplistio)
-* [ ] [Azure IoT Hub](#Azure-IoT-Hub)
+* [&nbsp;  ] [Taplist.io](#taplistio)
+* [&nbsp;  ] [Azure IoT Hub](#Azure-IoT-Hub)
 
 Don't see one you want, send a PR 
 
@@ -263,8 +281,8 @@ Webhooks are sent as HTTP POST with the following json payload:
 Tilt status broadcast events can be logged to a .csv file using the config option `csv_log_tilt_colours`.  Enter a list of Tilt colours to listen for, e.g. `["red']` to log only Red Tilt data to CSV. Example file:
 
 ```
-2025-02-19 16:40:24, Simulated Tilt: Festbier logger added
-2025-02-19 16:40:34, Header: Simulated Tilt for Festbier
+2025-02-19 16:40:24, Simulated Tilt, Festbier logger added
+2025-02-19 16:40:34, header, Simulated Tilt for Festbier:
 timestamp, ABV (%), Apparent Attenuation (%), Temperature (°C), Specific Gravity
 2025-02-19 16:40:34, 5.71, 77.04, 21.9, 1.0259
 2025-02-19 16:41:04, 6.28, 85.10, 22.5, 1.0216
@@ -363,23 +381,25 @@ Select either the **Custom** or **Tilt Wireless Hydrometer and Thermometer** opt
 
 ## Program Flow
 
-At startup the device will look for a file named main.py on the root of the device. If not found, it will be created and populated. It will then look for config.json, if not found a generic (but invalid) config.json will be created.
+At startup the device will look for a file named main.py on the root of the device. If not found, this file will be created and populated. It will then look for config.json, if not found a generic (but invalid) config.json will be created.
 
-The software will then start from main.py and will look for and validate /config.json, this must be located in the root folder of the file system on the device. If the configuration file is invalid the device will halt.
+The software will then start from main.py and will look for and validate config.json, this must be located in the root folder of the file system on the device. If the configuration file is invalid the device will halt.
 
 Once the configuration has loaded the Pico will look to see if wifi credentials have been specified. If they have been specified then the device will try to connect to the network. If no wifi credentials are present the device will disable all but the CSV file provider, then continue.
 
-The devices and providers detailed in config.json will be provisioned (though if no wifi is present all but CSV file provider will be ignored).
+The Tilts and providers detailed in config.json will be provisioned (though if no wifi is present all but CSV file provider will be ignored).
 
 The Pico will start to listen for Tilt devices using Bluetooth. As data is received it will be stored on a queue of data points. 
 
 At the specified upload intervals data will be retrieved from the queue. Averaging, calibration and conversion will then be applied as specified from the configuration, and a value stored or uploaded to the provider(s).
 
-If the Pico is plugged in to a USB port on a computer you may use either Thonny or a serial terminal (e.g. Putty) to observe messages from the Pico. In its default state received Tilt data will be displayed for the first hour - this is intended to help the calibration process. 
+If the Pico is plugged in to a USB port on a computer you may use either Thonny, MicroPythions mpremote or a serial terminal (e.g. Putty) to observe messages from the Pico. In its default state received Tilt data will be displayed for the first hour - this is intended to help the calibration process.
+
+In a normal running state the built in LED on the Pico board will blink approximately every 3 seconds to indicate that the device is operating correctly. If an LCD display is present and configured, the display will cycle between configured Tilt devices and a clock display.
 
 ## Developing
 
-The UF2 release contains all the necessary code, pre-compiled into .mpy and frozen into the UF2 (hidden). If you wish to develop/play/test things it is suggested that you manually copy the whole folder and contents **/bridge/lib** to the root of the Pico filesystem. This will result in reduced filespace for CSV files, but allows for development and testing. 
+The UF2 release contains all the necessary code, pre-compiled into .mpy and frozen (hidden) into the UF2. If you wish to develop/play/test things it is suggested that you manually copy the whole folder and contents **/bridge/lib** to the root of the Pico filesystem. This will result in reduced filespace for CSV files, but allows for development and testing. 
 
 It is worth noting that the UF2 release will automatically (re)create main.py if it is not present. To disable this autorun file, rename `main.py` to, for example `tilt-micro-bridge.py` then create a new `main.py` that contains:
 
@@ -424,13 +444,13 @@ See the examples directory for:
 * pitch.json configuration file
 
 # Other
-
+-->
 ## Buy me a coffee (beer)
 
 ![Buy me a coffee (beer)](misc/buy-me-a-coffee.png)
 
-If you like Pitch, feel free to coffee (or a beer) here: https://www.buymeacoffee.com/linjmeyer
-
+If you like TiltMicroBridge, feel free to buy me a coffee (or a beer) here: https://www.buymeacoffee.com/jef41
+<!--
 ## Name
 
 It's an unofficial tradition to name tech projects using nautical terms.  Pitch is a term used to describe the tilting/movement of a ship at sea.  Given pitching is also a brewing term, it seemed like a good fit.
