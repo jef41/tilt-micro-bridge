@@ -1,6 +1,6 @@
 ## Build Notes
 
-Some early build notes, because I will forget /these may be of use to someone else
+Some early build notes, because I will forget /these may be of use to someone else. Additional repos are required, from Micropython & Pimoroni. Currently I am using Pimoroni picographics library and Hershey fonts, these it seems will be deprecated, but works for now.
 
 There is definitely a better way of doing this, in particular the Github workflows at:
 
@@ -49,6 +49,8 @@ sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi -y
 
 cd /mnt/d/Users/jef41/Documents/GitHub/
 git clone https://github.com/micropython/micropython.git --branch master
+cd /mnt/d/Users/jef41/Documents/GitHub/
+git clone https://github.com/pimoroni/pimoroni-pico.git --branch v1.24.0-beta2
 cd micropython
 git submodule update --init
 export PICO_SDK_PATH='/mnt/d/Users/jef41/Documents/GitHub/micropython/lib/pico-sdk'
