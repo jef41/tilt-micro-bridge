@@ -17,9 +17,19 @@ The default configuration is to not use a display. To enable the display, plug i
 2. `"rgb_led_gpio": [6,7,8]`
 
 ## If you are using an LCD other than the Pimoroni Pico Display: 
-1. `"display_type": "DISPLAY_PICO_DISPLAY"`
+There are other st7789 displays of the same resolution that you can source and use. I like the Pimoroni one, but here is not the place to espouse support for a particular product or ethos. If you have a different display it is likely you will need to make a different physical case design. Different resolution displays may work, but will just not look good because the sizing and spacing of text is hard coded to the pixel size of this display. Other displays, like the one procuded by Waveshare, may plug in to different pins on the Pico. To use these you will need to make a few changes;
+
+in config.json:
+1. `"display_type": "DISPLAY_PICO_DISPLAY"`, leave this unchanged, at basically defines the display as a 240×135 SPI display with st7789 a controller chip. 
 2. `"rgb_led_gpio": [6,7,8]` changing 6,7,8 to the appropriate R,G,B pins, or omit this entry if no RGB LED is present. 
-3. `lcd_spi_gpio` set this to match the GPIO numbereding of the SPI pins in use, the defaults are: `{"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20}` where bl=backlight LED
+3. `lcd_spi_gpio` set this to match the GPIO numbering of the SPI pins in use, the defaults are: `{"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20}` where bl=backlight LED. Wavshare Pico display uses {"cs": 9, "dc": 8, "sck": 10, "mosi": 11, "bl": 13}. These pin numbers must be valid SPI0 or SPI1 hardware pins, except the backlight which can be any unused GPIO.
+
+in main.py:
+1. It seems that other displays expose a reset pin, which must be held high. Using Thonny edit the file `main.py`. Near the top of the file, but after the import statements, add a line like:
+   ```p12 = Pin(12, Pin.OUT, value=1)```
+   In this case the reset pin is connected to GPIO12, adjust to suit.
+
+This has been tested and works with alternate displays. A future update should put the reset pin into the config file, rather than editing main.py
  
 
 ## Optionally change these options
