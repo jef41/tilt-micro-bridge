@@ -54,7 +54,7 @@ A more practical example is show below;
     "csv_log_period": 300,
 
     "red_gravity_offsets": [[1.0016,1.0000], [1.1070,1.1015], [1.0574,1.056]],
-    "red_temp_offset": 5,
+    "red_temp_offsets": [ "C", [4.8,5.0], [49.3,50.0] ],
     
     "blue_original_gravity": 1.067,
     "blue_name": "Festbier"
