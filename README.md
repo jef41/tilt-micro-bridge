@@ -393,7 +393,7 @@ The Pico will start to listen for Tilt devices using Bluetooth. As data is recei
 
 At the specified upload intervals data will be retrieved from the queue. Averaging, calibration and conversion will then be applied as specified from the configuration, and a value stored or uploaded to the provider(s).
 
-If the Pico is plugged in to a USB port on a computer you may use either Thonny, MicroPythions mpremote or a serial terminal (e.g. Putty) to observe messages from the Pico. In its default state received Tilt data will be displayed for the first hour - this is intended to help the calibration process.
+If the Pico is plugged in to a USB port on a computer you may use either **Thonny**, MicroPython's **mpremote** or a serial terminal (e.g. Putty) to observe messages from the Pico. In its default state received Tilt data will be displayed for the first hour - this is intended to help the calibration process.
 
 In a normal running state the built in LED on the Pico board will blink approximately every 3 seconds to indicate that the device is operating correctly. If an LCD display is present and configured, the display will cycle between configured Tilt devices and a clock display.
 
@@ -401,7 +401,7 @@ In a normal running state the built in LED on the Pico board will blink approxim
 
 The UF2 release contains all the necessary code, pre-compiled into .mpy and frozen (hidden) into the UF2. If you wish to develop/play/test things it is suggested that you manually copy the whole folder and contents **/bridge/lib** to the root of the Pico filesystem. This will result in reduced filespace for CSV files, but allows for development and testing. 
 
-It is worth noting that the UF2 release will automatically (re)create main.py if it is not present. To disable this autorun file, rename `main.py` to, for example `tilt-micro-bridge.py` then create a new `main.py` that contains:
+It is worth noting that the UF2 release will automatically (re)create main.py if it is not present. To disable this autorun file, rename `main.py` to, for example `tilt-micro-bridge.py` then create a new `main.py` that contains somethign simple, for example:
 
 ```
 print("new main, done.")
@@ -447,7 +447,7 @@ See the examples directory for:
 -->
 ## Buy me a coffee (beer)
 
-![Buy me a coffee (beer)](misc/buy-me-a-coffee.png)
+[<img src="misc/buy-me-a-coffee.png">](https://www.buymeacoffee.com/jef41)
 
 If you like TiltMicroBridge, feel free to buy me a coffee (or a beer) here: https://www.buymeacoffee.com/jef41
 <!--
