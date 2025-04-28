@@ -30,6 +30,7 @@ palette_cols = {
     "BEER": [0xFF, 0xA7, 0x00],  # CHROME YELLOW
     "WHITE": [255, 255, 255],
     "BG": [40, 40, 40],
+    "HAL": [160, 20, 20], # blinky heartbeat indicator
 }
 
 
@@ -58,6 +59,7 @@ class LCD_Display:
         self.lcd = None  # getattr gpio pins
         self.update_intvl = None
         self.brightness = None  # getattr
+        self.indicator = True
         # lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         # lcd.set_backlight(1.0)
         # update_frequency = 3 # seconds to cycle through each screen
@@ -87,32 +89,34 @@ class LCD_Display:
             rotate=0,
         )
         # self.lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
-        self.lcd.set_backlight(getattr(self.config, "lcd_backlight", 0.5))
-        self.lcd.clear()
         # Create palette mapping dynamically
         self.colour_to_palette = {
             colour: self.lcd.create_pen(*get_color_values(colour, 1))
             for colour in palette_cols
         }
+        self.lcd.set_backlight(getattr(self.config, "lcd_backlight", 0.5))
+        self.lcd.set_pen(self.colour_to_palette["BG"])
+        self.lcd.clear()
 
     async def card_stack(
         self, tilt_data_store: TiltHistory, cards: TiltDevice
     ):  #: TiltDevice
         # display the most recent data as basic & extended info for each tilt
         # some sort of loading screen
+        #blinky = asyncio.create_task(self.display_heartbeat())
         self.lcd.set_font("serif")
         while True:
-            index = 0
+            #index = 0
             for tilt in cards:
-                if index == 0:
-                    # print("show clock")
-                    await self.display_clock()
+                #if index == 0:
+                #    # print("show clock")
+                #    await self.display_clock()
                 # show standard info for each configured tilt colour
                 extended_info = await self.display_sg_t(tilt, tilt_data_store)
                 # return a tilt_status object or None
                 if extended_info:
                     await self.display_extended(tilt, extended_info)
-                index = (index + 1) % len(cards)
+                #index = (index + 1) % len(cards)
 
     def read_latest_vals(self, tilt_data_store, tilt_colour):
         # read latest values & return a tuple
@@ -181,6 +185,16 @@ class LCD_Display:
         )
         n = 4 if tilt.hd else 3
         self.lcd.set_pen(self.colour_to_palette["BG"])
+        '''self.lcd.polygon([
+          (0, 0),
+          (240, 0),
+          (240, 135),
+          (0, 135),
+          (0, 70),
+          (10, 70),
+          (10, 60),
+          (0, 60),
+        ])'''
         self.lcd.clear()
         self.lcd.set_pen(self.colour_to_palette[tilt.colour.upper()])
         if all([uncal_temp, uncal_sg, tilt_values]):
@@ -249,6 +263,7 @@ class LCD_Display:
             msg = tilt.colour
             self.lcd.text(msg, r_align(self.lcd, msg, 1, width), line4_v - 5, scale=1)
         gc.collect()
+        self.update_indicator() # blinky
         # t1 = time.ticks_ms()
         self.lcd.update()
         # t2 = time.ticks_ms()
@@ -259,6 +274,16 @@ class LCD_Display:
     async def display_extended(self, tilt, tilt_values):
         #
         self.lcd.set_pen(self.colour_to_palette["BG"])
+        '''self.lcd.polygon([
+          (0, 0),
+          (240, 0),
+          (240, 135),
+          (0, 135),
+          (0, 70),
+          (10, 70),
+          (10, 60),
+          (0, 60),
+        ])'''
         self.lcd.clear()
         self.lcd.set_pen(self.colour_to_palette[tilt.colour.upper()])
         # t1 = time.ticks_ms()
@@ -290,12 +315,21 @@ class LCD_Display:
         n = 4 if tilt.hd else 3
         self.lcd.text(f"OG:{tilt_values.original_gravity:.{n}f}", 0, line4_v, scale=1)
         gc.collect()
+        self.update_indicator() # blinky
         # t1 = time.ticks_ms()
         self.lcd.update()
         # t2 = time.ticks_ms()
         # print(f"extended drawing took:{time.ticks_diff(t1, t_start)}, update took:{time.ticks_diff(t2, t1)}")
         await asyncio.sleep(getattr(self.config, "display_update_secs", 3))
 
+    def update_indicator(self):
+        # alternate a little indicator so we know values are being received even if they are not changing
+        if self.indicator:
+            self.lcd.set_pen(self.colour_to_palette["HAL"])
+        else:
+            self.lcd.set_pen(self.colour_to_palette["BG"])
+        self.indicator = not self.indicator
+        self.lcd.circle(5, 60, 5) # x, y, r
 
 class RGB_Driver:
     def __new__(cls, config: BridgeConfig):
@@ -355,4 +389,4 @@ def r_align(lcd_obj, txt, sz, width):
     return int(width - lcd_obj.measure_text(txt, sz))
 
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
