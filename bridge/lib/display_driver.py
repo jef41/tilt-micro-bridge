@@ -71,17 +71,8 @@ class LCD_Display:
         )
 
     def _check_for_display(self, display_type):
-        # try:
-        # print(f"***  {pins=}")
-        spibus = SPIBus(
-            **(
-                getattr(
-                    self.config,
-                    "lcd_spi_gpio",
-                    {"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20},
-                )
-            )
-        )  # (cs=17, dc=16, sck=18, mosi=19, bl=20)
+        # get GPIO details
+        spibus = SPIBus(**(self.parse_gpio()))
         self.lcd = PicoGraphics(
             display=getattr(picographics, display_type),
             bus=spibus,
@@ -98,6 +89,20 @@ class LCD_Display:
         self.lcd.set_pen(self.colour_to_palette["BG"])
         self.lcd.clear()
 
+    def parse_gpio(self):
+        # check for a rsset pin value & strip it
+        vals = getattr(
+                    self.config,
+                    "lcd_gpio",
+                    {"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20}
+               )
+        rst = vals.pop('rst', None)
+        if rst:
+            # if using cheap Chinese set the RES/Reset pin here:
+            rst = Pin(rst, Pin.IN, Pin.PULL_UP)
+        # return SPI & backlight pins
+        return vals
+        
     async def card_stack(
         self, tilt_data_store: TiltHistory, cards: TiltDevice
     ):  #: TiltDevice
@@ -329,7 +334,7 @@ class LCD_Display:
         else:
             self.lcd.set_pen(self.colour_to_palette["BG"])
         self.indicator = not self.indicator
-        self.lcd.circle(5, 60, 5) # x, y, r
+        self.lcd.circle(10, 60, 5) # x, y, r
 
 class RGB_Driver:
     def __new__(cls, config: BridgeConfig):
@@ -389,4 +394,4 @@ def r_align(lcd_obj, txt, sz, width):
     return int(width - lcd_obj.measure_text(txt, sz))
 
 
-__version__ = "0.0.2"
+__version__ = "1.1.1"

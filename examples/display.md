@@ -22,12 +22,12 @@ There are other st7789 displays of the same resolution that you can source and u
 in config.json:
 1. `"display_type": "DISPLAY_PICO_DISPLAY"`, leave this unchanged, at basically defines the display as a 240×135 SPI display with st7789 a controller chip. 
 2. `"rgb_led_gpio": [6,7,8]` changing 6,7,8 to the appropriate R,G,B pins, or omit this entry if no RGB LED is present. 
-3. `lcd_spi_gpio` set this to match the GPIO numbering of the SPI pins in use, the defaults are: `{"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20}` where bl=backlight LED. Wavshare Pico display uses {"cs": 9, "dc": 8, "sck": 10, "mosi": 11, "bl": 13}. These pin numbers must be valid SPI0 or SPI1 hardware pins, except the backlight which can be any unused GPIO.
-
-in main.py:
-1. It seems that other displays expose a reset pin, which must be held high. Using Thonny edit the file `main.py`. Near the top of the file, but after the import statements, add a line like:
-   ```p12 = Pin(12, Pin.OUT, value=1)```
-   In this case the reset pin is connected to GPIO12, adjust to suit.
+3. `lcd_gpio` set this to match the GPIO numbering of the SPI pins in use, the defaults are: \
+`"lcd_gpio": {"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20}` \
+where bl=backlight LED. Wavshare Pico display uses {"cs": 9, "dc": 8, "sck": 10, "mosi": 11, "bl": 13}. These pin numbers must be valid SPI0 or SPI1 hardware pins, except the backlight which can be any unused GPIO.
+4. It seems that other displays expose a reset pin, which must be held high. If you have a reset pin then add an entry for `"rst"` when setting the lcd_gpio e.g.:  \
+`"lcd_gpio": {"cs": 9, "dc": 8, "sck": 10, "mosi": 11, "bl": 13, "rst": 12},`  \
+In this case the reset pin is connected to GPIO12, adjust to suit.
 
 This has been tested and works with alternate displays. A future update should put the reset pin into the config file, rather than editing main.py
  
@@ -54,7 +54,7 @@ This has been tested and works with alternate displays. A future update should p
 {
     "rgb_led_gpio": [6,7,8],
     "display_type": "DISPLAY_PICO_DISPLAY",
-    "lcd_spi_gpio": {"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20},
+    "lcd_gpio": {"cs": 17, "dc": 16, "sck": 18, "mosi": 19, "bl": 20},
     "rgb_led_gpio": [6,7,8],
     "lcd_backlight":  0.9,
     "rgb_brightness":  0.1,

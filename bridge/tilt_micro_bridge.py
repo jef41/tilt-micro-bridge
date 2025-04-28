@@ -1,14 +1,11 @@
 """latest change:
-    enable display  - this requires picographics, pimoroni_bus, pimoroni RGBLED
-    try and flash rgb led - this requires the pimoroni UF2
-    testing implement aiohttp timeout
-    testing change from to aiohttp from async_urequests
+    allow for a display rst pin
+    remove clock, introduce blinky dot
 working on:
-    1.0.3
+    1.1.1
 TODO:
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
-    todo add display - ABV latest cal SG & last averaged cal SG
 
 ideas:
 button to set into calibration mode, use different cal_config.json ?
@@ -134,4 +131,4 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.0.3"
+__version__ = "1.1.1"

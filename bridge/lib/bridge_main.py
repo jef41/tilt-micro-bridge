@@ -1,8 +1,7 @@
 """central handler holds most coros & passes data between
-1.0.1 use enabled_tilts instead of colours_enabled - needs test
+1.1.1 use enabled_tilts instead of colours_enabled - needs test
 TODO track how to store HD or SD
 """
-
 import logging
 import gc
 import sys
@@ -12,8 +11,6 @@ import asyncio
 from aioble import central as aioble_central
 from bluetooth import UUID
 from ubinascii import hexlify
-
-gc.collect()
 from primitives import Queue
 import machine
 from machine import RTC, WDT, WDT_RESET
@@ -21,12 +18,8 @@ from models import TiltDevice, TiltStatus, TiltHistory, iBeaconStatus
 from providers import *
 from configuration import BridgeConfig
 from models.provider_timer import UploadTimers
-#import display_async
 from display_driver import RGB_Driver, LCD_Display
-
 gc.collect()
-
-
 
 
 class BridgeMain:
@@ -287,14 +280,6 @@ class BridgeMain:
                 )
             else:
                 # seems to be a valid packet
-                #print(f"we wanna flash {iBeacon_packet.colour} {self.rgb_led=}")
-                # TODO should probably have a single task & if running cancel it then restart with new colour
-                #20250314
-                #task = asyncio.create_task(display_async.flash_led(iBeacon_packet.colour))
-                #if self.rgb_led:
-                #    # async routine/task to flash the led the correct colour
-                #    # asyncio.create_task(lcd.rgb_led_flash(iBeacon_packet.colour))
-                #    pass
                 # update tilt_enabled dict with RSSI
                 if (led := self.rgb_led):
                     led.flash(iBeacon_packet.colour)
