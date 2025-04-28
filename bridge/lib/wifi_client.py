@@ -1,6 +1,7 @@
-''' manage wifi
-    todo: reboot device if wifi not working?
-'''
+"""manage wifi
+todo: reboot device if wifi not working?
+"""
+
 import gc
 import asyncio
 
@@ -12,25 +13,26 @@ from sys import platform
 
 RP2 = platform == "rp2"
 
-#cyw43_wifi_link_status
+# cyw43_wifi_link_status
 error_codes_to_messages = {
-   0: 'CYW43_LINK_DOWN',
-   1: 'CYW43_LINK_JOIN',
-   2: 'CYW43_LINK_NOIP',
-   3: 'CYW43_LINK_UP',
-   -1: 'CYW43_LINK_FAIL',
-   -2: 'CYW43_LINK_NONET',
-   -3: 'CYW43_LINK_BADAUTH'
-   }
+    0: "CYW43_LINK_DOWN",
+    1: "CYW43_LINK_JOIN",
+    2: "CYW43_LINK_NOIP",
+    3: "CYW43_LINK_UP",
+    -1: "CYW43_LINK_FAIL",
+    -2: "CYW43_LINK_NONET",
+    -3: "CYW43_LINK_BADAUTH",
+}
 
 logger = logging.getLogger(__name__)
 
-class WifiClient():
+
+class WifiClient:
     def __init__(self, config):
-        #self._isconnected = False  # Current connection state
-        #self._ping_interval = 20000
-        #self._in_connect = False
-        #self._has_connected = False  # Define 'Clean Session' value to use.
+        # self._isconnected = False  # Current connection state
+        # self._ping_interval = 20000
+        # self._in_connect = False
+        # self._has_connected = False  # Define 'Clean Session' value to use.
         self._sta_if = network.WLAN(network.STA_IF)
         self._ssid = config.ssid
         self._wifi_pw = config.password
@@ -39,7 +41,7 @@ class WifiClient():
             self.check_interval = config.wifi_check_interval
         except AttributeError:
             self._country = None
-            self.check_interval = 3600 # check every n seconds
+            self.check_interval = 3600  # check every n seconds
         self.has_config = all((self._ssid, self._wifi_pw))
 
     async def wifi_connect(self, onboard_led, quick=False):
@@ -51,6 +53,7 @@ class WifiClient():
             # para 3.6.3
             s.config(pm=0xA11140)
             import rp2
+
             if self._country:
                 rp2.country(self._country)
         logger.info("Attempting to connect to wifi")
@@ -84,7 +87,9 @@ class WifiClient():
                 await asyncio.sleep(1)
             logger.info("Got reliable connection")
 
-    async def connect(self, onboard_led, quick=False):  # Quick initial connect option for battery apps
+    async def connect(
+        self, onboard_led, quick=False
+    ):  # Quick initial connect option for battery apps
         s = self._sta_if
         if not s.isconnected():
             await self.wifi_connect(onboard_led, quick)
@@ -99,11 +104,15 @@ class WifiClient():
     # broker connection. Must handle conditions at edge of wifi range.
     async def _keep_connected(self):
         s = self._sta_if
-        while True: # s.active():
+        while True:  # s.active():
             logger.debug("running in _keep_connected")
             if s.isconnected():  # Pause for 1 second
-                #await asyncio.sleep(1) # debug
-                await asyncio.sleep(randrange(int(self.check_interval*0.8), int(self.check_interval*1.2)))
+                # await asyncio.sleep(1) # debug
+                await asyncio.sleep(
+                    randrange(
+                        int(self.check_interval * 0.8), int(self.check_interval * 1.2)
+                    )
+                )
                 gc.collect()
             else:  # Link is down
                 try:
@@ -124,7 +133,6 @@ class WifiClient():
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
                     s.disconnect()
         logger.warning("Disconnected, exited _keep_connected")
-
 
 
 # Check internet connectivity by sending DNS lookup to Google's 8.8.8.8
@@ -151,4 +159,5 @@ async def wan_ok(
         s.close()
     return False
 
-__version__ = '1.0.0'
+
+__version__ = "1.0.0"

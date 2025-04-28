@@ -17,6 +17,13 @@ class BridgeConfig:
         # Defaults
         self.default_averaging_period = 30
         self.default_temp_unit = "C"
+        # Display hardware
+        self.display_type = None # "DISPLAY_PICO_DISPLAY"
+        self.display_update_secs = 5
+        self.lcd_spi_gpio = {"cs": 17, "dc": 16, "sck": 18, "mosi": 19,"bl": 20}
+        self.lcd_backlight = 0.7
+        self.rgb_led_gpio = None # [6,7,8]
+        self.rgb_brightness = 0.05
         # Broadcast Data ranges
         self.temp_range_min = 32
         self.temp_range_max = 212

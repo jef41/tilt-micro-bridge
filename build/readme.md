@@ -1,6 +1,6 @@
 ## Build Notes
 
-Some early build notes, because I will forget /these may be of use to someone else
+Some early build notes, because I will forget /these may be of use to someone else. Additional repos are required, from Micropython & Pimoroni. Currently I am using Pimoroni picographics library and Hershey fonts, these it seems will be deprecated, but works for now.
 
 There is definitely a better way of doing this, in particular the Github workflows at:
 
@@ -13,15 +13,24 @@ However, the following does work to freeze the modules into the latest micropyth
 from shell:
 
 ```
-F_MANIFEST='/mnt/d/Users/jef41/Documents/GitHub/tilt-micro-bridge/build'
+BASE_DIR="/mnt/d/Users/jef41/Documents/GitHub/tilt-micro-bridge/build" && \
+MODULES_PATH="/mnt/d/Users/jef41/Documents/GitHub/tilt-micro-bridge/build/tilt_display.cmake" && \
+PORT_PATH="/mnt/d/Users/jef41/Documents/GitHub/micropython/ports/rp2" && \
 
-cd /mnt/d/Users/jef41/Documents/GitHub/micropython/ports/rp2/build-RPI_PICO_W && \
-cmake -DMICROPY_BOARD=RPI_PICO_W -DMICROPY_FROZEN_MANIFEST=$F_MANIFEST/manifest_RPI_PICO_W.py .. && \
-make -j $(nproc) && picotool info -a firmware.uf2
+cd "$BASE_DIR/build-RPI_PICO2_W" && \
+cmake -DMICROPY_BOARD=RPI_PICO2_W \
+      -DMICROPY_FROZEN_MANIFEST=$BASE_DIR/manifest_RPI_PICO2_W.py \
+      -DUSER_C_MODULES=$MODULES_PATH  && \
+	  -S $PORT_PATH && \
+make -j$(nproc) && picotool info -a firmware.uf2
 
-cd ../build-RPI_PICO2_W && \
-cmake -DMICROPY_BOARD=RPI_PICO2_W -DMICROPY_FROZEN_MANIFEST=$F_MANIFEST/manifest_RPI_PICO2_W.py .. && \
-make -j $(nproc) && picotool info -a firmware.uf2
+cd "$BASE_DIR/build-RPI_PICO_W" && \
+cmake -DMICROPY_BOARD=RPI_PICO2_W \
+      -DMICROPY_FROZEN_MANIFEST=$BASE_DIR/manifest_RPI_PICO_W.py \
+      -DUSER_C_MODULES=$MODULES_PATH  && \
+	  -S $PORT_PATH && \
+make -j$(nproc) && picotool info -a firmware.uf2
+
 ```
 
 on errors the first step is either `make clean` or just delete the contents of the current build dir
@@ -40,6 +49,8 @@ sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi -y
 
 cd /mnt/d/Users/jef41/Documents/GitHub/
 git clone https://github.com/micropython/micropython.git --branch master
+cd /mnt/d/Users/jef41/Documents/GitHub/
+git clone https://github.com/pimoroni/pimoroni-pico.git --branch v1.24.0-beta2
 cd micropython
 git submodule update --init
 export PICO_SDK_PATH='/mnt/d/Users/jef41/Documents/GitHub/micropython/lib/pico-sdk'
