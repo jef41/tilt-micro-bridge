@@ -60,6 +60,7 @@ class LCD_Display:
         self.update_intvl = None
         self.brightness = None  # getattr
         self.indicator = True
+        self.startup_msg = ""
         # lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         # lcd.set_backlight(1.0)
         # update_frequency = 3 # seconds to cycle through each screen
@@ -109,6 +110,7 @@ class LCD_Display:
         # display the most recent data as basic & extended info for each tilt
         # some sort of loading screen
         #blinky = asyncio.create_task(self.display_heartbeat())
+        del self.startup_msg
         self.lcd.set_font("serif")
         while True:
             #index = 0
@@ -335,6 +337,19 @@ class LCD_Display:
             self.lcd.set_pen(self.colour_to_palette["BG"])
         self.indicator = not self.indicator
         self.lcd.circle(10, 60, 5) # x, y, r
+    
+    def show_msg(self, msg):
+        #self.lcd.set_font("serif")
+        self.startup_msg = self.startup_msg + "\n" + msg
+        self.lcd.set_font("bitmap8")
+        self.lcd.set_pen(self.colour_to_palette["BG"])
+        self.lcd.clear()
+        self.lcd.set_thickness(1)
+        self.lcd.set_pen(self.colour_to_palette["WHITE"])
+        #self.lcd.text(msg, 0, 65, scale=1)
+        self.lcd.text(self.startup_msg, 0, 0)
+        self.lcd.update()
+        time.sleep(1)
 
 class RGB_Driver:
     def __new__(cls, config: BridgeConfig):
