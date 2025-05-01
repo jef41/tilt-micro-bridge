@@ -98,7 +98,7 @@ If you wish to upload to Grainfather then you will need a wifi connection and an
 ```
 In the example above the ssid (name) and password for your wifi network would need to be entered and saved on the Pico. 3 Tilt devices are configured to upload. The only user facing difference between uploading as a tilt or a custom stream is whether or not the Tilt icon is diplayed in the Grainfather interface.
 
-These examples of configuration files from above are [expanded on and described]](/examples/config_json.md) in some more detail and might help as a starting point. The [configuration section](/README.md) on the main page of this repository details each option.
+These examples of configuration files from above are [expanded on and described](/examples/config_json.md) in some more detail and might help as a starting point. The [configuration section](/README.md#configuration) on the main page of this repository details each option.
 
 ## Test and Run
 json is very particular about syntax. After creating your configuration, perhaps use a site like https://jsonlint.com to validate the file has no syntax erros - missing commas or brackets. 
