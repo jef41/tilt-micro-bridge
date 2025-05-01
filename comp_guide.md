@@ -63,9 +63,10 @@ https://thonny.org
 the blurred files are development files on the test computer, ignore those. If the files on the Pico do not show, try clicking the 3 horizontal lines in the bottom left part of the Thonny window, select Refresh.
 
 ## Configuration
-Using Thonny, double click on the _config.json_ file. A valid, but minimal configuiration file looks like this:
+Using Thonny, double click on the _config.json_ file. The file should open in the main Thonny window where you can edit it. Once edited use the Save button to save the configuration to the Pico device. Then issue Ctl+D to issue a soft reboot and test the configuration 
 
-A minimal config.json looks like;
+A valid, but minimal configuiration file looks like this:
+
 ```json
 {
     "csv_log_tilt_colours": ["red"],
@@ -73,9 +74,13 @@ A minimal config.json looks like;
     "csv_log_averaging_period": 30
 }
 ```
-The above would log data from a red Tilt (either standard, Pro mini or Pro) to a csv file. The data would be logged every 2 minutes and each data point would be an average of the readings taken in the 30 seconds preceeding that log interval.
+The above would log data from a red Tilt (either standard, Pro mini or Pro) to a csv file. The data would be logged every 2 minutes and each data point would be an average of the readings taken in the 30 seconds preceeding that log interval. The image below shows the output freom Thonny after saving this file and issuing Ctl+D: 
 
-If you wish to upload to Grainfather then you will need a wifi connection and an endpoint for the data
+<img src="misc/Thonny-3.png"> 
+
+The lower section of the Thonny display offers some feedback from the Pico, typical of correct operation. This configutaion is successful, but you can see that after 30 seconds the device reports 'red has no data', i.e. the Pico has not received any data from a Red Tilt, so has nothing to save to a CSV file. 
+
+If you wish to upload to Grainfather then you will need a wifi connection and an endpoint for the data:
 ```json
 {
     "ssid": "yyyyy-xxxxx",
