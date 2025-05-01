@@ -41,9 +41,12 @@ The firmware is a compiled, machine code instruction set that determines how the
 * Drag and drop the UF2 onto the device that appeared when you plugged in the Pico
 * The file should take a few seconds to copy over after which the device should reboot and the RP2/RP2350 device should disappear from your system
 
-At this pont the software has been successfully copied onto the Pico. Your configuration options should now be added. The 2 images below show an example, drag and dropping the firmware for a RP2040 Pico board, taken from an old Windows build;
+At this point the software has been successfully copied onto the Pico. Your configuration options should now be added. The 2 images below show an example, drag and dropping the firmware for a RP2040 Pico board, taken from an old Windows build;
 
 <img src="misc/uf2-copy-1.png"> <br>
+
+drag the UF2 file from your download location and onto the Pico device, the file copy progress should display;
+
 <img src="misc/uf2-copy-2.png"> <br>
 If this does not work, or if you wish to install an update or change the firmware, then unplug the Pico, hold down the small button labelled _BOOTSEL_, then plug the micro USB connector in, and the Pico should appear as a mass storage device again.
 
@@ -60,7 +63,7 @@ https://thonny.org
 the blurred files are development files on the test computer, ignore those. If the files on the Pico do not show, try clicking the 3 horizontal lines in the bottom left part of the Thonny window, select Refresh.
 
 ## Configuration
-Using Thonny, double click on teh _config.json_ file. 
+Using Thonny, double click on the _config.json_ file. 
 todo...
 These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
 
