@@ -1,14 +1,12 @@
 """latest change:
-    enable display  - this requires picographics, pimoroni_bus, pimoroni RGBLED
-    try and flash rgb led - this requires the pimoroni UF2
-    testing implement aiohttp timeout
-    testing change from to aiohttp from async_urequests
+    allow for a display rst pin
+    remove clock, introduce blinky dot
+    report some startup progress on LCD, if present
 working on:
-    1.0.3
+    1.1.1
 TODO:
     todo refactor main & bridge lib to make more logical
     todo remove unnecessary libs & comments
-    todo add display - ABV latest cal SG & last averaged cal SG
 
 ideas:
 button to set into calibration mode, use different cal_config.json ?
@@ -26,7 +24,7 @@ import indicator
 from bridge_main import BridgeMain
 from wifi_client import WifiClient
 import gc
-
+gc.collect()
 # DEBUG_LEVEL = logging.DEBUG
 # SIMULATE_BEACONS = True
 DEBUG_LEVEL = logging.INFO
@@ -93,15 +91,26 @@ if bridge.initialised():
     log_nbr_backups = bridge.config.debug_log[1] if bridge.config else 1
     logger.handlers[0].max_file_size_in_bytes = log_max_kb * 1024
     logger.handlers[0].number_of_backup_files = log_nbr_backups
+    
+    if bridge.display:
+        bridge.display.show_msg("config file loaded")
     # test if wifi creds included,
     wifi = WifiClient(bridge.config)
     if wifi.has_config:
+        if bridge.display:
+            bridge.display.show_msg("connecting to wifi...")
         asyncio.run(wifi.connect(onboard_led))
+
+    if bridge.display:
+        bridge.display.show_msg("wifi connected \nget NTP time")
     # set system time - could have a UTC offset in config, but time is only used internally at the moment
     bridge.get_time()
     # provision the providers referenced in config.json, called here so the wifi referrnce doesn't have to be passed around
     bridge.set_providers(wifi.has_config)
 
+    if bridge.display:
+        bridge.display.show_msg("startup complete")
+    
     # enter main loop
     try:
         asyncio.run(main())
@@ -134,4 +143,4 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.0.3"
+__version__ = "1.1.1"

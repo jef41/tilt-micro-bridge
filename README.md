@@ -81,7 +81,7 @@ Custom configurations can be used by creating a file `config.json` in the root d
 |`debug_log` (list) | How many kb in each and how many debug backup files to keep | `[20, 1]` |  |
 |`display_type` (str) | currently only option is "DISPLAY_PICO_DISPLAY" | None | [Example config](examples/display.md) |
 |`display_update_secs` (float) | how frequently to cycle content of display screen | `5` | [Example config](examples/display.md) |
-|`lcd_spi_gpio` (dictionary) | GPIO numbered pins for SPI | `{"cs": 17, "dc": 16, "sck": 18, "mosi": 19,"bl": 20}` | [Example config](examples/display.md) |
+|`lcd_gpio` (dictionary) | GPIO numbered pins for LCD display | `{"cs": 17, "dc": 16, "sck": 18, "mosi": 19,"bl": 20}` | [Example config](examples/display.md) |
 |`lcd_backlight` (float) | brightness of LCD display | `0.7`| [Example config](examples/display.md) |
 |`rgb_led_gpio` (list) | GPIO pins for RGB LED, for PICO_DISPLAY this is [6,7,8] | None | [Example config](examples/display.md) |
 |`rgb_brightness` (float) | brightness of RGB LED | `0.05` | [Example config](examples/display.md) |
