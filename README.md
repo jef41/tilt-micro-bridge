@@ -38,7 +38,7 @@ The following features are implemented, planned, or will be investigated in the 
 
 # Installation
 
-More detailed, step by step instructions will be provided...
+More detailed, [step by step instructions are available](./comp_guide.md), the below may suffice
 
 ## Quick Start
 
@@ -212,15 +212,15 @@ If the LED remains solidly lit this indicates that the Pico has encountered an e
 
 # Integrations
 
-* [&nbsp; ] [Prometheus](#Prometheus-Metrics)
-* [&nbsp; ] [InfluxDb](#InfluxDB-Metrics)
-* [&nbsp;  ] [Webhook](#Webhook)
+* [&nbsp;] [Prometheus](#Prometheus-Metrics)
+* [&nbsp;] [InfluxDb](#InfluxDB-Metrics)
+* [&nbsp;] [Webhook](#Webhook)
 * [x] [CSV Log File](#CSV-Log-File)
-* [&nbsp;  ] [Brewfather](#Brewfather)
-* [&nbsp;  ] [Brewer's Friend](#BrewersFriend)
+* [&nbsp;] [Brewfather](#Brewfather)
+* [&nbsp;] [Brewer's Friend](#BrewersFriend)
 * [x] [Grainfather](#Grainfather)
-* [&nbsp;  ] [Taplist.io](#taplistio)
-* [&nbsp;  ] [Azure IoT Hub](#Azure-IoT-Hub)
+* [&nbsp;] [Taplist.io](#taplistio)
+* [&nbsp;] [Azure IoT Hub](#Azure-IoT-Hub)
 
 Don't see one you want, send a PR 
 
