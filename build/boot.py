@@ -96,7 +96,7 @@ if bridge.initialised():
         asyncio.run(wifi.connect(onboard_led))
 
     if bridge.display:
-        bridge.display.show_msg("wifi connected \nget NTP time")
+        bridge.display.show_msg("wifi connected \\nget NTP time")
     # set system time - could have a UTC offset in config, but time is only used internally at the moment
     bridge.get_time()
     # provision the providers referenced in config.json, called here so the wifi referrnce doesn't have to be passed around
