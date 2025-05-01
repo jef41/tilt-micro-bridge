@@ -63,20 +63,48 @@ https://thonny.org
 the blurred files are development files on the test computer, ignore those. If the files on the Pico do not show, try clicking the 3 horizontal lines in the bottom left part of the Thonny window, select Refresh.
 
 ## Configuration
-Using Thonny, double click on the _config.json_ file. 
-todo...
-These [examples of configuration files](/examples/config_json.md) might help as a starting point. The configuration section below details each option.
+Using Thonny, double click on the _config.json_ file. A valid, but minimal configuiration file looks like this:
+
+A minimal config.json looks like;
+```json
+{
+    "csv_log_tilt_colours": ["red"],
+    "csv_log_period": 120,
+    "csv_log_averaging_period": 30
+}
+```
+The above would log data from a red Tilt (either standard, Pro mini or Pro) to a csv file. The data would be logged every 2 minutes and each data point would be an average of the readings taken in the 30 seconds preceeding that log interval.
+
+If you wish to upload to Grainfather then you will need a wifi connection and an endpoint for the data
+```json
+{
+    "ssid": "yyyyy-xxxxx",
+    "password": "ssssssssssssss",
+    "country_code": "GB",
+    
+    "grainfather_tilt_stream_urls": {
+        "red": "https://community.grainfather.com/iot/uuu-vvv/tilt",
+        "blue": "https://community.grainfather.com/iot/www-xxx/tilt"
+    },
+    "grainfather_custom_stream_urls": {
+        "orange": "https://community.grainfather.com/iot/yyy-zzz/custom"
+    }
+}
+```
+In the example above the ssid (name) and password for your wifi network would need to be entered and saved on the Pico. 3 Tilt devices are configured to upload. The only user facing difference between uploading as a tilt or a custom stream is whether or not the Tilt icon is diplayed in the Grainfather interface.
+
+These examples of configuration files from above are [expanded on and described]](/examples/config_json.md) in some more detail and might help as a starting point. The [configuration section](/README.md) on the main page of this repository details each option.
 
 ## Test and Run
 json is very particular about syntax. After creating your configuration, perhaps use a site like https://jsonlint.com to validate the file has no syntax erros - missing commas or brackets. 
 
-Using THonny, perform a soft reboot (Ctrl-D), the device will restart and you should see some text output from the deivce in the Thonny shell window. If this output looks OK and includes data from configured Tilt devices then the device is configured and may now be unplugged. Typical output would be some messages about startup then data being received from your configures Tilt device(s). After the averaging period has elapsed (by default 30 seconds) an upload will be attempted to configured provider(s). Note that most providers seem to limit the rate of data uploads to once per 15 minutes, so if you are stopping and restarting the device repeatedly in a short time, the new data will not appear for up to 15 minutes. 
+Using Thonny, perform a soft reboot (Ctrl-D), the device will restart and you should see some text output from the deivce in the Thonny shell window. If this output looks OK and includes data from configured Tilt devices then the device is configured and may now be unplugged. Typical output would be some messages about startup then data being received from your configures Tilt device(s). After the averaging period has elapsed (by default 30 seconds) an upload will be attempted to configured provider(s). Note that most providers seem to limit the rate of data uploads to once per 15 minutes, so if you are stopping and restarting the device repeatedly in a short time, the new data will not appear for up to 15 minutes. 
 
 Once configured and in use, the device requires only USB power, it does not necessarily need to be connected to a computer.
 
 
 ## Updating the Configuration
-Should you wish, at some point, to change the configuration - perhaps for entering calibration values, use a similar process with THonny as above. Connect the Pico to a computer with a USB cable, then issue Ctl+F23 or click the red button, and the device should reboot and stop at the command prompt.
+Should you wish, at some point, to change the configuration - perhaps for entering calibration values, use a similar process with THonny as above. Connect the Pico to a computer with a USB cable, then issue Ctl+F2 or click the red button, and the device should reboot and stop at the command prompt. From here you can modify the configuration file as described above, then reboot to test the new setup.
 
 [back to top](./comp_guide.md#0-table-of-contents)
 
