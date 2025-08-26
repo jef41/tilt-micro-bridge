@@ -25,9 +25,9 @@ cmake -DMICROPY_BOARD=RPI_PICO2_W \
 make -j$(nproc) && picotool info -a firmware.uf2
 
 cd "$BASE_DIR/build-RPI_PICO_W" && \
-cmake -DMICROPY_BOARD=RPI_PICO2_W \
+cmake -DMICROPY_BOARD=RPI_PICO_W \
       -DMICROPY_FROZEN_MANIFEST=$BASE_DIR/manifest_RPI_PICO_W.py \
-      -DUSER_C_MODULES=$MODULES_PATH  && \
+      -DUSER_C_MODULES=$MODULES_PATH \
 	  -S $PORT_PATH && \
 make -j$(nproc) && picotool info -a firmware.uf2
 
