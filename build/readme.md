@@ -20,7 +20,7 @@ PORT_PATH="/mnt/d/Users/jef41/Documents/GitHub/micropython/ports/rp2" && \
 cd "$BASE_DIR/build-RPI_PICO2_W" && \
 cmake -DMICROPY_BOARD=RPI_PICO2_W \
       -DMICROPY_FROZEN_MANIFEST=$BASE_DIR/manifest_RPI_PICO2_W.py \
-      -DUSER_C_MODULES=$MODULES_PATH  && \
+      -DUSER_C_MODULES=$MODULES_PATH \
 	  -S $PORT_PATH && \
 make -j$(nproc) && picotool info -a firmware.uf2
 
