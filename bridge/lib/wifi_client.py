@@ -112,7 +112,7 @@ class WifiClient:
                     if display:
                         display.show_msg("trying again in 2 minutes.")
                         del display.startup_msg[-1] #remove that last message from list - it's a hack
-                    await asyncio.sleep(12)
+                    await asyncio.sleep(120)
                 
         if nic.isconnected():
             if self.check_interval > 0:
