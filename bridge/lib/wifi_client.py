@@ -46,54 +46,75 @@ class WifiClient:
 
     async def wifi_connect(self, onboard_led, quick=False):
         await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
-        s = self._sta_if
-        s.active(True)
+        nic = self._sta_if
+        nic.active(True)
         if RP2:  # Disable auto-sleep.
             # https://datasheets.raspberrypi.com/picow/connecting-to-the-internet-with-pico-w.pdf
             # para 3.6.3
-            s.config(pm=0xA11140)
+            nic.config(pm=0xA11140)
             import rp2
 
             if self._country:
                 rp2.country(self._country)
         logger.info("Attempting to connect to wifi")
-        s.connect(self._ssid, self._wifi_pw)
+        nic.connect(self._ssid, self._wifi_pw)
         for _ in range(60):  # Break out on fail or success. Check once per sec.
             await asyncio.sleep(1)
             # Loop while connecting or no IP
-            if s.isconnected():
+            if nic.isconnected():
                 logger.info("wifi connected")
                 await onboard_led.set_status(onboard_led.WIFI_CONNECTED)
                 break
             if RP2:  # 1 is joining. 2 is No IP, ie in process of connecting
-                if not 1 <= s.status() <= 3:
-                    logger.debug(f"wifi reports {error_codes_to_messages[s.status()]}")
+                if not 1 <= nic.status() <= 3:
+                    logger.warning(f"wifi reports {error_codes_to_messages[nic.status()]}")
                     break
         else:  # Timeout: still in connecting state
-            s.disconnect()
+            nic.disconnect()
+            nic.active(False)
             await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
             await asyncio.sleep(1)
-
-        if not s.isconnected():  # Timed out
-            logger.warning("wifi connect timed out")
-            raise OSError("Wi-Fi connect timed out")
-        if not quick:  # Skip on first connection only if power saving
-            # Ensure connection stays up for a few secs.
-            logger.info("Checking wifi integrity")
-            for _ in range(5):
-                if not s.isconnected():
-                    logger.warning("Connection Unstable")
-                    raise OSError("Connection Unstable")  # in 1st 5 secs
-                await asyncio.sleep(1)
-            logger.info("Got reliable connection")
+            #if not nic.isconnected():  # Timed out
+            logger.warning(f"wifi connect timed out {error_codes_to_messages[nic.status()]}")
+            #raise OSError("Wi-Fi connect timed out")
+        #else:
+        if nic.isconnected():
+            if not quick:  # Skip on first connection only if power saving
+                # Ensure connection stays up for a few secs.
+                logger.info("Checking wifi integrity")
+                for _ in range(5):
+                    if not nic.isconnected():
+                        logger.warning("Connection Unstable")
+                        #raise OSError("Connection Unstable")  # in 1st 5 secs
+                    await asyncio.sleep(1)
+                logger.info("Got reliable connection")
+        return nic.status()
 
     async def connect(
-        self, onboard_led, quick=False
+        self, onboard_led, display=False, quick=False
     ):  # Quick initial connect option for battery apps
-        s = self._sta_if
-        if not s.isconnected():
-            await self.wifi_connect(onboard_led, quick)
-        if s.isconnected():
+        nic = self._sta_if
+        attempt = 0
+        while not nic.isconnected():
+            attempt += 1
+            result = await self.wifi_connect(onboard_led, quick)
+            if result < 0:
+                # wifi not connected
+                if display:
+                    display.show_msg(f"{error_codes_to_messages[result]} ({attempt})", append = (False if attempt>1 else True))
+                if result == -3:
+                    if display:
+                        display.show_msg("bad wifi password,\nstopping here.")
+                    logger.error("bad wifi password, stopping here.")
+                    raise OSError("Bad Password")
+                else:
+                    logger.debug("sleep 120 secs and try wifi again")
+                    if display:
+                        display.show_msg("trying again in 2 minutes.")
+                        del display.startup_msg[-1] #remove that last message from list - it's a hack
+                    await asyncio.sleep(12)
+                
+        if nic.isconnected():
             if self.check_interval > 0:
                 asyncio.create_task(self._keep_connected())
                 # Runs forever unless user issues .disconnect()
@@ -103,10 +124,10 @@ class WifiClient:
     # Scheduled on 1st successful connection. Runs forever maintaining wifi and
     # broker connection. Must handle conditions at edge of wifi range.
     async def _keep_connected(self):
-        s = self._sta_if
-        while True:  # s.active():
+        nic = self._sta_if
+        while True:  # nic.active():
             logger.debug("running in _keep_connected")
-            if s.isconnected():  # Pause for 1 second
+            if nic.isconnected():  # Pause for 1 second
                 # await asyncio.sleep(1) # debug
                 await asyncio.sleep(
                     randrange(
@@ -116,7 +137,7 @@ class WifiClient:
                 gc.collect()
             else:  # Link is down
                 try:
-                    s.disconnect()
+                    nic.disconnect()
                 except OSError:
                     logger.error("Wi-Fi not started, unable to disconnect interface")
                 await asyncio.sleep(1)
@@ -131,7 +152,7 @@ class WifiClient:
                 except OSError as e:
                     logger.error(f"Error in reconnect. {e}")
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
-                    s.disconnect()
+                    nic.disconnect()
         logger.warning("Disconnected, exited _keep_connected")
 
 
@@ -160,4 +181,4 @@ async def wan_ok(
     return False
 
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
