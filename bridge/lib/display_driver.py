@@ -60,7 +60,7 @@ class LCD_Display:
         self.update_intvl = None
         self.brightness = None  # getattr
         self.indicator = True
-        self.startup_msg = ""
+        self.startup_msg = []
         # lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         # lcd.set_backlight(1.0)
         # update_frequency = 3 # seconds to cycle through each screen
@@ -338,18 +338,44 @@ class LCD_Display:
         self.indicator = not self.indicator
         self.lcd.circle(10, 60, 5) # x, y, r
     
-    def show_msg(self, msg):
+    def show_msg(self, msg, append=True):
         #self.lcd.set_font("serif")
-        self.startup_msg = self.startup_msg + "\n" + msg
+        if append:
+            #self.startup_msg = self.startup_msg + "\n" + msg
+            try:
+                self.startup_msg.append(msg)
+            except NameError:
+                self.startup_msg = [msg]
+        else:
+            # overwrite last line
+            #self.overwrite_msg(msg)
+            try:
+                self.startup_msg[-1] = msg
+            except NameError:
+                self.startup_msg = [msg]
         self.lcd.set_font("bitmap8")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         self.lcd.clear()
         self.lcd.set_thickness(1)
         self.lcd.set_pen(self.colour_to_palette["WHITE"])
         #self.lcd.text(msg, 0, 65, scale=1)
-        self.lcd.text(self.startup_msg, 0, 0)
+        #self.lcd.text(self.startup_msg, 0, 0)
+        self.lcd.text('\n'.join([item for item in self.startup_msg]), 0, 0)
         self.lcd.update()
         time.sleep(1)
+    
+    '''def overwrite_msg(self, new_msg):
+        # overwrite the last line of a messgae
+        import re
+        regex = re.compile("[\n]")
+        msgs = regex.split(self.startup_msg)
+        if len(msgs)>0:
+            msgs[len(msgs)-1] = new_msg
+        else:
+            msgs[0] = new_msg
+        self.startup_msg = '\n'.join([item for item in msgs])
+        '''
+        
 
 class RGB_Driver:
     def __new__(cls, config: BridgeConfig):
@@ -409,4 +435,4 @@ def r_align(lcd_obj, txt, sz, width):
     return int(width - lcd_obj.measure_text(txt, sz))
 
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
