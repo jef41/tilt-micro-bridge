@@ -11,7 +11,7 @@ class BridgeConfig:
         self.ssid = None
         self.password = None
         self.country_code = None
-        self.wifi_check_interval = 3600
+        #self.wifi_check_interval = 3600
         # Debug log
         self.debug_log = [20, 1]
         # Defaults
