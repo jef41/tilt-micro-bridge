@@ -1,6 +1,5 @@
-"""manage wifi
-todo: reboot device if wifi not working?
-"""
+''' manage wifi & status led from indicator module
+'''
 
 import gc
 import asyncio
@@ -8,7 +7,6 @@ import network
 import logging
 import time
 import ntptime
-import indicator
 gc.collect()
 
 # cyw43_wifi_link_status
@@ -25,9 +23,10 @@ error_codes_to_messages = {
 logger = logging.getLogger(__name__)
 
 class WifiClient:
-    def __init__(self, config):
+    def __init__(self, config, onboard_led):
         ''' manage & maintain the wifi connection '''
         self.nic = None
+        self.keep_alive = None
         self._ssid = config.ssid
         self._wifi_pw = config.password
         network.hostname("tilt_micro_bridge")
@@ -38,7 +37,8 @@ class WifiClient:
         except AttributeError:
             pass
         self.has_config = all((self._ssid, self._wifi_pw))
-        self.onboard_led = indicator.Status(indicator.Status.WIFI_DISCONNECTED)
+        self.status_led = onboard_led
+        self.status_led.set_status(self.status_led.WIFI_DISCONNECTED)
 
     async def connect(self, display=False):
         ''' externally call this method after testing has_config'''
@@ -89,13 +89,14 @@ class WifiClient:
                         del display.startup_msg[-1]
                         del display.startup_msg[-1]
                 
-        if self.nic.isconnected():
-            asyncio.create_task(self._keep_connected())
-            # Runs forever unless user issues .disconnect() TODO: test if cancelled
+        if self.nic.isconnected() and not self.keep_alive:
+            self.keep_alive = asyncio.create_task(self._keep_connected())
+            logger.debug("keep_alive task created")
+            # should be called once & run forever 
 
     async def wifi_connect(self):
         ''' internal function - call with an active & configured WLAN interface '''
-        await self.onboard_led.set_status(indicator.Status.WIFI_CONNECTING)
+        await self.status_led.set_status(self.status_led.WIFI_CONNECTING)
         
         self.nic.connect(self._ssid, self._wifi_pw)
         catch = 0
@@ -106,15 +107,15 @@ class WifiClient:
             # print(catch)
             if self.nic.isconnected():
                 logger.info("wifi connected")
-                await self.onboard_led.set_status(indicator.Status.WIFI_CONNECTED)
+                await self.status_led.set_status(self.status_led.WIFI_CONNECTED)
                 break
             if catch < 1:
                 logger.warning(f"wifi reports {error_codes_to_messages[catch]}")
-                await self.onboard_led.set_status(indicator.Status.WIFI_DISCONNECTED)
+                await self.status_led.set_status(self.status_led.WIFI_DISCONNECTED)
                 break
         else:  # Timeout: still in connecting state
             logger.warning(f"wifi connect timed out {error_codes_to_messages[catch]}")
-            await self.onboard_led.set_status(indicator.Status.WIFI_DISCONNECTED)
+            await self.status_led.set_status(self.status_led.WIFI_DISCONNECTED)
         #else:
         if self.nic.isconnected():
                 # Ensure connection stays up for a few secs.
@@ -130,6 +131,7 @@ class WifiClient:
 
     async def _keep_connected(self):
         ''' Scheduled on 1st successful connection. Runs forever maintaining wifi '''
+        #nic is proabbly active at start so could be while True:
         while self.nic.active():
             logger.debug("running in _keep_connected")
             if self.nic.isconnected():  
@@ -139,7 +141,7 @@ class WifiClient:
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().
-                    self.onboard_led.set_status(indicator.Status.STATUS_OK)
+                    await self.status_led.set_status(self.status_led.STATUS_OK)
                     logger.info("Reconnect OK!")
                 except OSError as e:
                     logger.error(f"Error in reconnect. {e}")
@@ -195,4 +197,5 @@ async def wan_ok(
 
 
 __version__ = "1.2.0"
+
 

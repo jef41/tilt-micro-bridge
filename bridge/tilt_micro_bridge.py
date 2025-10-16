@@ -78,7 +78,7 @@ if bridge.initialised():
     if bridge.display:
         bridge.display.show_msg("config file loaded")
     # test if wifi creds included,
-    wifi = WifiClient(bridge.config)
+    wifi = WifiClient(bridge.config, onboard_led)
     if wifi.has_config:
         if bridge.display:
             bridge.display.show_msg("connecting to wifi...")
