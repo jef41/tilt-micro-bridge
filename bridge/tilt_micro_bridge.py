@@ -1,4 +1,4 @@
-import time
+import time  # micropython-lib/tree/master/python-stdlib/time extends the built-in MicroPython time module to include time.strftime()
 import logging
 from logging import TimedRotatingLogFileHandler
 from machine import Pin
