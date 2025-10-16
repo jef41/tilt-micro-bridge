@@ -210,6 +210,8 @@ The Pico board has an onboard LED. This is used to give a basic visual indicatio
 
 If the LED remains solidly lit this indicates that the Pico has encountered an error. It is most likely that either the config.json file is not present, or this file is invalid. In this situation, use Thonny to connect to the device, inspect the debug.log file and correct the issue.
 
+During startup, if a LCD display is present, some information on progress (and errors) will be shown. Once starup has completed and the device is running, priority is given to listening for and processing Tilt beacon data. As such, if the wifi connection is lost whilst the device is running, it will attempt to reconnect, but status will only be reported by this LED state. Whilst running the microprocessor is busy listening for and processing data, as such the LED timings are likely to be less accurate, increasinlgy so with more Tilt devices. However, a short blink approximately every 3 seconds indicates that everything is running fine. If listening for 1 Tilt device, 2 long flashes followed by 1 short flash indicates that the wifi is no connected and is between reconnection attempts. A more frequent blink indicates the device in is process of trying to reconnect. 
+
 # Integrations
 
 * [&nbsp;] [Prometheus](#Prometheus-Metrics)
