@@ -150,18 +150,18 @@ class WifiClient:
         if self.nic.isconnected():
             try:
                 ntptime.settime()
-                self.logger.info("time set to UTC:{}".format(self.rtc.datetime()))
+                logger.info("time set to UTC")
                 result = True
-            except:
+            except Exception as e:
                 # todo catch more specific exception
-                logger.error("npttime.settime() timeout")
+                logger.error(f"npttime.settime() timeout: {e}")
         else:
             logger.warning("npttime.settime() failed, no network connection")
         if display:
             if not result:
                 display.show_msg("Error getting time")
             t = time.localtime()
-            display.show_msg(f"time set: {t[2]}-{t[1]}-{t[0]} {t[3]}:{t[4]}")
+            display.show_msg(f"time set {t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}")
         return result
 
 
