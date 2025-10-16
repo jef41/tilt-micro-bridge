@@ -197,18 +197,20 @@ SIMULATE_BEACONS = False
 
 # Status LED
 
-The Pico board has an onbaord LED. This is used to give a basic visual indication of the condittion of the code. The table below should help to interpret the LED status;
+The Pico board has an onboard LED. This is used to give a basic visual indication of the condition of the code. The table below should help to interpret the LED status;
 
 
 | Condition                     | Appearance                 | Timing (on/off) milliseconds           | Indication                |
 | ---------------------------- | ---------------------------- | --------------------- | --------------------- |
 |STARTUP | solid ON | None | The Pico is in its initial startup state, loading variables etc. It should progress within 1 second to initiate a wifi connection |
-|CONNECTING | fast blink (on-off ~ twice per second) | 10, 400 | Initial configuration loaded, connecting to wifi |
-|CONNECTED | 1Hz blink brief | 200, 800 | The Pico has connected to wifi. It willl progress from this state once a stable wifi connection has been established |
-|NOT CONNECTED | 1Hz blink slow | 800, 200 | A wifi connection has not been established. If not using wifi (i.e. logging locally to file) this will not be a problem |
-|RUNNING | blink once per 3 secs | 10, 3,000 | The application is running and listenting for data from Tilt devices |
+|CONNECTING | fast blink (on-off ~ twice per second) | 10, 400 | Initial configuration loaded, in process of connecting to wifi |
+|CONNECTED | 1Hz blink brief | 200, 800 | The Pico has connected to wifi. After 5 seconds it will progress from this state once a stable wifi connection has been established, or try to reconnect |
+|NOT CONNECTED | 1Hz blink slow | 800, 200 | A wifi connection has not been established. If not requiring wifi (i.e. logging locally to file) this will not be a problem |
+|RUNNING | blink once per 3 secs | 10, 3,000 | Once the startup routine has finished the LED should change to this status to indicate that the application is running and listenting for data from Tilt devices |
 
 If the LED remains solidly lit this indicates that the Pico has encountered an error. It is most likely that either the config.json file is not present, or this file is invalid. In this situation, use Thonny to connect to the device, inspect the debug.log file and correct the issue.
+
+During startup, if a LCD display is present, some information on progress (and errors) will be shown. Once starup has completed and the device is running, priority is given to listening for and processing Tilt beacon data. As such, if the wifi connection is lost whilst the device is running, it will attempt to reconnect, but status will only be reported by this LED state. Whilst running the microprocessor is busy listening for and processing data, as such the LED timings are likely to be less accurate, increasinlgy so with more Tilt devices. However, a short blink approximately every 3 seconds indicates that everything is running fine. If listening for 1 Tilt device, 2 long flashes followed by 1 short flash indicates that the wifi is no connected and is between reconnection attempts. A more frequent blink indicates the device in is process of trying to reconnect. 
 
 # Integrations
 
