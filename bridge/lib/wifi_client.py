@@ -8,6 +8,7 @@ import network
 import logging
 import time
 import ntptime
+import indicator
 gc.collect()
 
 # cyw43_wifi_link_status
@@ -37,8 +38,9 @@ class WifiClient:
         except AttributeError:
             pass
         self.has_config = all((self._ssid, self._wifi_pw))
+        self.onboard_led = indicator.Status(indicator.Status.WIFI_DISCONNECTED)
 
-    async def connect(self, onboard_led, display=False):
+    async def connect(self, display=False):
         ''' externally call this method after testing has_config'''
         # ensure nic object exists & is active
         try:
@@ -58,7 +60,7 @@ class WifiClient:
         attempt = 0
         while not self.nic.isconnected():
             attempt += 1
-            result = await self.wifi_connect(onboard_led)
+            result = await self.wifi_connect()
             if result < 3:
                 # wifi not connected
                 if display:
@@ -91,9 +93,9 @@ class WifiClient:
             asyncio.create_task(self._keep_connected())
             # Runs forever unless user issues .disconnect() TODO: test if cancelled
 
-    async def wifi_connect(self, onboard_led):
+    async def wifi_connect(self):
         ''' internal function - call with an active & configured WLAN interface '''
-        await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
+        await self.onboard_led.set_status(indicator.Status.WIFI_CONNECTING)
         
         self.nic.connect(self._ssid, self._wifi_pw)
         catch = 0
@@ -104,15 +106,15 @@ class WifiClient:
             # print(catch)
             if self.nic.isconnected():
                 logger.info("wifi connected")
-                await onboard_led.set_status(onboard_led.WIFI_CONNECTED)
+                await self.onboard_led.set_status(indicator.Status.WIFI_CONNECTED)
                 break
             if catch < 1:
                 logger.warning(f"wifi reports {error_codes_to_messages[catch]}")
-                await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
+                await self.onboard_led.set_status(indicator.Status.WIFI_DISCONNECTED)
                 break
         else:  # Timeout: still in connecting state
             logger.warning(f"wifi connect timed out {error_codes_to_messages[catch]}")
-            await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
+            await self.onboard_led.set_status(indicator.Status.WIFI_DISCONNECTED)
         #else:
         if self.nic.isconnected():
                 # Ensure connection stays up for a few secs.
@@ -133,9 +135,11 @@ class WifiClient:
             if self.nic.isconnected():  
                 await asyncio.sleep(50)
             else:  # Link is down
+                logger.warning("wifi connection is lost")
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().
+                    self.onboard_led.set_status(indicator.Status.STATUS_OK)
                     logger.info("Reconnect OK!")
                 except OSError as e:
                     logger.error(f"Error in reconnect. {e}")
