@@ -93,7 +93,7 @@ if bridge.initialised():
     if wifi.has_config:
         if bridge.display:
             bridge.display.show_msg("connecting to wifi...")
-        asyncio.run(wifi.connect(onboard_led, bridge.display))
+        asyncio.run(wifi.connect(bridge.display))
 
         if bridge.display:
             bridge.display.show_msg("wifi connected")
