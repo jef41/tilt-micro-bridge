@@ -9,7 +9,7 @@ try:
 except OSError:
     with open("/main.py", "w") as f:
         f.write("""\
-import time  # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
+import time  # micropython-lib/tree/master/python-stdlib/time extends the built-in MicroPython time module to include time.strftime()
 import logging
 from logging import TimedRotatingLogFileHandler
 from machine import Pin
@@ -96,15 +96,17 @@ if bridge.initialised():
         asyncio.run(wifi.connect(onboard_led, bridge.display))
 
         if bridge.display:
-            bridge.display.show_msg("wifi connected \\nget NTP time")
+            bridge.display.show_msg("wifi connected")
+            bridge.display.show_msg("get NTP time")
         # set system time - could have a UTC offset in config, but time is only used internally at the moment
-        bridge.get_time()
+        # bridge.get_time()
+        wifi.get_time(bridge.display)
     # provision the providers referenced in config.json, called here so the wifi referrnce doesn't have to be passed around
     bridge.set_providers(wifi.has_config)
 
     if bridge.display:
         bridge.display.show_msg("startup complete")
-    
+    time.sleep(3) # allow short period to observe msgs
     # enter main loop
     try:
         asyncio.run(main())
@@ -137,8 +139,7 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.1.2"
-
+__version__ = "1.2.0"
 """)
 
 # todo we could create a basic config.json here?
