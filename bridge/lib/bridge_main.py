@@ -437,17 +437,6 @@ class BridgeMain:
             )
         self.providers = normal_providers
 
-    def get_time(self):
-        result = False
-        try:
-            ntptime.settime()
-            self.logger.info("time set to UTC:{}".format(self.rtc.datetime()))
-            result = True
-        except:
-            # todo catch more specific exception
-            self.logger.info("npttime.settime() failed.")
-        return result
-
 
 def max_av_period(en_providers, tilt_devices):
     # return the maximum averaging value (seconds) for enabled providers
@@ -487,4 +476,4 @@ async def debug_memory(logger):
         logger.debug(f"gc: {gc.mem_free()}")
 
 
-__version__ = "1.0.2"
+__version__ = "1.1.0"

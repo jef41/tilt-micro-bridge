@@ -4,131 +4,67 @@ todo: reboot device if wifi not working?
 
 import gc
 import asyncio
-
-gc.collect()
 import network
 import logging
-from random import randrange
-from sys import platform
+import time
+import ntptime
+gc.collect()
 
-RP2 = platform == "rp2"
-'''
-# cyw43_wifi_link_status
-error_codes_to_messages = {
-    0: "CYW43_LINK_DOWN",
-    1: "CYW43_LINK_JOIN",
-    2: "CYW43_LINK_NOIP",
-    3: "CYW43_LINK_UP",
-    -1: "CYW43_LINK_FAIL",
-    -2: "CYW43_LINK_NONET",
-    -3: "CYW43_LINK_BADAUTH",
-}'''
 # cyw43_wifi_link_status
 error_codes_to_messages = {
     0: "STAT_IDLE",
     1: "STAT_CONNECTING",
     2: "STAT_GOT_IP",
-    3: "CYW43_LINK_UP",
-    -1: "STAT_CONNECT_FAIL",
-    -2: "STAT_NO_AP_FOUND",
-    -3: "STAT_WRONG_PASSWORD",
+    3: "STAT_LINK_UP",
+    -1: "CYW43_CONNECT_FAIL",
+    -2: "CYW43_NO_AP_FOUND",
+    -3: "CYW43_WRONG_PASSWORD",
 }
 
 logger = logging.getLogger(__name__)
 
-
 class WifiClient:
     def __init__(self, config):
-        # self._isconnected = False  # Current connection state
-        # self._ping_interval = 20000
-        # self._in_connect = False
-        # self._has_connected = False  # Define 'Clean Session' value to use.
-        self.nic = network.WLAN(network.STA_IF)
+        ''' manage & maintain the wifi connection '''
+        self.nic = None
         self._ssid = config.ssid
         self._wifi_pw = config.password
+        network.hostname("tilt_micro_bridge")
         try:
-            self._country = config.country_code
-            self.check_interval = config.wifi_check_interval
+            #self._country = config.country_code
+            network.country(config.country_code)
+            #self.check_interval = config.wifi_check_interval
         except AttributeError:
-            self._country = None
-            self.check_interval = 3600  # check every n seconds
+            pass
         self.has_config = all((self._ssid, self._wifi_pw))
 
-    async def wifi_connect(self, onboard_led, quick=False):
-        await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
-        #nic = self._sta_if
-        #nic.disconnect()
-        #nic.active(False)
-        '''if RP2:  # Disable auto-sleep.
-            # https://datasheets.raspberrypi.com/picow/connecting-to-the-internet-with-pico-w.pdf
-            # para 3.6.3
-            nic.config(pm=0xA11140)
-            import rp2
-
-            if self._country:
-                rp2.country(self._country)'''
-        self.nic.deinit()
-        self.nic = network.WLAN(network.STA_IF)
-        network.hostname("tilt_micro_bridge")
-        self.nic.config(pm = network.WLAN.PM_PERFORMANCE)
-        if self._country:
-            network.country(self._country)
-        logger.info("Attempting to connect to wifi")
-        self.nic.active(True)
-        self.nic.connect(self._ssid, self._wifi_pw)
-        catch = 0
-        for _ in range(30):  # Break out on fail or success. Check once per sec.
-            catch = self.nic.status() # can be a fleeting status, so capture it
-            # print(catch)
-            # Loop while connecting or no IP
-            if self.nic.isconnected():
-                logger.info("wifi connected")
-                await onboard_led.set_status(onboard_led.WIFI_CONNECTED)
-                break
-            #if RP2:  # 1 is joining. 2 is No IP, ie in process of connecting
-            #    if not 1 <= nic.status() <= 3:
-            if catch < 1:
-                logger.warning(f"wifi reports {error_codes_to_messages[catch]}")
-                break
-            await asyncio.sleep(1)
-        else:  # Timeout: still in connecting state
-            await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
-            await asyncio.sleep(1)
-            #if not nic.isconnected():  # Timed out
-            logger.warning(f"wifi connect timed out {error_codes_to_messages[catch]}")
-            #raise OSError("Wi-Fi connect timed out")
-        #else:
-        if self.nic.isconnected():
-            if not quick:  # Skip on first connection only if power saving
-                # Ensure connection stays up for a few secs.
-                logger.info("Checking wifi integrity")
-                for _ in range(5):
-                    if not self.nic.isconnected():
-                        logger.warning("Connection Unstable")
-                        #raise OSError("Connection Unstable")  # in 1st 5 secs
-                    await asyncio.sleep(1)
-                logger.info("Got reliable connection")
-        else:  # reset nic
-            self.nic.disconnect()
-            self.nic.active(False)
-            self.nic.deinit()
-        return catch #nic.status()
-
-    async def connect(
-        self, onboard_led, display=False, quick=False
-    ):  # Quick initial connect option for battery apps
-        #nic = self._sta_if
+    async def connect(self, onboard_led, display=False):
+        ''' externally call this method after testing has_config'''
+        # ensure nic object exists & is active
+        try:
+            if self.nic.active():
+                self.nic.active(False)
+        except NameError:
+            self.nic = network.WLAN(network.STA_IF)
+        except AttributeError:
+            self.nic = network.WLAN(network.STA_IF)
+        finally:
+            # here we have an inactive nic
+            self.nic.config(pm = network.WLAN.PM_PERFORMANCE)
+            self.nic.active(True)
+            self.nic.connect(self._ssid, self._wifi_pw)
+        # here could test _has_config & raise an error if not
+        logger.info("Attempting to connect to wifi")    
         attempt = 0
         while not self.nic.isconnected():
-            if attempt > 0 and display:
-                display.show_msg("trying connection again")
-                del display.startup_msg[-1]
             attempt += 1
-            result = await self.wifi_connect(onboard_led, quick)
-            if result < 2:
+            result = await self.wifi_connect(onboard_led)
+            if result < 3:
                 # wifi not connected
                 if display:
-                    display.show_msg(f"{error_codes_to_messages[result]} ({attempt})", append = (False if attempt>1 else True))
+                    if attempt == 1:
+                        display.show_msg("Error connecting to WIFI:")
+                    display.show_msg(f" {error_codes_to_messages[result]} ({attempt})")
                 if result == -3:
                     if display:
                         display.show_msg("bad wifi password,\nstopping here.")
@@ -138,40 +74,65 @@ class WifiClient:
                     logger.debug("sleep 120 secs and try wifi again")
                     if display:
                         display.show_msg("trying again in 2 minutes.")
-                        del display.startup_msg[-1] #remove that last message from list - it's hacky
-                    await asyncio.sleep(120)
+                        del display.startup_msg[-1] # remove that last message from list - it's hacky
+                    self.nic.disconnect()
+                    self.nic.active(False)
+                    self.nic.deinit()
+                    await asyncio.sleep(120) # 120 testing
+                    self.nic.config(pm = network.WLAN.PM_PERFORMANCE)
+                    self.nic.active(True)
+                    self.nic.connect(self._ssid, self._wifi_pw)
+                    if display:
+                        display.show_msg("trying connection again") # hacky, but overwrites a line
+                        del display.startup_msg[-1]
+                        del display.startup_msg[-1]
                 
         if self.nic.isconnected():
-            if self.check_interval > 0:
-                asyncio.create_task(self._keep_connected())
-                # Runs forever unless user issues .disconnect()
-            else:
-                logger.info("wifi connection checks disabled")
+            asyncio.create_task(self._keep_connected())
+            # Runs forever unless user issues .disconnect() TODO: test if cancelled
 
-    # Scheduled on 1st successful connection. Runs forever maintaining wifi and
-    # broker connection. Must handle conditions at edge of wifi range.
+    async def wifi_connect(self, onboard_led):
+        ''' internal function - call with an active & configured WLAN interface '''
+        await onboard_led.set_status(onboard_led.WIFI_CONNECTING)
+        
+        self.nic.connect(self._ssid, self._wifi_pw)
+        catch = 0
+        for _ in range(30):  # 30 testing
+            # Loop while connecting or no IP. Break out on fail or success. Check once per sec.
+            await asyncio.sleep(1)
+            catch = self.nic.status() # can be a fleeting status, so capture it
+            # print(catch)
+            if self.nic.isconnected():
+                logger.info("wifi connected")
+                await onboard_led.set_status(onboard_led.WIFI_CONNECTED)
+                break
+            if catch < 1:
+                logger.warning(f"wifi reports {error_codes_to_messages[catch]}")
+                await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
+                break
+        else:  # Timeout: still in connecting state
+            logger.warning(f"wifi connect timed out {error_codes_to_messages[catch]}")
+            await onboard_led.set_status(onboard_led.WIFI_DISCONNECTED)
+        #else:
+        if self.nic.isconnected():
+                # Ensure connection stays up for a few secs.
+                logger.info("Checking wifi integrity")
+                for _ in range(5):
+                    if not self.nic.isconnected():
+                        logger.warning("Connection Unstable")
+                        #raise OSError("Connection Unstable")  # in 1st 5 secs
+                    await asyncio.sleep(1)
+                logger.info("Got reliable connection")
+        #else:  # connection failed
+        return catch #nic.status()
+
     async def _keep_connected(self):
-        #nic = self._sta_if
-        while True:  # nic.active():
+        ''' Scheduled on 1st successful connection. Runs forever maintaining wifi '''
+        while self.nic.active():
             logger.debug("running in _keep_connected")
-            if self.nic.isconnected():  # Pause for 1 second
-                # await asyncio.sleep(1) # debug
-                await asyncio.sleep(
-                    randrange(
-                        int(self.check_interval * 0.8), int(self.check_interval * 1.2)
-                    )
-                )
-                gc.collect()
+            if self.nic.isconnected():  
+                await asyncio.sleep(50)
             else:  # Link is down
-                try:
-                    self.nic.disconnect()
-                except OSError:
-                    logger.error("Wi-Fi not started, unable to disconnect interface")
-                await asyncio.sleep(1)
-                try:
-                    await self.wifi_connect()
-                except OSError:
-                    continue
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().
@@ -180,7 +141,28 @@ class WifiClient:
                     logger.error(f"Error in reconnect. {e}")
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
                     self.nic.disconnect()
-        logger.warning("Disconnected, exited _keep_connected")
+                    self.nic.active(False)
+        logger.warning(f"exited _keep_connected {self.nic.isconnected()=}")
+
+    def get_time(self, display):
+        result = False
+        ntptime.timeout = 5
+        if self.nic.isconnected():
+            try:
+                ntptime.settime()
+                self.logger.info("time set to UTC:{}".format(self.rtc.datetime()))
+                result = True
+            except:
+                # todo catch more specific exception
+                logger.error("npttime.settime() timeout")
+        else:
+            logger.warning("npttime.settime() failed, no network connection")
+        if display:
+            if not result:
+                display.show_msg("Error getting time")
+            t = time.localtime()
+            display.show_msg(f"time set: {t[2]}-{t[1]}-{t[0]} {t[3]}:{t[4]}")
+        return result
 
 
 # Check internet connectivity by sending DNS lookup to Google's 8.8.8.8
@@ -208,4 +190,5 @@ async def wan_ok(
     return False
 
 
-__version__ = "1.0.2"
+__version__ = "1.2.0"
+

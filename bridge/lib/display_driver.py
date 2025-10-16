@@ -360,6 +360,9 @@ class LCD_Display:
         self.lcd.set_pen(self.colour_to_palette["WHITE"])
         #self.lcd.text(msg, 0, 65, scale=1)
         #self.lcd.text(self.startup_msg, 0, 0)
+        while len(self.startup_msg) > 7:
+            # remove oldest messages
+            del self.startup_msg[0]
         self.lcd.text('\n'.join([item for item in self.startup_msg]), 0, 0)
         self.lcd.update()
         time.sleep(1)
@@ -435,4 +438,4 @@ def r_align(lcd_obj, txt, sz, width):
     return int(width - lcd_obj.measure_text(txt, sz))
 
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
