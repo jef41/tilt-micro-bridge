@@ -1,6 +1,5 @@
-"""central handler holds most coros & passes data between
-1.1.1 use enabled_tilts instead of colours_enabled - needs test
-TODO track how to store HD or SD
+""" central handler holds most coros & passes data between
+    1.1.1 use enabled_tilts instead of colours_enabled
 """
 import logging
 import gc
@@ -476,4 +475,4 @@ async def debug_memory(logger):
         logger.debug(f"gc: {gc.mem_free()}")
 
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
