@@ -1,5 +1,8 @@
 """Classes to mediate between bridge_main and LCD LED devices
 16,17,18,19 SPI0_RX, SPI0_CSN, SPI0_SCK, SPI0_TX GPIO numbering
+
+TODO: if wifi connection issues make the wifi connection messages appear in the card stack
+    currently the wifi conenction message appears once per reconnect attempt
 """
 
 import gc
@@ -57,7 +60,7 @@ class LCD_Display:
     def __init__(self, config: BridgeConfig):
         self.config = config
         self.lcd = None  # getattr gpio pins
-        self.update_intvl = None
+        self.update_intvl = getattr(self.config, "display_update_secs", 3)
         self.brightness = None  # getattr
         self.indicator = True
         self.startup_msg = []
@@ -109,20 +112,23 @@ class LCD_Display:
     ):  #: TiltDevice
         # display the most recent data as basic & extended info for each tilt
         # some sort of loading screen
-        #blinky = asyncio.create_task(self.display_heartbeat())
-        del self.startup_msg
-        self.lcd.set_font("serif")
+        self.startup_msg = [] # clear startup messages
         while True:
             #index = 0
+            self.lcd.set_font("serif")
             for tilt in cards:
                 #if index == 0:
                 #    # print("show clock")
                 #    await self.display_clock()
                 # show standard info for each configured tilt colour
+                # & test for extended info
                 extended_info = await self.display_sg_t(tilt, tilt_data_store)
                 # return a tilt_status object or None
                 if extended_info:
                     await self.display_extended(tilt, extended_info)
+                if len(self.startup_msg):
+                    # there's probably a wifi disconnection
+                    await self.show_msg()
                 #index = (index + 1) % len(cards)
 
     def read_latest_vals(self, tilt_data_store, tilt_colour):
@@ -131,7 +137,7 @@ class LCD_Display:
         uncal_tempF, uncal_SG = tilt_data_store.get_data(
             tilt_colour,
             av_period=0,
-            log_period=(3 * getattr(self.config, "display_update_secs", 3)),
+            log_period=(3 * self.update_intvl),
         )
         if uncal_tempF and uncal_SG:
             tilt_status = TiltStatus(
@@ -156,7 +162,7 @@ class LCD_Display:
         # show a clock or a MOTD or something
         width, height = self.lcd.get_bounds()
         offset = None
-        for _ in range(getattr(self.config, "display_update_secs", 3)):
+        for _ in range(self.update_intvl):
             self.lcd.set_pen(self.colour_to_palette["BG"])
             self.lcd.clear()
             self.lcd.set_thickness(2)
@@ -191,6 +197,7 @@ class LCD_Display:
             tilt_data_store, tilt.colour
         )
         n = 4 if tilt.hd else 3
+        self.lcd.set_font("serif")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         '''self.lcd.polygon([
           (0, 0),
@@ -275,11 +282,12 @@ class LCD_Display:
         self.lcd.update()
         # t2 = time.ticks_ms()
         # print(f"standard drawing took:{time.ticks_diff(t1, t_start)}, update took:{time.ticks_diff(t2, t1)}")
-        await asyncio.sleep(getattr(self.config, "display_update_secs", 3))
+        await asyncio.sleep(self.update_intvl)
         return tilt_values if getattr(tilt_values, "original_gravity", None) else None
 
     async def display_extended(self, tilt, tilt_values):
         #
+        self.lcd.set_font("serif")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         '''self.lcd.polygon([
           (0, 0),
@@ -327,7 +335,7 @@ class LCD_Display:
         self.lcd.update()
         # t2 = time.ticks_ms()
         # print(f"extended drawing took:{time.ticks_diff(t1, t_start)}, update took:{time.ticks_diff(t2, t1)}")
-        await asyncio.sleep(getattr(self.config, "display_update_secs", 3))
+        await asyncio.sleep(self.update_intvl)
 
     def update_indicator(self):
         # alternate a little indicator so we know values are being received even if they are not changing
@@ -338,21 +346,27 @@ class LCD_Display:
         self.indicator = not self.indicator
         self.lcd.circle(10, 60, 5) # x, y, r
     
-    def show_msg(self, msg, append=True):
-        #self.lcd.set_font("serif")
-        if append:
-            #self.startup_msg = self.startup_msg + "\n" + msg
-            try:
-                self.startup_msg.append(msg)
-            except NameError:
-                self.startup_msg = [msg]
+    async def show_msg(self, msg=None, append=True):
+        ''' if msg then add to list
+            display text
+        '''
+        intvl = 1 # 
+        if msg:
+            if append:
+                # not currently used, could remove append() property
+                try:
+                    self.startup_msg.append(msg)
+                except NameError:
+                    self.startup_msg = [msg]
+            else:
+                # overwrite last line
+                try:
+                    self.startup_msg[-1] = msg
+                except NameError:
+                    self.startup_msg = [msg]
         else:
-            # overwrite last line
-            #self.overwrite_msg(msg)
-            try:
-                self.startup_msg[-1] = msg
-            except NameError:
-                self.startup_msg = [msg]
+            # not adding a message
+            intvl = self.update_intvl
         self.lcd.set_font("bitmap8")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         self.lcd.clear()
@@ -365,19 +379,12 @@ class LCD_Display:
             del self.startup_msg[0]
         self.lcd.text('\n'.join([item for item in self.startup_msg]), 0, 0)
         self.lcd.update()
-        time.sleep(1)
+        #time.sleep(1)
+        await asyncio.sleep(intvl)
     
-    '''def overwrite_msg(self, new_msg):
-        # overwrite the last line of a messgae
-        import re
-        regex = re.compile("[\n]")
-        msgs = regex.split(self.startup_msg)
-        if len(msgs)>0:
-            msgs[len(msgs)-1] = new_msg
-        else:
-            msgs[0] = new_msg
-        self.startup_msg = '\n'.join([item for item in msgs])
-        '''
+    def blocking_show_msg(self, msg, append=True):
+        ''' allow a synchronous display method  - used from main.py '''
+        asyncio.run(self.show_msg(msg, append))
         
 
 class RGB_Driver:

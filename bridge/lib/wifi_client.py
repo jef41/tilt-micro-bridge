@@ -23,13 +23,14 @@ error_codes_to_messages = {
 logger = logging.getLogger(__name__)
 
 class WifiClient:
-    def __init__(self, config, onboard_led):
+    def __init__(self, config, onboard_led, lcd=False):
         ''' manage & maintain the wifi connection '''
         self.nic = None
         self.keep_alive = None
         self._ssid = config.ssid
         self._wifi_pw = config.password
-        network.hostname("tilt_micro_bridge")
+        self.display = lcd
+        network.hostname("tilt-micro-bridge")
         try:
             #self._country = config.country_code
             network.country(config.country_code)
@@ -40,7 +41,7 @@ class WifiClient:
         self.status_led = onboard_led
         self.status_led.set_status(self.status_led.WIFI_DISCONNECTED)
 
-    async def connect(self, display=False):
+    async def connect(self):
         ''' externally call this method after testing has_config'''
         # ensure nic object exists & is active
         try:
@@ -62,21 +63,23 @@ class WifiClient:
             attempt += 1
             result = await self.wifi_connect()
             if result < 3:
-                # wifi not connected
-                if display:
+                # wifi not connected, some sort of error
+                if self.display:
                     if attempt == 1:
-                        display.show_msg("Error connecting to WIFI:")
-                    display.show_msg(f" {error_codes_to_messages[result]} ({attempt})")
+                        await self.display.show_msg("Error connecting to wifi:")
+                    else:
+                        del self.display.startup_msg[-1] # remove try again msg
+                    await self.display.show_msg(f" {error_codes_to_messages[result]} ({attempt})")
                 if result == -3:
-                    if display:
-                        display.show_msg("bad wifi password,\nstopping here.")
+                    if self.display:
+                        await self.display.show_msg("bad wifi password,\nstopping here.")
                     logger.error("bad wifi password, stopping here.")
                     raise OSError("Bad Password")
                 else:
                     logger.debug("sleep 120 secs and try wifi again")
-                    if display:
-                        display.show_msg("trying again in 2 minutes.")
-                        del display.startup_msg[-1] # remove that last message from list - it's hacky
+                    if self.display:
+                        await self.display.show_msg("trying again after 2 mins")
+                        #del self.display.startup_msg[-1] # remove that last message from list - it's hacky
                     self.nic.disconnect()
                     self.nic.active(False)
                     self.nic.deinit()
@@ -84,10 +87,10 @@ class WifiClient:
                     self.nic.config(pm = network.WLAN.PM_PERFORMANCE)
                     self.nic.active(True)
                     self.nic.connect(self._ssid, self._wifi_pw)
-                    if display:
-                        display.show_msg("trying connection again") # hacky, but overwrites a line
-                        del display.startup_msg[-1]
-                        del display.startup_msg[-1]
+                    if self.display:
+                        del self.display.startup_msg[-1] # wifi err
+                        del self.display.startup_msg[-1] # try again
+                        await self.display.show_msg("trying connection again") # hacky, but overwrites a line
                 
         if self.nic.isconnected() and not self.keep_alive:
             self.keep_alive = asyncio.create_task(self._keep_connected())
@@ -132,25 +135,41 @@ class WifiClient:
     async def _keep_connected(self):
         ''' Scheduled on 1st successful connection. Runs forever maintaining wifi '''
         #nic is proabbly active at start so could be while True:
-        while self.nic.active():
+        initial_run = True
+        while True: # self.nic.active():
             logger.debug("running in _keep_connected")
-            if self.nic.isconnected():  
-                await asyncio.sleep(50)
+            if not initial_run:
+                self.display.startup_msg = [] # clear any stale connection messages
+            if self.nic.isconnected():
+                if self.display and initial_run:
+                    initial_run = False
+                await asyncio.sleep(50) #testing 50
             else:  # Link is down
                 logger.warning("wifi connection is lost")
+                if self.display:
+                    await self.display.show_msg("wifi connection down")
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().
                     await self.status_led.set_status(self.status_led.STATUS_OK)
                     logger.info("Reconnect OK!")
-                except OSError as e:
-                    logger.error(f"Error in reconnect. {e}")
+                    if self.display:
+                        await self.display.show_msg("wifi reconnected")
+                except OSError:
+                    logger.error("OSError in reconnect. {e}")
                     # Can get ECONNABORTED or -1. The latter signifies no or bad CONNACK received.
                     self.nic.disconnect()
                     self.nic.active(False)
+                except Exception as e:
+                    logger.error(f"Error in reconnect. {e}")
+                    # some unkonwn error, try again
+                    self.nic.disconnect()
+                    self.nic.active(False)
+                    del self.nic
+                    self.nic = None
         logger.warning(f"exited _keep_connected {self.nic.isconnected()=}")
 
-    def get_time(self, display):
+    def get_time(self):
         result = False
         ntptime.timeout = 5
         if self.nic.isconnected():
@@ -163,11 +182,11 @@ class WifiClient:
                 logger.error(f"npttime.settime() timeout: {e}")
         else:
             logger.warning("npttime.settime() failed, no network connection")
-        if display:
+        if self.display:
             if not result:
-                display.show_msg("Error getting time")
+                await self.display.show_msg("Error getting time")
             t = time.localtime()
-            display.show_msg(f"time set {t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}")
+            await self.display.show_msg(f"time set {t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}")
         return result
 
 

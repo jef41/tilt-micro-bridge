@@ -19,9 +19,9 @@ from bridge_main import BridgeMain
 from wifi_client import WifiClient
 import gc
 gc.collect()
-# DEBUG_LEVEL = logging.DEBUG
+DEBUG_LEVEL = logging.DEBUG
 # SIMULATE_BEACONS = True
-DEBUG_LEVEL = logging.INFO
+#DEBUG_LEVEL = logging.INFO
 SIMULATE_BEACONS = False
 
 
@@ -87,25 +87,25 @@ if bridge.initialised():
     logger.handlers[0].number_of_backup_files = log_nbr_backups
     
     if bridge.display:
-        bridge.display.show_msg("config file loaded")
+        bridge.display.blocking_show_msg("config file loaded")
     # test if wifi creds included,
-    wifi = WifiClient(bridge.config)
+    wifi = WifiClient(bridge.config, onboard_led, bridge.display)
     if wifi.has_config:
         if bridge.display:
-            bridge.display.show_msg("connecting to wifi...")
-        asyncio.run(wifi.connect(bridge.display))
+            bridge.display.blocking_show_msg("connecting to wifi...")
+        asyncio.run(wifi.connect())
 
         if bridge.display:
-            bridge.display.show_msg("wifi connected")
-            bridge.display.show_msg("get NTP time")
+            bridge.display.blocking_show_msg("wifi connected")
+            bridge.display.blocking_show_msg("get NTP time")
         # set system time - could have a UTC offset in config, but time is only used internally at the moment
         # bridge.get_time()
-        wifi.get_time(bridge.display)
+        asyncio.run(wifi.get_time())
     # provision the providers referenced in config.json, called here so the wifi referrnce doesn't have to be passed around
     bridge.set_providers(wifi.has_config)
 
     if bridge.display:
-        bridge.display.show_msg("startup complete")
+        bridge.display.blocking_show_msg("startup complete")
     time.sleep(3) # allow short period to observe msgs
     # enter main loop
     try:
