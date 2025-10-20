@@ -147,7 +147,10 @@ class WifiClient:
             else:  # Link is down
                 logger.warning("wifi connection is lost")
                 if self.display:
-                    await self.display.show_msg("wifi connection down")
+                    #await self.display.show_msg("wifi connection down")
+                    t = time.localtime()
+                    await self.display.show_msg(f"wifi connection lost at")
+                    await self.display.show_msg(f"{t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}:{t[5]:02} UTC")
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().

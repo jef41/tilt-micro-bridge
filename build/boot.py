@@ -19,9 +19,9 @@ from bridge_main import BridgeMain
 from wifi_client import WifiClient
 import gc
 gc.collect()
-DEBUG_LEVEL = logging.DEBUG
+# DEBUG_LEVEL = logging.DEBUG
 # SIMULATE_BEACONS = True
-#DEBUG_LEVEL = logging.INFO
+DEBUG_LEVEL = logging.INFO
 SIMULATE_BEACONS = False
 
 
@@ -38,8 +38,8 @@ def set_global_exception():
 
 async def main():
     set_global_exception()  # Debug aid
-    global onboard_led  # = indicator.Status() # turn on the LED status indicator
-    await bridge.bridge_main(onboard_led, simulate_beacons=SIMULATE_BEACONS)
+    #global onboard_led  # = indicator.Status() # turn on the LED status indicator
+    await bridge.bridge_main(simulate_beacons=SIMULATE_BEACONS)
     # await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
 
 
@@ -77,7 +77,7 @@ gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 onboard_led = indicator.Status()  # turn on the LED status indicator
 onboard_led.on()
-bridge = BridgeMain()
+bridge = BridgeMain(onboard_led)
 
 if bridge.initialised():
     # re-assign max log size from config

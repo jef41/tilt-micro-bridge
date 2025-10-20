@@ -24,7 +24,7 @@ gc.collect()
 class BridgeMain:
     logger = logging.getLogger("bridge")
 
-    def __init__(self):
+    def __init__(self, onboard_led=None):
         self.config = None
         self.providers = None
         self.data_archive = bytearray()  # Queue for holding incoming data from scans
@@ -35,7 +35,7 @@ class BridgeMain:
         self.enabled_tilts = list()
         self.rtc = None
         self.wdt = None
-        self.onboard_led = None
+        self.onboard_led = onboard_led
         # Load config from file, with defaults, and args
         result = True
         gc.collect()
@@ -61,9 +61,9 @@ class BridgeMain:
     def initialised(self):
         return self.rtc
 
-    async def bridge_main(self, onboard_led, simulate_beacons: bool = False):
+    async def bridge_main(self, simulate_beacons: bool = False):
         gc.collect()
-        self.onboard_led = onboard_led
+        #self.onboard_led = onboard_led
         # if providers is None:
         #    self.providers = self.set_providers()
         # else:
