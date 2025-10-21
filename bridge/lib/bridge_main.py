@@ -63,13 +63,8 @@ class BridgeMain:
 
     async def bridge_main(self, simulate_beacons: bool = False):
         gc.collect()
-        #self.onboard_led = onboard_led
-        # if providers is None:
-        #    self.providers = self.set_providers()
-        # else:
-        #    self.providers = providers
         # add any webhooks defined in config
-        # todo !! not currently implemented/tested
+        # TODO not currently implemented/tested
         self.webhook_providers = self._get_webhook_providers()
 
         if self.webhook_providers:
@@ -136,10 +131,7 @@ class BridgeMain:
             self.logger.info("starting beacon scanner...")
             self.scanner = asyncio.create_task(self._scan_for_ibeacons())
             # pass
-        # either way create a task to update the display
-        # TODO self.display_enabled - def to test for attached display
-        #lcd_colours = {"simulated"} #, "red"}
-        #time.sleep(5)
+        # in either case create a task to update the display
         if self.display:
             self.display_updater = asyncio.create_task(self.display.card_stack(self.data_archive, self.enabled_tilts))
         try:
@@ -189,8 +181,6 @@ class BridgeMain:
                 adv_data = b"".join([pre, col, post, major, minor, tx_pwr])
                 #print(adv_data)
                 iBeacon_data = iBeaconStatus(adv_data, 0, "00:00:00:00:00:00")
-                # await _beacon_callback(uuid, major, minor, 0, 0, simulate)#, bridge_q)
-                # print(f'{iBeacon_data.colour} {col} {iBeacon_data.major} {iBeacon_data.minor}')
                 try:
                     task = asyncio.create_task(
                         self._beacon_callback(iBeacon_data, simulate)
@@ -198,7 +188,6 @@ class BridgeMain:
                     # task running
                     await asyncio.sleep_ms(randrange(80, 120))  # pause here & give way
                     await task  # then wait for task to complete
-                    # res = await asyncio.gather(t1,t2, return_exceptions=True)
                 except (
                     asyncio.TimeoutError
                 ):  # These only happen if return_exceptions is False
@@ -207,8 +196,6 @@ class BridgeMain:
                     )  # With the default times, cancellation occurs first
                 except asyncio.CancelledError:
                     logger.warning("scanner Cancelled")
-                # asyncio.sleep_ms(randrange(100, 750))
-                # pckt_complete = True
             else:
                 async with aioble_central.scan(
                     duration_ms=5000,
@@ -475,4 +462,4 @@ async def debug_memory(logger):
         logger.debug(f"gc: {gc.mem_free()}")
 
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"

@@ -31,12 +31,7 @@ class WifiClient:
         self._wifi_pw = config.password
         self.display = lcd
         network.hostname("tilt-micro-bridge")
-        try:
-            #self._country = config.country_code
-            network.country(config.country_code)
-            #self.check_interval = config.wifi_check_interval
-        except AttributeError:
-            pass
+        network.country(getattr(config, "country_code", None))
         self.has_config = all((self._ssid, self._wifi_pw))
         self.status_led = onboard_led
         self.status_led.set_status(self.status_led.WIFI_DISCONNECTED)
@@ -79,7 +74,6 @@ class WifiClient:
                     logger.debug("sleep 120 secs and try wifi again")
                     if self.display:
                         await self.display.show_msg("trying again after 2 mins")
-                        #del self.display.startup_msg[-1] # remove that last message from list - it's hacky
                     self.nic.disconnect()
                     self.nic.active(False)
                     self.nic.deinit()
@@ -88,8 +82,8 @@ class WifiClient:
                     self.nic.active(True)
                     self.nic.connect(self._ssid, self._wifi_pw)
                     if self.display:
-                        del self.display.startup_msg[-1] # wifi err
-                        del self.display.startup_msg[-1] # try again
+                        del self.display.startup_msg[-1] # remove last wifi err
+                        del self.display.startup_msg[-1] # remove last try again
                         await self.display.show_msg("trying connection again") # hacky, but overwrites a line
                 
         if self.nic.isconnected() and not self.keep_alive:
@@ -130,7 +124,7 @@ class WifiClient:
                     await asyncio.sleep(1)
                 logger.info("Got reliable connection")
         #else:  # connection failed
-        return catch #nic.status()
+        return catch
 
     async def _keep_connected(self):
         ''' Scheduled on 1st successful connection. Runs forever maintaining wifi '''
@@ -148,8 +142,6 @@ class WifiClient:
             else:  # Link is down
                 logger.warning("wifi connection is lost")
                 if self.display:
-                    #await self.display.show_msg("wifi connection down")
-                    #t = time.gmtime()
                     await self.display.show_msg(f"wifi connection lost at")
                     #await self.display.show_msg(f"{t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}:{t[5]:02} UTC")
                     if hasattr(time, "strftime"):
@@ -192,8 +184,6 @@ class WifiClient:
         if self.display:
             if not result:
                 await self.display.show_msg("Error getting time")
-            #t = time.localtime()
-            #await self.display.show_msg(f"time set {t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}")
             if hasattr(time, "strftime"):
                 await self.display.show_msg(f"time: {time.strftime(datefmt, time.gmtime())}")
         return result

@@ -1,8 +1,5 @@
-"""Classes to mediate between bridge_main and LCD LED devices
-16,17,18,19 SPI0_RX, SPI0_CSN, SPI0_SCK, SPI0_TX GPIO numbering
-
-TODO: if wifi connection issues make the wifi connection messages appear in the card stack
-    currently the wifi conenction message appears once per reconnect attempt
+""" Classes to mediate between bridge_main and LCD LED devices
+    16,17,18,19 SPI0_RX, SPI0_CSN, SPI0_SCK, SPI0_TX GPIO numbering
 """
 
 import gc
@@ -64,10 +61,6 @@ class LCD_Display:
         self.brightness = None  # getattr
         self.indicator = True
         self.startup_msg = []
-        # lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
-        # lcd.set_backlight(1.0)
-        # update_frequency = 3 # seconds to cycle through each screen
-        # self._check_for_display(pins) if (pins := getattr(config, 'lcd_spi_gpio', None)) else None
         (
             self._check_for_display(display_type)
             if (display_type := getattr(self.config, "display_type", None))
@@ -83,7 +76,6 @@ class LCD_Display:
             pen_type=picographics.PEN_P4,
             rotate=0,
         )
-        # self.lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         # Create palette mapping dynamically
         self.colour_to_palette = {
             colour: self.lcd.create_pen(*get_color_values(colour, 1))
@@ -158,6 +150,7 @@ class LCD_Display:
             uncal_temp, uncal_gravity, tilt_status = None, None, None
         return (uncal_temp, uncal_gravity, tilt_status)
 
+    '''
     async def display_clock(self):
         # show a clock or a MOTD or something
         width, height = self.lcd.get_bounds()
@@ -184,6 +177,7 @@ class LCD_Display:
             self.lcd.update()
             await asyncio.sleep(1)
             # TODO subtract processing time from 1 second ticks_diff
+    '''
 
     async def display_sg_t(self, tilt, tilt_data_store):
         #
@@ -410,10 +404,6 @@ class RGB_Driver:
     def off(self):
         # turn off
         self._led.set_rgb(0, 0, 0)
-
-    # def _init_rgb_task(self):
-    #    # ensure off at start
-    #    self.rgb_led.set_rgb(0,0,0)
 
     async def _flash_rgb_task(self, rgb_colours):
         #
