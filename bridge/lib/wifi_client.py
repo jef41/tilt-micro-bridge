@@ -5,7 +5,7 @@ import gc
 import asyncio
 import network
 import logging
-import time
+import time # time with strftime overrides
 import ntptime
 gc.collect()
 
@@ -135,6 +135,7 @@ class WifiClient:
     async def _keep_connected(self):
         ''' Scheduled on 1st successful connection. Runs forever maintaining wifi '''
         #nic is proabbly active at start so could be while True:
+        datefmt = "%Y-%m-%d %H:%M:%S"
         initial_run = True
         while True: # self.nic.active():
             logger.debug("running in _keep_connected")
@@ -148,9 +149,11 @@ class WifiClient:
                 logger.warning("wifi connection is lost")
                 if self.display:
                     #await self.display.show_msg("wifi connection down")
-                    t = time.localtime()
+                    #t = time.gmtime()
                     await self.display.show_msg(f"wifi connection lost at")
-                    await self.display.show_msg(f"{t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}:{t[5]:02} UTC")
+                    #await self.display.show_msg(f"{t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}:{t[5]:02} UTC")
+                    if hasattr(time, "strftime"):
+                        await self.display.show_msg(f"{time.strftime(datefmt, time.gmtime())} UTC")
                 try:
                     await self.connect()
                     # Now has set ._isconnected and scheduled _connect_handler().
@@ -175,6 +178,7 @@ class WifiClient:
     def get_time(self):
         result = False
         ntptime.timeout = 5
+        datefmt = "%Y-%m-%d %H:%M:%S"
         if self.nic.isconnected():
             try:
                 ntptime.settime()
@@ -188,8 +192,10 @@ class WifiClient:
         if self.display:
             if not result:
                 await self.display.show_msg("Error getting time")
-            t = time.localtime()
-            await self.display.show_msg(f"time set {t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}")
+            #t = time.localtime()
+            #await self.display.show_msg(f"time set {t[2]}-{t[1]}-{t[0]} {t[3]:02}:{t[4]:02}")
+            if hasattr(time, "strftime"):
+                await self.display.show_msg(f"time: {time.strftime(datefmt, time.gmtime())}")
         return result
 
 
