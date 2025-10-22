@@ -77,7 +77,6 @@ Custom configurations can be used by creating a file `config.json` in the root d
 |`ssid` (str) | SSID for your wifi newtork | None | [Example config](examples/wifi.md) |
 |`password` (str) | password for your wifi newtork | None | [Example config](examples/wifi.md) |
 |`country_code` (str) | ISO 3166-1 alpha-2 character country code for wifi | `None` | [Example config](examples/wifi.md) |
-|`wifi_check_interval` (int) | Check there is a working internet conenction every n seconds | `3600` | [Example config](examples/wifi.md) |
 |`debug_log` (list) | How many kb in each and how many debug backup files to keep | `[20, 1]` |  |
 |`display_type` (str) | currently only option is "DISPLAY_PICO_DISPLAY" | None | [Example config](examples/display.md) |
 |`display_update_secs` (float) | how frequently to cycle content of display screen | `5` | [Example config](examples/display.md) |
