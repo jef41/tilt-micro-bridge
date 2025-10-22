@@ -5,8 +5,7 @@ To configure a wifi conenction a config.json example looks like:
 {
     "ssid": "AAAA-BBB",
     "password": "abcdefghijklmn",
-    "country_code": "GB",
-    "wifi_check_interval": 600
+    "country_code": "GB"
 }
 ```
 
