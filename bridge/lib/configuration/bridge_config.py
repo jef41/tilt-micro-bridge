@@ -11,7 +11,6 @@ class BridgeConfig:
         self.ssid = None
         self.password = None
         self.country_code = None
-        self.wifi_check_interval = 3600
         # Debug log
         self.debug_log = [20, 1]
         # Defaults
@@ -85,9 +84,6 @@ class BridgeConfig:
     def get_original_gravity(self, colour: str):
         return self.__dict__.get(colour + '_original_gravity')
         #return getattr(self,colour + '_original_gravity', None)
-
-    #def get_temp_offset(self, colour: str):
-    #    return self.__dict__.get(colour + '_temp_offset', 0)
 
     def get_brew_name(self, colour: str):
         return self.__dict__.get(colour + '_name', colour)

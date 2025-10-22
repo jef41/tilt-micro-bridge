@@ -1,5 +1,5 @@
-"""Classes to mediate between bridge_main and LCD LED devices
-16,17,18,19 SPI0_RX, SPI0_CSN, SPI0_SCK, SPI0_TX GPIO numbering
+""" Classes to mediate between bridge_main and LCD LED devices
+    16,17,18,19 SPI0_RX, SPI0_CSN, SPI0_SCK, SPI0_TX GPIO numbering
 """
 
 import gc
@@ -57,14 +57,10 @@ class LCD_Display:
     def __init__(self, config: BridgeConfig):
         self.config = config
         self.lcd = None  # getattr gpio pins
-        self.update_intvl = None
+        self.update_intvl = getattr(self.config, "display_update_secs", 3)
         self.brightness = None  # getattr
         self.indicator = True
         self.startup_msg = []
-        # lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
-        # lcd.set_backlight(1.0)
-        # update_frequency = 3 # seconds to cycle through each screen
-        # self._check_for_display(pins) if (pins := getattr(config, 'lcd_spi_gpio', None)) else None
         (
             self._check_for_display(display_type)
             if (display_type := getattr(self.config, "display_type", None))
@@ -80,7 +76,6 @@ class LCD_Display:
             pen_type=picographics.PEN_P4,
             rotate=0,
         )
-        # self.lcd = PicoGraphics(display=DISPLAY_PICO_DISPLAY, pen_type=PEN_P4,rotate=0)
         # Create palette mapping dynamically
         self.colour_to_palette = {
             colour: self.lcd.create_pen(*get_color_values(colour, 1))
@@ -109,20 +104,23 @@ class LCD_Display:
     ):  #: TiltDevice
         # display the most recent data as basic & extended info for each tilt
         # some sort of loading screen
-        #blinky = asyncio.create_task(self.display_heartbeat())
-        del self.startup_msg
-        self.lcd.set_font("serif")
+        self.startup_msg = [] # clear startup messages
         while True:
             #index = 0
+            self.lcd.set_font("serif")
             for tilt in cards:
                 #if index == 0:
                 #    # print("show clock")
                 #    await self.display_clock()
                 # show standard info for each configured tilt colour
+                # & test for extended info
                 extended_info = await self.display_sg_t(tilt, tilt_data_store)
                 # return a tilt_status object or None
                 if extended_info:
                     await self.display_extended(tilt, extended_info)
+                if len(self.startup_msg):
+                    # there's probably a wifi disconnection
+                    await self.show_msg()
                 #index = (index + 1) % len(cards)
 
     def read_latest_vals(self, tilt_data_store, tilt_colour):
@@ -131,7 +129,7 @@ class LCD_Display:
         uncal_tempF, uncal_SG = tilt_data_store.get_data(
             tilt_colour,
             av_period=0,
-            log_period=(3 * getattr(self.config, "display_update_secs", 3)),
+            log_period=(3 * self.update_intvl),
         )
         if uncal_tempF and uncal_SG:
             tilt_status = TiltStatus(
@@ -152,11 +150,12 @@ class LCD_Display:
             uncal_temp, uncal_gravity, tilt_status = None, None, None
         return (uncal_temp, uncal_gravity, tilt_status)
 
+    '''
     async def display_clock(self):
         # show a clock or a MOTD or something
         width, height = self.lcd.get_bounds()
         offset = None
-        for _ in range(getattr(self.config, "display_update_secs", 3)):
+        for _ in range(self.update_intvl):
             self.lcd.set_pen(self.colour_to_palette["BG"])
             self.lcd.clear()
             self.lcd.set_thickness(2)
@@ -178,6 +177,7 @@ class LCD_Display:
             self.lcd.update()
             await asyncio.sleep(1)
             # TODO subtract processing time from 1 second ticks_diff
+    '''
 
     async def display_sg_t(self, tilt, tilt_data_store):
         #
@@ -191,6 +191,7 @@ class LCD_Display:
             tilt_data_store, tilt.colour
         )
         n = 4 if tilt.hd else 3
+        self.lcd.set_font("serif")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         '''self.lcd.polygon([
           (0, 0),
@@ -275,11 +276,12 @@ class LCD_Display:
         self.lcd.update()
         # t2 = time.ticks_ms()
         # print(f"standard drawing took:{time.ticks_diff(t1, t_start)}, update took:{time.ticks_diff(t2, t1)}")
-        await asyncio.sleep(getattr(self.config, "display_update_secs", 3))
+        await asyncio.sleep(self.update_intvl)
         return tilt_values if getattr(tilt_values, "original_gravity", None) else None
 
     async def display_extended(self, tilt, tilt_values):
         #
+        self.lcd.set_font("serif")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         '''self.lcd.polygon([
           (0, 0),
@@ -327,7 +329,7 @@ class LCD_Display:
         self.lcd.update()
         # t2 = time.ticks_ms()
         # print(f"extended drawing took:{time.ticks_diff(t1, t_start)}, update took:{time.ticks_diff(t2, t1)}")
-        await asyncio.sleep(getattr(self.config, "display_update_secs", 3))
+        await asyncio.sleep(self.update_intvl)
 
     def update_indicator(self):
         # alternate a little indicator so we know values are being received even if they are not changing
@@ -338,21 +340,27 @@ class LCD_Display:
         self.indicator = not self.indicator
         self.lcd.circle(10, 60, 5) # x, y, r
     
-    def show_msg(self, msg, append=True):
-        #self.lcd.set_font("serif")
-        if append:
-            #self.startup_msg = self.startup_msg + "\n" + msg
-            try:
-                self.startup_msg.append(msg)
-            except NameError:
-                self.startup_msg = [msg]
+    async def show_msg(self, msg=None, append=True):
+        ''' if msg then add to list
+            display text
+        '''
+        intvl = 1 # 
+        if msg:
+            if append:
+                # not currently used, could remove append() property
+                try:
+                    self.startup_msg.append(msg)
+                except NameError:
+                    self.startup_msg = [msg]
+            else:
+                # overwrite last line
+                try:
+                    self.startup_msg[-1] = msg
+                except NameError:
+                    self.startup_msg = [msg]
         else:
-            # overwrite last line
-            #self.overwrite_msg(msg)
-            try:
-                self.startup_msg[-1] = msg
-            except NameError:
-                self.startup_msg = [msg]
+            # not adding a message
+            intvl = self.update_intvl
         self.lcd.set_font("bitmap8")
         self.lcd.set_pen(self.colour_to_palette["BG"])
         self.lcd.clear()
@@ -360,21 +368,17 @@ class LCD_Display:
         self.lcd.set_pen(self.colour_to_palette["WHITE"])
         #self.lcd.text(msg, 0, 65, scale=1)
         #self.lcd.text(self.startup_msg, 0, 0)
+        while len(self.startup_msg) > 7:
+            # remove oldest messages
+            del self.startup_msg[0]
         self.lcd.text('\n'.join([item for item in self.startup_msg]), 0, 0)
         self.lcd.update()
-        time.sleep(1)
+        #time.sleep(1)
+        await asyncio.sleep(intvl)
     
-    '''def overwrite_msg(self, new_msg):
-        # overwrite the last line of a messgae
-        import re
-        regex = re.compile("[\n]")
-        msgs = regex.split(self.startup_msg)
-        if len(msgs)>0:
-            msgs[len(msgs)-1] = new_msg
-        else:
-            msgs[0] = new_msg
-        self.startup_msg = '\n'.join([item for item in msgs])
-        '''
+    def blocking_show_msg(self, msg, append=True):
+        ''' allow a synchronous display method  - used from main.py '''
+        asyncio.run(self.show_msg(msg, append))
         
 
 class RGB_Driver:
@@ -400,10 +404,6 @@ class RGB_Driver:
     def off(self):
         # turn off
         self._led.set_rgb(0, 0, 0)
-
-    # def _init_rgb_task(self):
-    #    # ensure off at start
-    #    self.rgb_led.set_rgb(0,0,0)
 
     async def _flash_rgb_task(self, rgb_colours):
         #
@@ -435,4 +435,4 @@ def r_align(lcd_obj, txt, sz, width):
     return int(width - lcd_obj.measure_text(txt, sz))
 
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"

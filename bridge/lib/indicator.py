@@ -1,5 +1,6 @@
-"""manage the Pico onboard LED
-TODO could verify that we are on a Pico & if not try to import the pin number from pin_mapping
+""" manage the Pico onboard LED
+    TODO could verify that we are on a Pico & if not try to import the pin number from pin_mapping
+    TODO could allow led Pin to be oarameter passed at init
 """
 
 from machine import Pin
@@ -23,10 +24,8 @@ class Status:
         self.on_period = status[0]  # ms
         self.off_period = status[1]  # ms
         self.blinky = asyncio.create_task(self._blink_led())
-        # asyncio.run(self._start())
 
     async def _blink_led(self):
-        # led = Pin('LED', Pin.OUT)
         # print("called led blink")
         while True:
             if self.off_period == 0:
@@ -56,14 +55,11 @@ class Status:
         self.blinky.cancel()
         self.led.off()
 
-    # async def _start(self):
-    #    self.blinky = asyncio.create_task(self._blink_led())
-
     def on(self):
         self.led.on()
 
-
-async def test():
+'''
+async def led_test():
     # call this with:
     # import indicator, asyncio
     # asyncio.run(indicator.test())
@@ -72,6 +68,6 @@ async def test():
     await ob_led.change_rate(800, 200)
     await asyncio.sleep_ms(4_500)
     await ob_led.off()
-
+'''
 
 __version__ = "1.0.0"

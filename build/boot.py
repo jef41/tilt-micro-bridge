@@ -9,7 +9,7 @@ try:
 except OSError:
     with open("/main.py", "w") as f:
         f.write("""\
-import time  # micropython-lib/python-stdlib/time extends std time module, required for strftime in debug logging
+import time  # micropython-lib/tree/master/python-stdlib/time extends the built-in MicroPython time module to include time.strftime()
 import logging
 from logging import TimedRotatingLogFileHandler
 from machine import Pin
@@ -38,8 +38,8 @@ def set_global_exception():
 
 async def main():
     set_global_exception()  # Debug aid
-    global onboard_led  # = indicator.Status() # turn on the LED status indicator
-    await bridge.bridge_main(onboard_led, simulate_beacons=SIMULATE_BEACONS)
+    #global onboard_led  # = indicator.Status() # turn on the LED status indicator
+    await bridge.bridge_main(simulate_beacons=SIMULATE_BEACONS)
     # await bridge.bridge_main(onboard_led, providers=bridge_providers, simulate_beacons=True)
 
 
@@ -77,7 +77,7 @@ gc.threshold(gc.mem_free() // 4 + gc.mem_alloc())
 
 onboard_led = indicator.Status()  # turn on the LED status indicator
 onboard_led.on()
-bridge = BridgeMain()
+bridge = BridgeMain(onboard_led)
 
 if bridge.initialised():
     # re-assign max log size from config
@@ -87,24 +87,26 @@ if bridge.initialised():
     logger.handlers[0].number_of_backup_files = log_nbr_backups
     
     if bridge.display:
-        bridge.display.show_msg("config file loaded")
+        bridge.display.blocking_show_msg("config file loaded")
     # test if wifi creds included,
-    wifi = WifiClient(bridge.config)
+    wifi = WifiClient(bridge.config, onboard_led, bridge.display)
     if wifi.has_config:
         if bridge.display:
-            bridge.display.show_msg("connecting to wifi...")
-        asyncio.run(wifi.connect(onboard_led, bridge.display))
+            bridge.display.blocking_show_msg("connecting to wifi...")
+        asyncio.run(wifi.connect())
 
         if bridge.display:
-            bridge.display.show_msg("wifi connected \\nget NTP time")
+            bridge.display.blocking_show_msg("wifi connected")
+            bridge.display.blocking_show_msg("get NTP time")
         # set system time - could have a UTC offset in config, but time is only used internally at the moment
-        bridge.get_time()
+        # bridge.get_time()
+        asyncio.run(wifi.get_time())
     # provision the providers referenced in config.json, called here so the wifi referrnce doesn't have to be passed around
     bridge.set_providers(wifi.has_config)
 
     if bridge.display:
-        bridge.display.show_msg("startup complete")
-    
+        bridge.display.blocking_show_msg("startup complete")
+    time.sleep(3) # allow short period to observe msgs
     # enter main loop
     try:
         asyncio.run(main())
@@ -137,8 +139,7 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.1.2"
-
+__version__ = "1.2.0"
 """)
 
 # todo we could create a basic config.json here?
