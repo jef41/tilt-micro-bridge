@@ -32,7 +32,7 @@ A more complete config.json example looks like:
 
 `csv_log_averaging_period` an integer of seconds that decribes over how many data points to average. If set to 0 then the most recently received data for that Tilt will be logged. If set to 30 then the most recent 30 seconds worth of data will be averaged and that single value logged. This must be a number that is <= the log period.
 
-`csv_backup_count` an integer decribeing how many CSV log files to keep for each Tilt. If set to 0 then only 1 CSV file will be present. This will be a larger file, but if storage space is exceeded then the whole file will be replace - losing all hsitorical logging. The default is 4. With this setting there would be 5 files named e.g. `red.csv, red.csv.1, red.csv.2, red.csv.3, red.csv.4`. If logging continued such that all 5 files were full, then `red.csv.4` (the oldest file) wil be deleted, the others renamed and a new `red.csv` started.
+`csv_backup_count` an integer decribeing how many CSV log files to keep for each Tilt. If set to 0 then only 1 CSV file will be present. This will be a larger file, but if storage space is exceeded, or if there is a power failure, then the whole file will be replace - losing all hsitorical logging. The default is 4. With this setting there would be 5 files named e.g. `red.csv, red.csv.1, red.csv.2, red.csv.3, red.csv.4`. If logging continued such that all 5 files were full, then `red.csv.4` (the oldest file) wil be deleted, the others renamed and a new `red.csv` started.
 
 ## Output
 Two sample excerpts of log files with dummy data are shown below. The first illustrates a file where no beer name nor Original Gravity was specified, in the second both criteria were specified in the congfig.json. 
