@@ -89,5 +89,5 @@ include(cppmem/micropython)
 
 # Disable build-busting C++ exceptions
 #include(micropython-disable-exceptions)
-issue39 - new method to reduce/remove C++ cruft
+# issue39 - new method to reduce/remove C++ cruft
 include(cxx_terminate/micropython)
