@@ -139,7 +139,7 @@ else:
     # hold here, cannot proceed, error with config.json
     onboard_led.on()
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 """)
 
 # todo we could create a basic config.json here?
