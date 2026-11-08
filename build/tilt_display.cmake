@@ -9,12 +9,13 @@ set(CMAKE_CXX_STANDARD 17)
 
 #include(micropython-common)
 
+
 # C++ Magic Memory
-#include(cppmem/micropython)
+include(cppmem/micropython)
 
-# Disable build-busting C++ exceptions
-#include(micropython-disable-exceptions)
 
+# The C malloc is needed by cyw43-driver Bluetooth and Pimoroni Pico modules
+set(MICROPY_C_HEAP_SIZE 4096)
 
 
 
@@ -24,7 +25,7 @@ include(pimoroni_i2c/micropython)
 include(pimoroni_bus/micropython)
 
 # Pico Graphics Essential
-include(hershey_fonts/micropython)
+#include(hershey_fonts/micropython)
 include(bitmap_fonts/micropython)
 include(picographics/micropython)
 
@@ -84,8 +85,6 @@ copy_module(pimoroni.py)
 include(micropython-common-ulab)
 enable_ulab()
 
-# C++ Magic Memory
-include(cppmem/micropython)
 
 # Disable build-busting C++ exceptions
 #include(micropython-disable-exceptions)

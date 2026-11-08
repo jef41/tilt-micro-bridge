@@ -1,5 +1,11 @@
 """ Classes to mediate between bridge_main and LCD LED devices
     16,17,18,19 SPI0_RX, SPI0_CSN, SPI0_SCK, SPI0_TX GPIO numbering
+    
+    v1.3.0  moved from hershey to vector fonts
+    
+    TODO ideas:
+        add support for °Plato
+        blinky only required if extended info not present
 """
 
 import gc
@@ -8,6 +14,7 @@ import asyncio
 from machine import Pin
 import picographics
 from picographics import PicoGraphics  # , DISPLAY_PICO_DISPLAY, PEN_P4
+from picovector import PicoVector, ANTIALIAS_NONE, ANTIALIAS_X4, ANTIALIAS_X16, HALIGN_CENTER, HALIGN_LEFT, HALIGN_RIGHT
 from pimoroni_bus import SPIBus
 from pimoroni import RGBLED
 from models import TiltDevice, TiltStatus, TiltHistory
@@ -40,14 +47,6 @@ def get_color_values(color_name, brightness=0.01):
     return [int(c * brightness) for c in rgb]
 
 
-# Create palette mapping dynamically
-# colour_to_palette = {
-#    colour: lcd.create_pen(*get_color_values(colour, 1)) for colour in palette_cols
-# }
-# def colour_to_palette(lcd, colour):
-#    lcd.create_pen(*get_color_values(colour, 1)) for colour in palette_cols
-
-
 class LCD_Display:
     def __new__(cls, config: BridgeConfig):
         if not getattr(config, "display_type", None):
@@ -55,6 +54,7 @@ class LCD_Display:
         return super().__new__(cls)
 
     def __init__(self, config: BridgeConfig):
+        import vfs_fonts
         self.config = config
         self.lcd = None  # getattr gpio pins
         self.update_intvl = getattr(self.config, "display_update_secs", 3)
@@ -76,6 +76,9 @@ class LCD_Display:
             pen_type=picographics.PEN_P4,
             rotate=0,
         )
+        self.vector = PicoVector(self.lcd)
+        self.vector.set_antialiasing(ANTIALIAS_X16)
+        
         # Create palette mapping dynamically
         self.colour_to_palette = {
             colour: self.lcd.create_pen(*get_color_values(colour, 1))
@@ -86,7 +89,7 @@ class LCD_Display:
         self.lcd.clear()
 
     def parse_gpio(self):
-        # check for a rsset pin value & strip it
+        # check for a reset pin value & strip it
         vals = getattr(
                     self.config,
                     "lcd_gpio",
@@ -106,12 +109,8 @@ class LCD_Display:
         # some sort of loading screen
         self.startup_msg = [] # clear startup messages
         while True:
-            #index = 0
-            self.lcd.set_font("serif")
+            self.vector.set_font("/vfs/OpenSans-SemiBold.af", 62)
             for tilt in cards:
-                #if index == 0:
-                #    # print("show clock")
-                #    await self.display_clock()
                 # show standard info for each configured tilt colour
                 # & test for extended info
                 extended_info = await self.display_sg_t(tilt, tilt_data_store)
@@ -121,11 +120,9 @@ class LCD_Display:
                 if len(self.startup_msg):
                     # there's probably a wifi disconnection
                     await self.show_msg()
-                #index = (index + 1) % len(cards)
 
     def read_latest_vals(self, tilt_data_store, tilt_colour):
         # read latest values & return a tuple
-        # TODO include C or F for display in config - also Plato?
         uncal_tempF, uncal_SG = tilt_data_store.get_data(
             tilt_colour,
             av_period=0,
@@ -150,126 +147,64 @@ class LCD_Display:
             uncal_temp, uncal_gravity, tilt_status = None, None, None
         return (uncal_temp, uncal_gravity, tilt_status)
 
-    '''
-    async def display_clock(self):
-        # show a clock or a MOTD or something
-        width, height = self.lcd.get_bounds()
-        offset = None
-        for _ in range(self.update_intvl):
-            self.lcd.set_pen(self.colour_to_palette["BG"])
-            self.lcd.clear()
-            self.lcd.set_thickness(2)
-            self.lcd.set_pen(self.colour_to_palette["WHITE"])
-            current_time = time.localtime()
-            # year = current_time[0]
-            # month = current_time[1]
-            # day = current_time[2]
-            hour = current_time[3]
-            minute = current_time[4]
-            second = current_time[5]
-            time_now = f"{hour:02d}:{minute:02d}:{second:02d}"
-            # time_now = "16:27:00" # centred:
-            # offset  = (WIDTH - self.lcd.measure_text(time_now, 1.5)) // 2
-            offset = (
-                c_align(self.lcd, time_now, 1.5, width) if offset is None else offset
-            )
-            self.lcd.text(time_now, offset, 65, scale=1.5)
-            self.lcd.update()
-            await asyncio.sleep(1)
-            # TODO subtract processing time from 1 second ticks_diff
-    '''
-
     async def display_sg_t(self, tilt, tilt_data_store):
         #
-        width, height = self.lcd.get_bounds()
+        WIDTH, HEIGHT = self.lcd.get_bounds()
         # t_start = time.ticks_ms()
-        line1_v = 20
-        line2_v = 60
-        line3_v = 95  # 100
-        line4_v = 125
+        line1_v = 40
+        line2_v = 80
+        line3_v = 105
+        line4_v = 130
         uncal_temp, uncal_sg, tilt_values = self.read_latest_vals(
             tilt_data_store, tilt.colour
         )
         n = 4 if tilt.hd else 3
-        self.lcd.set_font("serif")
         self.lcd.set_pen(self.colour_to_palette["BG"])
-        '''self.lcd.polygon([
-          (0, 0),
-          (240, 0),
-          (240, 135),
-          (0, 135),
-          (0, 70),
-          (10, 70),
-          (10, 60),
-          (0, 60),
-        ])'''
+
         self.lcd.clear()
         self.lcd.set_pen(self.colour_to_palette[tilt.colour.upper()])
+        self.vector.set_font_align(HALIGN_CENTER)
+        self.vector.set_font("/vfs/OpenSans-SemiBold.af", 62)
         if all([uncal_temp, uncal_sg, tilt_values]):
-            self.lcd.set_thickness(3)
-            txt_scale = 1.5
             # line1 gravity centred, SG:0.0000 or SG:0.000
             msg = f"SG:{tilt_values.gravity:.{n}f}"
-            self.lcd.text(
-                msg, c_align(self.lcd, msg, txt_scale, width), line1_v, scale=txt_scale
-            )
-            # line2 temp centred, <value> <degree> <unit>, -10.3°C
-            msg = (
-                f"{tilt_values.temp_celsius:.1f}"
-                if getattr(self.config, "default_temp_unit") == "C"
-                else f"{tilt_values.temp_fahrenheit:.1f}"
-            )
-            # msg = f"{msg}°{getattr(self.config, 'default_temp_unit')}"
-            h_offset = c_align(self.lcd, msg, txt_scale, width) - (
-                (15 + 31) // 2
-            )  # fudge for °C or °F
-            self.lcd.text(msg, h_offset, line2_v, scale=txt_scale)
-            spacing = self.lcd.measure_text(msg, scale=txt_scale)
-            msg = "°"
-            self.lcd.text(msg, h_offset + spacing, line2_v - 15, scale=0.75)
-            msg = getattr(self.config, "default_temp_unit")
-            self.lcd.text(msg, h_offset + spacing + 15, line2_v, scale=1.5)
-            self.lcd.set_thickness(1)
-            # line3 rssi left aligned, RSSI:-52
-            msg = f"RSSI:{tilt.rssi}"
-            self.lcd.text(msg, 0, line3_v, scale=1)  # 0.8)
-            # line3 tilt colour right aligned, blue
-            msg = tilt.colour
-            self.lcd.text(
-                msg, r_align(self.lcd, msg, 1, width), line3_v, scale=1
-            )  # 0.8)
-            # line4 uncal values & tx_power?
-            msg = f"{uncal_temp:.1f}"  # {uncal_sg:.{n}f}"
-            msg2 = f"{uncal_sg:.{n}f}"
-            msg3 = f"{batt_weeks}" if (batt_weeks := tilt.batt_weeks) else ""  # tilt.tx_power
-            self.lcd.text(msg, 0, line4_v, scale=1)  # 0.8)
-            # line4 tx_power field?
-            self.lcd.text(
-                msg3, r_align(self.lcd, msg3, 0.75, width), line4_v, scale=0.75
-            )  # 0.8)
-            # line 4 uncal sg centred beween temp & tx_power
-            #spacing = (
-            #    width - self.lcd.measure_text(f"{msg}{msg2}{msg3}", scale=1)
-            #) // 2
-            spacing = (
-                width - self.lcd.measure_text(f"{msg}{msg2}", scale=1)
-            )
-            spacing -= self.lcd.measure_text(f"{msg3}", scale=0.75)
-            spacing = spacing // 2
-            spacing += self.lcd.measure_text(f"{msg}", scale=1)
-            self.lcd.text(f"{uncal_sg:.{n}f}", spacing, line4_v, scale=1)
+            self.vector.text(msg, 0, line1_v, max_width=WIDTH)
+            #x, y, w, h = bridge.display.vector.measure_text(msg, x=0, y=0, angle=None)
+            #print(f"{x:},{y:},{w:},{h:}")
+            
+            if getattr(self.config, "default_temp_unit") == "C":
+                unit = "C"
+                tval = tilt_values.temp_celsius
+            else:
+                tval = tilt_values.temp_fahrenheit
+                unit = "F"
+            self.vector.text(f"{tval:.1f}°{unit}", 0, line2_v, max_width=WIDTH)
+            
+            self.vector.set_font("/vfs/OpenSans-Light.af", 33)
+            # line4 uncal SG & temp
+            self.vector.text(f"{uncal_sg:.{n}f}  {uncal_temp:.1f}", 0, line4_v, max_width=WIDTH)
+            
+            # RSSI line3
+            self.vector.set_font_align(HALIGN_LEFT)
+            self.vector.text(f"RSSI:{tilt.rssi}", 3, line3_v, max_width=WIDTH)
+            # colour line3
+            self.vector.set_font_align(HALIGN_RIGHT)
+            self.vector.text(f"{tilt.colour}", 0, line3_v, max_width=WIDTH-3)            
+            
+            # line 4 battery age, if present
+            msg = f"{batt_weeks}" if (batt_weeks := tilt.batt_weeks) else ""
+            if msg:
+                self.vector.set_font("/vfs/OpenSans-Light.af", 20)
+                self.vector.text(f"{msg}", 0, line4_v, max_width=WIDTH-3)
         else:
             # no data
-            self.lcd.set_thickness(2)
-            msg = "waiting"
-            self.lcd.text(msg, c_align(self.lcd, msg, 1, width), 30, scale=1)
-            msg = "for"
-            self.lcd.text(msg, c_align(self.lcd, msg, 1, width), 60, scale=1)
-            msg = "data"
-            self.lcd.text(msg, c_align(self.lcd, msg, 1, width), 90, scale=1)
-            self.lcd.set_thickness(1)
-            msg = tilt.colour
-            self.lcd.text(msg, r_align(self.lcd, msg, 1, width), line4_v - 5, scale=1)
+            self.vector.set_font("/vfs/OpenSans-SemiBold.af", 50)
+            self.vector.text("waiting for", 0, 60, max_width=WIDTH)
+            #self.vector.text("for", 0, line2_v, max_width=WIDTH)
+            self.vector.text("data", 0, 100, max_width=WIDTH)
+            self.vector.set_font("/vfs/OpenSans-Light.af", 33)
+            self.vector.set_font_align(HALIGN_RIGHT)
+            self.vector.text(f"{tilt.colour}", 0, 125, max_width=WIDTH-3)
         gc.collect()
         self.update_indicator() # blinky
         # t1 = time.ticks_ms()
@@ -281,48 +216,36 @@ class LCD_Display:
 
     async def display_extended(self, tilt, tilt_values):
         #
-        self.lcd.set_font("serif")
+        #self.lcd.set_font("serif")
         self.lcd.set_pen(self.colour_to_palette["BG"])
-        '''self.lcd.polygon([
-          (0, 0),
-          (240, 0),
-          (240, 135),
-          (0, 135),
-          (0, 70),
-          (10, 70),
-          (10, 60),
-          (0, 60),
-        ])'''
         self.lcd.clear()
         self.lcd.set_pen(self.colour_to_palette[tilt.colour.upper()])
+        self.vector.set_font_align(HALIGN_CENTER)
+        self.vector.set_font("/vfs/OpenSans-SemiBold.af", 62)
         # t1 = time.ticks_ms()
-        width, height = self.lcd.get_bounds()
+        WIDTH, HEIGHT = self.lcd.get_bounds()
         # t_start = time.ticks_ms()
-        line1_v = 20
-        line2_v = 60
-        line3_v = 95  # 100
-        line4_v = 125
-        self.lcd.set_thickness(3)
+        line1_v = 40
+        line2_v = 80
+        line3_v = 105
+        line4_v = 130
         # ABV
-        self.lcd.text(
-            f"ABV:{tilt_values.alcohol_by_volume:.1f}%", 0, line1_v, scale=1.5
-        )
+        self.vector.text(f"ABV:{tilt_values.alcohol_by_volume:.1f}%", 0, line1_v, max_width=WIDTH)
         # AA
-        msg = "AA:100%"
-        spacing = 33  # display.lcd.measure_text("ABV", 1.5) - display.lcd.measure_text("AA", 1.5)
-        self.lcd.text(
-            f"AA:{tilt_values.apparent_attenuation:.0f}%", spacing, line2_v, scale=1.5
-        )
-        self.lcd.set_thickness(1)
-        # line3 rssi left aligned, RSSI:-52
-        msg = f"RSSI:{tilt.rssi}"
-        self.lcd.text(msg, 0, line3_v, scale=1)  # 0.8)
-        # tilt colour
-        msg = tilt.colour
-        self.lcd.text(msg, r_align(self.lcd, msg, 1, width), line3_v, scale=1)  # 0.8)
+        self.vector.text(f"AA:{tilt_values.apparent_attenuation:.0f}%", 0, line2_v, max_width=WIDTH)
+        
+        self.vector.set_font("/vfs/OpenSans-Light.af", 33)
+        # colour line3
+        self.vector.set_font_align(HALIGN_RIGHT)
+        self.vector.text(f"{tilt.colour}", 0, line3_v, max_width=WIDTH-3)
+        # RSSI line3
+        self.vector.set_font_align(HALIGN_LEFT)
+        self.vector.text(f"RSSI:{tilt.rssi}", 3, line3_v, max_width=WIDTH)
+        
         # OG
         n = 4 if tilt.hd else 3
-        self.lcd.text(f"OG:{tilt_values.original_gravity:.{n}f}", 0, line4_v, scale=1)
+        self.vector.text(f"OG:{tilt_values.original_gravity:.{n}f}", 3, line4_v, max_width=WIDTH)
+        
         gc.collect()
         self.update_indicator() # blinky
         # t1 = time.ticks_ms()
@@ -435,4 +358,4 @@ def r_align(lcd_obj, txt, sz, width):
     return int(width - lcd_obj.measure_text(txt, sz))
 
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"

@@ -1,3 +1,20 @@
+## Vector Fonts
+As of v1.3.0 the text is implemented using Pimoroni's PicoVector & Alright Fonts, converted with the [afinate utility](https://github.com/Gadgetoid/alright-fonts/tree/feature/16bit-afinate). To keep the files as small as practical the character set is limited to:
+```
+.:° 0123456789ABVOGSRICFblueackrdgnoywpitf%
+```
+a command as per the following converts the TTF to the AF format which can be used by vector fonts.
+```
+python ./afinate --font ttf/OpenSans-Light.ttf --quality high --corpus ltd-chars.txt OpenSans-Light.af
+```
+
+
+The .af font files are further processed, coverted to binary representations in a Pyhton file so that they can be frozen into the firmware. The self extracing MicroPython archive utility [freezefs](https://github.com/bixb922/freezefs) is used for this process with a command like:
+```
+python -m freezefs ".\release1-3-0_fonts_\vfs" vfs_fonts.py
+```
+where the folder ".\release1-3-0_fonts_\vfs" contains the font files. The output file "vfs_fonts.py" is then imported in the display_driver.py module, at which point the files are accessible (read-only) at \vfs
+
 ## Build Notes
 
 Some early build notes, because I will forget /these may be of use to someone else. Additional repos are required, from Micropython & Pimoroni. Currently I am using Pimoroni picographics library and Hershey fonts, these it seems will be deprecated, but works for now.
